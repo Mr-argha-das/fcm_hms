@@ -1,0 +1,115 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- KPI CARDS -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card kpi">
+      <div><small>Total Patients</small><h3>{{ total_patients }}</h3></div>
+      <span class="icon">🧑‍🦽</span>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <div><small>Active Nurses</small><h3>{{ active_nurses }}</h3></div>
+      <span class="icon">👩‍⚕️</span>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <div><small>Doctors</small><h3>{{ total_doctors }}</h3></div>
+      <span class="icon">👨‍⚕️</span>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <div><small>Monthly Revenue</small><h3>₹ {{ monthly_revenue }}</h3></div>
+      <span class="icon">💰</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- LEFT -->
+  <div class="col-md-8">
+
+    <!-- CHART -->
+    <div class="card mb-4">
+      <h5>Patient Overview</h5>
+      <p class="text-muted">Admissions in last 7 days</p>
+      <canvas id="patientChart" height="220"></canvas>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div class="card">
+      <h5>Recent Activity</h5>
+      <ul class="activity">
+        {% for item in recent_activity %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col-md-4">
+
+    <!-- SOS -->
+    <div class="card sos mb-4">
+      <h5>🚨 SOS Alerts</h5>
+      {% for sos in sos_alerts %}
+        <div class="sos-item">
+          <strong>SOS Triggered</strong>
+          <div>Patient ID: {{ sos.patient.id if sos.patient else "Unknown" }}</div>
+          <div>{{ sos.created_at.strftime("%d %b %H:%M") }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- TODAY SCHEDULE -->
+    <div class="card">
+      <h5>Today Schedule</h5>
+      <ul class="schedule">
+        {% if today_schedule %}
+          {% for item in today_schedule %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        {% else %}
+          <li class="text-muted">No schedule for today</li>
+        {% endif %}
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- CHART JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('patientChart');
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: {{ chart_labels | safe }},
+    datasets: [{
+      label: 'Admissions',
+      data: {{ chart_values | safe }},
+      borderWidth: 3,
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+
+{% endblock %}

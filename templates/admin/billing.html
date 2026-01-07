@@ -1,0 +1,133 @@
+{% extends "admin/base.html" %}
+{% block title %}Billing{% endblock %}
+
+{% block content %}
+
+<!-- BILLING CARD -->
+<div class="card mb-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Billing</h5>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary">
+        📄 View Invoices
+      </button>
+
+      <button class="btn btn-sm btn-primary">
+        ➕ Create Invoice
+      </button>
+    </div>
+  </div>
+
+  <!-- CREATE INVOICE FORM (UI SAME – backend later) -->
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Patient ID</label>
+      <input type="text" class="form-control" placeholder="Enter Patient ID">
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Invoice Amount (₹)</label>
+      <input type="number" class="form-control" placeholder="Enter Amount">
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end">
+      <button class="btn btn-success w-100">
+        💾 Generate Invoice
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- INVOICE LIST -->
+<div class="card">
+
+  <h6 class="mb-3">Recent Invoices</h6>
+
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Invoice ID</th>
+        <th>Patient</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if invoices %}
+        {% for inv in invoices %}
+        <tr>
+
+          <!-- INVOICE ID -->
+          <td>
+            {{ inv.id }}
+          </td>
+
+          <!-- PATIENT -->
+          <td>
+            {{ inv.patient.user.phone if inv.patient and inv.patient.user else "Unknown" }}
+          </td>
+
+          <!-- AMOUNT -->
+          <td>
+            ₹ {{ inv.total_amount }}
+          </td>
+
+          <!-- DATE -->
+          <td>
+            {{ inv.created_at.strftime("%d %b %Y") }}
+          </td>
+
+          <!-- STATUS -->
+          <td>
+            {% if inv.status == "PAID" %}
+              <span class="badge bg-success">Paid</span>
+            {% elif inv.status == "PARTIAL" %}
+              <span class="badge bg-warning text-dark">Partial</span>
+            {% else %}
+              <span class="badge bg-danger">Due</span>
+            {% endif %}
+          </td>
+
+          <!-- ACTIONS -->
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-primary" title="View Invoice">
+              👁️
+            </button>
+
+            {% if inv.invoice_pdf %}
+              <a href="{{ inv.invoice_pdf }}"
+                 class="btn btn-sm btn-outline-secondary"
+                 title="Download PDF">
+                ⬇️
+              </a>
+            {% endif %}
+
+            {% if inv.status != "PAID" %}
+              <button class="btn btn-sm btn-outline-success" title="Mark as Paid">
+                💰
+              </button>
+            {% endif %}
+          </td>
+
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">
+            No invoices found
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+</div>
+
+{% endblock %}

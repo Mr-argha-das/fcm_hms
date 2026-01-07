@@ -1,0 +1,5 @@
+# app/core/config.py
+
+DEFAULT_ADMIN_PHONE = "9509961818"
+DEFAULT_ADMIN_EMAIL = "admin@crm.com"
+DEFAULT_ADMIN_PASSWORD = "Admin@123"

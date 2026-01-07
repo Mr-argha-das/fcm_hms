@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Users</h5>
+    <button class="btn btn-sm btn-primary">+ Add User</button>
+  </div>
+
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Phone</th>
+        <th>Role</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- SAMPLE DATA -->
+      <tr>
+        <td>+91 98765 43210</td>
+        <td><span class="badge bg-primary">Admin</span></td>
+        <td><span class="badge bg-success">Active</span></td>
+      </tr>
+
+      <tr>
+        <td>+91 91234 56789</td>
+        <td><span class="badge bg-info text-dark">Doctor</span></td>
+        <td><span class="badge bg-success">Active</span></td>
+      </tr>
+
+      <tr>
+        <td>+91 99887 66554</td>
+        <td><span class="badge bg-warning text-dark">Nurse</span></td>
+        <td><span class="badge bg-secondary">Inactive</span></td>
+      </tr>
+
+      <tr>
+        <td>+91 90909 12345</td>
+        <td><span class="badge bg-dark">Relative</span></td>
+        <td><span class="badge bg-success">Active</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

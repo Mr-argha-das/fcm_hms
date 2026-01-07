@@ -1,0 +1,49 @@
+<div class="sidebar">
+  <h3 class="brand">🏥 WellNest</h3>
+
+  <a href="/admin/dashboard"
+     class="{% if request.url.path == '/admin/dashboard' %}active{% endif %}">
+    📊 Dashboard
+  </a>
+
+  <a href="/admin/nurses"
+     class="{% if request.url.path == '/admin/nurses' %}active{% endif %}">
+    👩‍⚕️ Nurses
+  </a>
+
+  <a href="/admin/doctors"
+     class="{% if request.url.path == '/admin/doctors' %}active{% endif %}">
+    👨‍⚕️ Doctors
+  </a>
+
+  <a href="/admin/patients"
+     class="{% if request.url.path == '/admin/patients' %}active{% endif %}">
+    🧑‍🦽 Patients
+  </a>
+
+  <a href="/admin/billing"
+     class="{% if request.url.path == '/admin/billing' %}active{% endif %}">
+    💳 Billing
+  </a>
+
+  <a href="/admin/sos"
+     class="{% if request.url.path == '/admin/sos' %}active{% endif %}">
+    🚨 SOS
+  </a>
+
+  <a href="/admin/complaints"
+     class="{% if request.url.path == '/admin/complaints' %}active{% endif %}">
+    📝 Complaints
+  </a>
+
+  <a href="/admin/notifications"
+     class="{% if request.url.path == '/admin/notifications' %}active{% endif %}">
+    🔔 Notifications
+  </a>
+
+  <div class="mt-auto">
+    <a href="/admin/login" onclick="logout()" class="logout">
+      🚪 Logout
+    </a>
+  </div>
+</div>

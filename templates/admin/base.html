@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Admin{% endblock %}</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/admin/ui.css">
+</head>
+
+<body onload="guard()">
+<script src="/static/admin/layout.js"></script>
+
+<!-- SIDEBAR -->
+{% include "admin/partials/sidebar.html" %}
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    {% block topbar %}
+      <input class="search" placeholder="Search patients, nurses, doctors">
+      <div class="admin-badge">Admin</div>
+    {% endblock %}
+  </div>
+
+  <!-- PAGE CONTENT -->
+  {% block content %}{% endblock %}
+
+</div>
+</body>
+</html>

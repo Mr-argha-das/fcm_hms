@@ -1,0 +1,102 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Complaints{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Complaints</h5>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+        🔄 Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- COMPLAINTS TABLE -->
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>User</th>
+        <th>Role</th>
+        <th>Message</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if complaints %}
+        {% for c in complaints %}
+        <tr>
+
+          <!-- USER -->
+          <td>
+            {{ c.raised_by.phone if c.raised_by else "Unknown" }}
+          </td>
+
+          <!-- ROLE -->
+          <td>
+            <span class="badge bg-info text-dark">
+              {{ c.raised_by.role if c.raised_by else "N/A" }}
+            </span>
+          </td>
+
+          <!-- MESSAGE -->
+          <td class="text-muted">
+            {{ c.message[:60] }}{% if c.message|length > 60 %}...{% endif %}
+          </td>
+
+          <!-- DATE -->
+          <td>
+            {{ c.id.generation_time.strftime("%d %b %Y") }}
+          </td>
+
+          <!-- STATUS -->
+          <td>
+            {% if c.status == "OPEN" %}
+              <span class="badge bg-warning text-dark">Open</span>
+            {% elif c.status == "IN_PROGRESS" %}
+              <span class="badge bg-info text-dark">In Progress</span>
+            {% else %}
+              <span class="badge bg-success">Resolved</span>
+            {% endif %}
+          </td>
+
+          <!-- ACTIONS -->
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-primary" title="View">
+              👁️
+            </button>
+
+            {% if c.status != "RESOLVED" %}
+              <button class="btn btn-sm btn-outline-warning" title="Assign">
+                🧑‍🔧
+              </button>
+
+              <button class="btn btn-sm btn-outline-success" title="Resolve">
+                ✅
+              </button>
+            {% endif %}
+          </td>
+
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">
+            No complaints found
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+</div>
+
+{% endblock %}
