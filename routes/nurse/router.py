@@ -284,7 +284,7 @@ def sign_consent(
     return {"message": "Consent signed", "id": str(consent.id)}
 
 
-@router.post("/nurse/visit")
+@router.post("/visit")
 def nurse_create_visit(
     payload: NurseVisitCreate,
     current_user: User = Depends(get_current_user)
@@ -522,7 +522,7 @@ def create_vitals(
     ).save()
 
     return {"message": "Vitals saved successfully"}
-@router.post("/nurse/patients/{patient_id}/notes")
+@router.post("/patients/{patient_id}/notes")
 def add_daily_note(
     patient_id: str,
     note: str,
@@ -546,7 +546,7 @@ def add_daily_note(
 
     return {"message": "Note saved"}
 
-@router.get("/nurse/patients/{patient_id}/notes")
+@router.get("/patients/{patient_id}/notes")
 def get_notes(patient_id: str, user=Depends(get_current_user)):
 
     if user.role != "NURSE":
@@ -563,7 +563,7 @@ def get_notes(patient_id: str, user=Depends(get_current_user)):
         }
         for n in notes
     ]
-@router.get("/nurse/patients/{patient_id}/medications")
+@router.get("/patients/{patient_id}/medications")
 def get_medications(patient_id: str, user=Depends(get_current_user)):
 
     if user.role != "NURSE":
@@ -580,7 +580,7 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
         }
         for m in meds
     ]
-@router.get("/nurse/visits")
+@router.get("/visitsss")
 def list_visits(user=Depends(get_current_user)):
 
     if user.role != "NURSE":
@@ -599,7 +599,7 @@ def list_visits(user=Depends(get_current_user)):
         }
         for v in visits
     ]
-@router.post("/nurse/visits/{visit_id}/complete")
+@router.post("/visits/{visit_id}/complete")
 def complete_visit(
     visit_id: str,
     notes: str = "Visit completed",
