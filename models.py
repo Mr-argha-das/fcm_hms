@@ -68,7 +68,7 @@ class NurseAttendance(Document):
     date = DateField()
     check_in = DateTimeField()
     check_out = DateTimeField()
-    method = StringField(choices=["FACE", "MANUAL"])
+    method = StringField(choices=["FACE", "MANUAL", "BIOMETRIC"])
 class NurseSalary(Document):
     nurse = ReferenceField(NurseProfile)
 

@@ -15,7 +15,7 @@
 </div>
 <script>
 async function login(){
- const r = await fetch("http://localhost:8000/auth/login-password",{
+ const r = await fetch("http://localhost:8080/auth/login-password",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body:JSON.stringify({phone:phone.value,password:password.value})

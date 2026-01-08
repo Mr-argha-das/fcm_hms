@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from core.dependencies import get_current_user
 from models import (
     NurseProfile, NurseDuty, NurseAttendance,
-    NurseSalary, NurseConsent, NurseVisit, PatientProfile, User
+    NurseSalary, NurseConsent, NurseVisit, PatientProfile, User, PatientVitals, PatientDailyNote, PatientMedication
 )
 from routes.auth.schemas import NurseVisitCreate
 from .utils import ensure_consent_active, ensure_duty_time
@@ -11,23 +11,102 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import date
 class NurseCreateRequest(BaseModel):
-    phone: str
-    email: Optional[EmailStr] = None
 
-    nurse_type: str = Field(..., example="GNM")
-    aadhaar_number: Optional[str] = None
-
-    qualification_docs: List[str] = []
-    experience_docs: List[str] = []
-
-    joining_date: Optional[date] = None
+    phone: str = Field(..., example="9876543210")
+    email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
+    # -------- NURSE PROFILE --------
+    nurse_type: str = Field(
+        ...,
+        example="GNM",
+        description="GNM | ANM | CARETAKER | PHYSIO | COMBO"
+    )
+    aadhaar_number: Optional[str] = Field(
+        None,
+        example="123412341234"
+    )
+    qualification_docs: List[str] = Field(
+        default_factory=list,
+        example=["uploads/documents/gnm_certificate.pdf"]
+    )
+    experience_docs: List[str] = Field(
+        default_factory=list,
+        example=["uploads/documents/experience_2yrs.pdf"]
+    )
+    profile_photo: Optional[str] = Field(
+        None,
+        example="uploads/nurses/profile.jpg"
+    )
+    digital_signature: Optional[str] = Field(
+        None,
+        example="uploads/signatures/sign.png"
+    )
+    joining_date: Optional[date] = Field(
+        None,
+        example="2026-01-07"
+    )
+    resignation_date: Optional[date] = Field(
+        None,
+        example="2027-01-07"
+    )
 
 class NurseResponse(BaseModel):
     nurse_id: str
     user_id: str
     verification_status: str
 router = APIRouter(prefix="/nurse", tags=["Nurse"])
+
 @router.post("/create", response_model=NurseResponse)
+def create_nurse(payload: NurseCreateRequest):
+
+    # 1️⃣ Duplicate phone check
+    if User.objects(phone=payload.phone).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number already registered"
+        )
+
+    # 2️⃣ Create User
+    user = User(
+        role="NURSE",
+        phone=payload.phone,
+        email=payload.email,
+        otp_verified=False,
+        is_active=True,
+        created_at=datetime.utcnow()
+    )
+    user.save()
+
+    # 3️⃣ Create Nurse Profile (1:1 table mapping)
+    nurse = NurseProfile(
+        user=user,
+
+        nurse_type=payload.nurse_type,
+
+        aadhaar_number=payload.aadhaar_number,
+        aadhaar_verified=False,   # backend controlled
+
+        qualification_docs=payload.qualification_docs,
+        experience_docs=payload.experience_docs,
+
+        profile_photo=payload.profile_photo,
+        digital_signature=payload.digital_signature,
+
+        joining_date=payload.joining_date,
+        resignation_date=payload.resignation_date,
+
+        verification_status="PENDING",
+        police_verification_status="PENDING",
+
+        created_at=datetime.utcnow()
+    )
+    nurse.save()
+
+    # 4️⃣ Response
+    return NurseResponse(
+        nurse_id=str(nurse.id),
+        user_id=str(user.id),
+        verification_status=nurse.verification_status
+    )
 def create_nurse(payload: NurseCreateRequest):
 
     # 1️⃣ Check duplicate phone
@@ -158,6 +237,29 @@ def advance_request(amount: float, user=Depends(get_current_user)):
     salary.save()
 
     return {"message": "Advance granted"}
+@router.get("/duty/status")
+def duty_status(user=Depends(get_current_user)):
+    nurse = NurseProfile.objects(user=user).first()
+    duty = NurseDuty.objects(nurse=nurse).order_by("-created_at").first()
+
+    if not duty:
+        return {
+            "can_punch_in": True,
+            "can_punch_out": False,
+        }
+
+    if duty.check_in and not duty.check_out:
+        return {
+            "can_punch_in": False,
+            "can_punch_out": True,
+        }
+
+    if duty.check_out:
+        return {
+            "can_punch_in": True,
+            "can_punch_out": False,
+        }
+
 @router.post("/consent/sign")
 def sign_consent(
     shift_type: str,
@@ -301,3 +403,221 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
 
         "weekly_hours": weekly_hours
     }
+@router.get("/patients")
+def get_nurse_patients(user=Depends(get_current_user)):
+
+    # 1️⃣ Role check
+    if user.role != "NURSE":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # 2️⃣ Nurse profile
+    nurse = NurseProfile.objects(user=user).first()
+    if not nurse:
+        raise HTTPException(status_code=404, detail="Nurse profile not found")
+
+    patients_map = {}
+
+    # 3️⃣ ACTIVE DUTIES (PRIMARY SOURCE)
+    duties = NurseDuty.objects(
+        nurse=nurse,
+        is_active=True
+    )
+
+    for duty in duties:
+        patient = duty.patient
+        if not patient:
+            continue
+
+        patient_user = patient.user
+
+        patients_map[str(patient.id)] = {
+            "patient_id": str(patient.id),
+            "name": patient_user.email.split("@")[0].title() if patient_user and patient_user.email else None,
+            "phone": patient_user.phone if patient_user else None,
+            "age": patient.age,
+            "gender": patient.gender,
+            "ward": duty.shift,        # optional mapping
+            "room_no": duty.duty_type, # optional mapping
+            "source": "DUTY",
+            "active": True
+        }
+
+    # 4️⃣ VISITS (SECONDARY SOURCE – if no active duty)
+    visits = NurseVisit.objects(nurse=nurse)
+
+    for visit in visits:
+        patient = visit.patient
+        if not patient:
+            continue
+
+        pid = str(patient.id)
+        if pid in patients_map:
+            continue  # already added from duty
+
+        patient_user = patient.user
+
+        patients_map[pid] = {
+            "patient_id": pid,
+            "name": patient_user.email.split("@")[0].title() if patient_user and patient_user.email else None,
+            "phone": patient_user.phone if patient_user else None,
+            "age": patient.age,
+            "gender": patient.gender,
+            "ward": visit.ward,
+            "room_no": visit.room_no,
+            "source": "VISIT",
+            "active": False
+        }
+
+    # 5️⃣ Final response
+    return {
+        "count": len(patients_map),
+        "patients": list(patients_map.values())
+    }
+
+
+@router.get("/patients/{patient_id}")
+def get_patient_dashboard(patient_id: str, user=Depends(get_current_user)):
+
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    patient_user = patient.user
+
+    return {
+        "patient_id": str(patient.id),
+        "name": patient_user.email.split("@")[0] if patient_user.email else "",
+        "age": patient.age,
+        "gender": patient.gender,
+        "medical_history": patient.medical_history,
+    }
+@router.post("/patients/{patient_id}/vitals")
+def create_vitals(
+    patient_id: str,
+    bp: str,
+    pulse: int,
+    spo2: int,
+    temperature: float,
+    sugar: float = None,
+    user=Depends(get_current_user)
+):
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    PatientVitals(
+        patient=patient,
+        bp=bp,
+        pulse=pulse,
+        spo2=spo2,
+        temperature=temperature,
+        sugar=sugar,
+        recorded_at=datetime.utcnow()
+    ).save()
+
+    return {"message": "Vitals saved successfully"}
+@router.post("/nurse/patients/{patient_id}/notes")
+def add_daily_note(
+    patient_id: str,
+    note: str,
+    user=Depends(get_current_user)
+):
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    nurse = NurseProfile.objects(user=user).first()
+    patient = PatientProfile.objects(id=patient_id).first()
+
+    if not nurse or not patient:
+        raise HTTPException(404, "Invalid nurse or patient")
+
+    PatientDailyNote(
+        patient=patient,
+        nurse=nurse,
+        note=note,
+        created_at=datetime.utcnow()
+    ).save()
+
+    return {"message": "Note saved"}
+
+@router.get("/nurse/patients/{patient_id}/notes")
+def get_notes(patient_id: str, user=Depends(get_current_user)):
+
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    notes = PatientDailyNote.objects(
+        patient=patient_id
+    ).order_by("-created_at")
+
+    return [
+        {
+            "note": n.note,
+            "created_at": n.created_at
+        }
+        for n in notes
+    ]
+@router.get("/nurse/patients/{patient_id}/medications")
+def get_medications(patient_id: str, user=Depends(get_current_user)):
+
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    meds = PatientMedication.objects(patient=patient_id)
+
+    return [
+        {
+            "medicine": m.medicine_name,
+            "dosage": m.dosage,
+            "timing": m.timing,
+            "duration_days": m.duration_days
+        }
+        for m in meds
+    ]
+@router.get("/nurse/visits")
+def list_visits(user=Depends(get_current_user)):
+
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    nurse = NurseProfile.objects(user=user).first()
+    visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")
+
+    return [
+        {
+            "visit_id": str(v.id),
+            "patient_name": v.patient.user.email.split("@")[0],
+            "address": f"Ward {v.ward}, Room {v.room_no}",
+            "visit_time": v.visit_time,
+            "completed": bool(v.notes)
+        }
+        for v in visits
+    ]
+@router.post("/nurse/visits/{visit_id}/complete")
+def complete_visit(
+    visit_id: str,
+    notes: str = "Visit completed",
+    user=Depends(get_current_user)
+):
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    nurse = NurseProfile.objects(user=user).first()
+    visit = NurseVisit.objects(id=visit_id, nurse=nurse).first()
+
+    if not visit:
+        raise HTTPException(404, "Visit not found")
+
+    if visit.notes:
+        raise HTTPException(400, "Visit already completed")
+
+    visit.notes = notes
+    visit.save()
+
+    return {"message": "Visit marked completed"}
