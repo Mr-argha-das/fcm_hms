@@ -1,3 +1,4 @@
+from calendar import calendar
 from fastapi import APIRouter, Depends, HTTPException,status
 from datetime import datetime, timedelta
 from core.dependencies import get_current_user
@@ -10,6 +11,7 @@ from .utils import ensure_consent_active, ensure_duty_time
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import date
+import calendar as cal
 class NurseCreateRequest(BaseModel):
 
     phone: str = Field(..., example="9876543210")
@@ -621,3 +623,81 @@ def complete_visit(
     visit.save()
 
     return {"message": "Visit marked completed"}
+
+@router.get("/attendance")
+def nurse_month_attendance(
+    month: str = None,   # YYYY-MM
+    user=Depends(get_current_user)
+):
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    nurse = NurseProfile.objects(user=user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse profile not found")
+
+    today = date.today()
+
+    if month:
+        year, mon = map(int, month.split("-"))
+        start_date = date(year, mon, 1)
+    else:
+        start_date = date(today.year, today.month, 1)
+
+    _, last_day = cal.monthrange(start_date.year, start_date.month)
+
+    # 🔥 IMPORTANT FIX: limit till today if current month
+    if start_date.year == today.year and start_date.month == today.month:
+        max_day = today.day
+    else:
+        max_day = last_day
+
+    records = NurseAttendance.objects(
+        nurse=nurse,
+        date__gte=start_date,
+        date__lte=date(start_date.year, start_date.month, max_day)
+    )
+
+    record_map = {r.date: r for r in records}
+
+    daily = []
+    present = absent = half = 0
+
+    for d in range(1, max_day + 1):
+        curr_date = date(start_date.year, start_date.month, d)
+        rec = record_map.get(curr_date)
+
+        status = "ABSENT"
+
+        if rec and rec.check_in:
+            if rec.check_out:
+                hours = (rec.check_out - rec.check_in).total_seconds() / 3600
+                if hours >= 8:
+                    status = "PRESENT"
+                    present += 1
+                elif hours >= 4:
+                    status = "HALF"
+                    half += 1
+                else:
+                    absent += 1
+            else:
+                status = "HALF"
+                half += 1
+        else:
+            absent += 1
+
+        daily.append({
+            "day": d,
+            "date": curr_date.isoformat(),
+            "status": status
+        })
+
+    return {
+        "month": start_date.strftime("%Y-%m"),
+        "summary": {
+            "present": present,
+            "absent": absent,
+            "half": half
+        },
+        "attendance": daily
+    }
