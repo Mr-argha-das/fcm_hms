@@ -24,8 +24,10 @@ app = FastAPI(title="Hospital Management System")
 init_db()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all
-    allow_credentials=False,  # must be False if using "*"
+    allow_origins=[
+        "https://waltraud-unmalleable-fecklessly.ngrok-free.dev"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
