@@ -6,7 +6,8 @@ class User(Document):
         choices=["ADMIN", "NURSE", "DOCTOR", "PATIENT", "RELATIVE"],
         required=True
     )
-
+    name = StringField(required=True)
+    father_name = StringField(required=False)
     phone = StringField(required=True, unique=True)
     email = EmailField()
     password_hash = StringField()     # Admin / Doctor

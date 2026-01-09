@@ -496,3 +496,58 @@ def nurse_edit_page(nurse_id: str, request: Request):
             "consent": consent
         }
     )
+@router.get("/create/doctor", response_class=HTMLResponse)
+def doctor_create_page(request: Request):
+    return templates.TemplateResponse(
+        "admin/doctor_create.html",
+        {"request": request}
+    )
+
+@router.get("/doctors/{doctor_id}", response_class=HTMLResponse)
+def doctor_detail_page(doctor_id: str, request: Request):
+    doctor = DoctorProfile.objects(id=doctor_id).first()
+    if not doctor:
+        raise HTTPException(404, "Doctor not found")
+
+    user = doctor.user
+
+    # 🔹 Visits
+    visits = DoctorVisit.objects(
+        doctor=doctor
+    ).order_by("-visit_time")[:10]
+
+    total_visits = DoctorVisit.objects(doctor=doctor).count()
+
+    # 🔹 Assigned patients (unique)
+    patient_ids = DoctorVisit.objects(
+        doctor=doctor
+    ).distinct("patient")
+
+    total_patients = len(patient_ids)
+
+    return templates.TemplateResponse(
+        "admin/doctor_detail.html",
+        {
+            "request": request,
+            "doctor": doctor,
+            "user": user,
+            "visits": visits,
+            "total_visits": total_visits,
+            "total_patients": total_patients
+        }
+    )
+
+@router.get("/doctors/{doctor_id}/edit", response_class=HTMLResponse)
+def doctor_edit_page(doctor_id: str, request: Request):
+    doctor = DoctorProfile.objects(id=doctor_id).first()
+    if not doctor:
+        raise HTTPException(404, "Doctor not found")
+
+    return templates.TemplateResponse(
+        "admin/doctor_edit.html",
+        {
+            "request": request,
+            "doctor": doctor,
+            "user": doctor.user
+        }
+    )

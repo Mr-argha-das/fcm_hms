@@ -16,6 +16,8 @@ import calendar as cal
 class NurseCreateRequest(BaseModel):
 
     phone: str = Field(..., example="9876543210")
+    name: str = Field(..., example="Sruti Das")
+    father_name: Optional[str] = Field(None, example="Ram Das")
     email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
     # -------- NURSE PROFILE --------
     nurse_type: str = Field(
@@ -103,7 +105,9 @@ def create_nurse(payload: NurseCreateRequest):
         role="NURSE",
         phone=payload.phone,
         email=payload.email,
-        is_active=True
+        is_active=True,
+        name=payload.name,
+        father_name=payload.father_name
     ).save()
 
     nurse = NurseProfile(

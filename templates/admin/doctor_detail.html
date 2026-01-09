@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+{% block title %}Doctor Details{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4 d-flex flex-row justify-content-between align-items-center">
+  <div>
+    <h4>{{ user.phone }}</h4>
+    <p class="mb-1">{{ doctor.specialization }}</p>
+    <span class="badge bg-info">{{ doctor.registration_number }}</span>
+    {% if doctor.available %}
+      <span class="badge bg-success">Available</span>
+    {% else %}
+      <span class="badge bg-secondary">Unavailable</span>
+    {% endif %}
+  </div>
+
+  <a href="/admin/doctors/{{ doctor.id }}/edit"
+     class="btn btn-outline-warning">
+    ✏️ Edit Doctor
+  </a>
+</div>
+
+<!-- KPIs -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card kpi">
+      <small>Total Visits</small>
+      <h3>{{ total_visits }}</h3>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card kpi">
+      <small>Total Patients</small>
+      <h3>{{ total_patients }}</h3>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card kpi">
+      <small>Experience</small>
+      <h3>{{ doctor.experience_years }} yrs</h3>
+    </div>
+  </div>
+</div>
+
+<!-- VISITS -->
+<div class="card">
+  <h5>Recent Visits</h5>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Patient</th>
+        <th>Type</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in visits %}
+      <tr>
+        <td>{{ v.patient.user.phone }}</td>
+        <td>{{ v.visit_type }}</td>
+        <td>{{ v.visit_time.strftime("%d %b %Y %H:%M") }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3" class="text-muted text-center">No visits yet</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
