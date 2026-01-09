@@ -6,7 +6,8 @@ class User(Document):
         choices=["ADMIN", "NURSE", "DOCTOR", "PATIENT", "RELATIVE"],
         required=True
     )
-
+    name = StringField(required=False)
+    father_name = StringField(required=False)
     phone = StringField(required=True, unique=True)
     email = EmailField()
     password_hash = StringField()     # Admin / Doctor
@@ -68,7 +69,7 @@ class NurseAttendance(Document):
     date = DateField()
     check_in = DateTimeField()
     check_out = DateTimeField()
-    method = StringField(choices=["FACE", "MANUAL"])
+    method = StringField(choices=["FACE", "MANUAL", "BIOMETRIC"])
 class NurseSalary(Document):
     nurse = ReferenceField(NurseProfile)
 
@@ -83,24 +84,50 @@ class NurseSalary(Document):
 
     created_at = DateTimeField(default=datetime.utcnow)
 class NurseConsent(Document):
-    nurse = ReferenceField(NurseProfile)
+    nurse = ReferenceField(NurseProfile, required=True)
 
-    shift_type = StringField(choices=["DAY", "NIGHT", "24_HOURS"])
-    duty_hours = IntField()
+    # 🔹 Duty Terms (ADMIN SET)
+    shift_type = StringField(
+        choices=["DAY", "NIGHT", "24_HOURS"],
+        required=True
+    )
+    duty_hours = IntField(required=True)
 
-    salary_type = StringField(choices=["DAILY", "MONTHLY"])
-    salary_amount = FloatField()
-    payment_mode = StringField(choices=["CASH", "BANK", "UPI"])
-    salary_date = IntField()
+    # 🔹 Salary (ADMIN CONTROLLED)
+    salary_type = StringField(
+        choices=["DAILY", "MONTHLY"],
+        required=True
+    )
+    salary_amount = FloatField(required=True)
+    payment_mode = StringField(
+        choices=["CASH", "BANK", "UPI"],
+        required=True
+    )
+    salary_date = IntField(required=True)  # 1–31
 
-    confidentiality_accepted = BooleanField()
-    no_direct_payment_accepted = BooleanField()
-    police_termination_accepted = BooleanField()
+    # 🔹 Legal Acceptances (NURSE ACTION)
+    confidentiality_accepted = BooleanField(default=False)
+    no_direct_payment_accepted = BooleanField(default=False)
+    police_termination_accepted = BooleanField(default=False)
 
+    # 🔹 Proof
     signature_image = StringField()
     consent_pdf = StringField()
 
-    status = StringField(choices=["SIGNED", "REVOKED"])
+    # 🔹 Status Lifecycle
+    status = StringField(
+        choices=["PENDING", "SIGNED", "REVOKED"],
+        default="PENDING"
+    )
+
+    # 🔹 Versioning (IMPORTANT)
+    version = IntField(default=1)
+
+    # 🔹 Audit Fields
+    created_at = DateTimeField(default=datetime.utcnow)
+    signed_at = DateTimeField()
+    revoked_at = DateTimeField()
+
     created_at = DateTimeField(default=datetime.utcnow)
 class DoctorProfile(Document):
     user = ReferenceField(User, required=True)

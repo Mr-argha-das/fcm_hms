@@ -13,7 +13,7 @@
       <a href="/admin/consent" class="btn btn-sm btn-outline-secondary">
         📄 Nurse Consent
       </a>
-      <button class="btn btn-sm btn-primary">
+      <button class="btn btn-sm btn-primary" onclick="window.location.href='/admin/create/nurse'">
         ➕ Add Nurse
       </button>
     </div>
@@ -34,78 +34,101 @@
 
     <tbody>
       {% if nurses %}
-        {% for nurse in nurses %}
-        <tr>
-          <!-- NAME -->
-          <td>
-            {{ nurse.user.phone }}
-          </td>
+      {% for nurse in nurses %}
+      <tr>
 
-          <!-- TYPE -->
-          <td>
-            <span class="badge bg-info text-dark">
-              {{ nurse.nurse_type }}
-            </span>
-          </td>
-
-          <!-- VERIFICATION -->
-          <td>
-            {% if nurse.verification_status == "APPROVED" %}
-              <span class="badge bg-success">Verified</span>
-            {% elif nurse.verification_status == "REJECTED" %}
-              <span class="badge bg-danger">Rejected</span>
+        <!-- NAME / IDENTITY -->
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {% if nurse.profile_photo %}
+            <img src="/{{ nurse.profile_photo }}" style="width:36px;height:36px;border-radius:50%">
             {% else %}
-              <span class="badge bg-warning text-dark">Pending</span>
+            <div style="width:36px;height:36px;border-radius:50%;
+                            background:#e5e7eb;
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:14px;">
+              👩‍⚕️
+            </div>
             {% endif %}
-          </td>
 
-          <!-- POLICE -->
-          <td>
-            {% if nurse.police_verification_status == "CLEAR" %}
-              <span class="badge bg-success">Cleared</span>
-            {% elif nurse.police_verification_status == "FAILED" %}
-              <span class="badge bg-danger">Failed</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">Pending</span>
-            {% endif %}
-          </td>
+            <div>
+              <div class="fw-semibold">
+                {{ nurse.user.phone }}
+              </div>
+              <small class="text-muted">{{ nurse.user.name }}</small>
+            </div>
+          </div>
+        </td>
 
-          <!-- STATUS -->
-          <td>
-            {% if nurse.user.is_active %}
-              <span class="badge bg-success">Active</span>
-            {% else %}
-              <span class="badge bg-secondary">Inactive</span>
-            {% endif %}
-          </td>
+        <!-- TYPE -->
+        <td>
+          <span class="badge bg-info text-dark">
+            {{ nurse.nurse_type }}
+          </span>
+        </td>
 
-          <!-- ACTIONS -->
-          <td class="text-center">
-            <button class="btn btn-sm btn-outline-primary" title="View Details">
-              👁️
-            </button>
-            <button class="btn btn-sm btn-outline-warning" title="Edit">
-              ✏️
-            </button>
+        <!-- VERIFICATION -->
+        <td>
+          {% if nurse.verification_status == "APPROVED" %}
+          <span class="badge bg-success">Verified</span>
+          {% elif nurse.verification_status == "REJECTED" %}
+          <span class="badge bg-danger">Rejected</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
 
-            {% if nurse.user.is_active %}
-              <button class="btn btn-sm btn-outline-danger" title="Deactivate">
-                🚫
-              </button>
-            {% else %}
-              <button class="btn btn-sm btn-outline-success" title="Activate">
-                ✅
-              </button>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
+        <!-- POLICE -->
+        <td>
+          {% if nurse.police_verification_status == "CLEAR" %}
+          <span class="badge bg-success">Cleared</span>
+          {% elif nurse.police_verification_status == "FAILED" %}
+          <span class="badge bg-danger">Failed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+
+        <!-- STATUS -->
+        <td>
+          {% if nurse.user.is_active %}
+          <span class="badge bg-success">Active</span>
+          {% else %}
+          <span class="badge bg-secondary">Inactive</span>
+          {% endif %}
+        </td>
+
+        <!-- ACTIONS -->
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-primary" title="View Details"
+            onclick="window.location.href='/admin/nurses/{{ nurse.id }}'">
+            👁️
+          </button>
+
+          <a href="/admin/nurses/{{ nurse.id }}/edit" class="btn btn-sm btn-outline-warning">
+            ✏️ 
+          </a>
+
+
+          {% if nurse.user.is_active %}
+          <button class="btn btn-sm btn-outline-danger" title="Deactivate">
+            🚫
+          </button>
+          {% else %}
+          <button class="btn btn-sm btn-outline-success" title="Activate">
+            ✅
+          </button>
+          {% endif %}
+        </td>
+
+      </tr>
+      {% endfor %}
       {% else %}
-        <tr>
-          <td colspan="6" class="text-center text-muted">
-            No nurses found
-          </td>
-        </tr>
+      <tr>
+        <td colspan="6" class="text-center text-muted">
+          No nurses found
+        </td>
+      </tr>
       {% endif %}
     </tbody>
   </table>

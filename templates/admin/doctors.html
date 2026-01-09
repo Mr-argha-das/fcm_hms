@@ -14,7 +14,7 @@
         🗓️ Doctor Assign
       </a>
 
-      <button class="btn btn-sm btn-primary">
+      <button class="btn btn-sm btn-primary" onclick="window.location.href='/admin/create/doctor'">
         ➕ Add Doctor
       </button>
     </div>
@@ -65,11 +65,11 @@
 
           <!-- ACTIONS -->
           <td class="text-center">
-            <button class="btn btn-sm btn-outline-primary" title="View Details">
+            <button class="btn btn-sm btn-outline-primary" title="View Details" onclick="window.location.href='/admin/doctors/{{ doctor.id }}'">
               👁️
             </button>
 
-            <button class="btn btn-sm btn-outline-warning" title="Edit">
+            <button class="btn btn-sm btn-outline-warning" title="Edit" onclick="window.location.href='/admin/doctors/{{ doctor.id }}/edit'">
               ✏️
             </button>
 

@@ -1,5 +1,5 @@
 
-const API = "http://localhost:8000";
+const API = "http://0.0.0.0:5050";
 
 function headers(){
   return {

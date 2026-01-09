@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException
 from datetime import datetime
+
+from fastapi.responses import RedirectResponse
 from core.dependencies import get_current_user
 from models import (
     DoctorProfile, DoctorVisit,
@@ -127,3 +129,4 @@ def add_medication(
     ).save()
 
     return {"message": "Medication added", "id": str(med.id)}
+
