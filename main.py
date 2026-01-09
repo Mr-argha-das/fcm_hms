@@ -24,12 +24,8 @@ app = FastAPI(title="Hospital Management System")
 init_db()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "*"
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # allow all
+    allow_credentials=False,  # must be False if using "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
