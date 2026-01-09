@@ -6,7 +6,8 @@ from models import (
     NurseProfile, NurseDuty, NurseAttendance,
     NurseSalary, NurseConsent, NurseVisit, PatientProfile, User, PatientVitals, PatientDailyNote, PatientMedication
 )
-from routes.auth.schemas import NurseVisitCreate
+
+from routes.auth.schemas import NurseConsentRequest, NurseVisitCreate
 from .utils import ensure_consent_active, ensure_duty_time
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -50,6 +51,40 @@ class NurseCreateRequest(BaseModel):
         None,
         example="2027-01-07"
     )
+    shift_type: str = Field(
+        ...,
+        example="DAY",
+        description="DAY | NIGHT | 24_HOURS"
+    )
+
+    duty_hours: int = Field(
+        ...,
+        example=8,
+        description="Total duty hours per shift"
+    )
+
+    salary_type: str = Field(
+        ...,
+        example="MONTHLY",
+        description="DAILY | MONTHLY"
+    )
+
+    salary_amount: float = Field(
+        ...,
+        example=15000
+    )
+
+    payment_mode: str = Field(
+        ...,
+        example="BANK",
+        description="CASH | BANK | UPI"
+    )
+
+    salary_date: int = Field(
+        ...,
+        example=5,
+        description="Salary credit date (1–31)"
+    )
 
 class NurseResponse(BaseModel):
     nurse_id: str
@@ -57,113 +92,57 @@ class NurseResponse(BaseModel):
     verification_status: str
 router = APIRouter(prefix="/nurse", tags=["Nurse"])
 
+
 @router.post("/create", response_model=NurseResponse)
 def create_nurse(payload: NurseCreateRequest):
 
-    # 1️⃣ Duplicate phone check
     if User.objects(phone=payload.phone).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phone number already registered"
-        )
+        raise HTTPException(400, "Phone number already registered")
 
-    # 2️⃣ Create User
     user = User(
         role="NURSE",
         phone=payload.phone,
         email=payload.email,
-        otp_verified=False,
-        is_active=True,
-        created_at=datetime.utcnow()
-    )
-    user.save()
-
-    # 3️⃣ Create Nurse Profile (1:1 table mapping)
-    nurse = NurseProfile(
-        user=user,
-
-        nurse_type=payload.nurse_type,
-
-        aadhaar_number=payload.aadhaar_number,
-        aadhaar_verified=False,   # backend controlled
-
-        qualification_docs=payload.qualification_docs,
-        experience_docs=payload.experience_docs,
-
-        profile_photo=payload.profile_photo,
-        digital_signature=payload.digital_signature,
-
-        joining_date=payload.joining_date,
-        resignation_date=payload.resignation_date,
-
-        verification_status="PENDING",
-        police_verification_status="PENDING",
-
-        created_at=datetime.utcnow()
-    )
-    nurse.save()
-
-    # 4️⃣ Response
-    return NurseResponse(
-        nurse_id=str(nurse.id),
-        user_id=str(user.id),
-        verification_status=nurse.verification_status
-    )
-def create_nurse(payload: NurseCreateRequest):
-
-    # 1️⃣ Check duplicate phone
-    if User.objects(phone=payload.phone).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phone number already registered"
-        )
-
-    # 2️⃣ Create User
-    user = User(
-        role="NURSE",
-        phone=payload.phone,
-        email=payload.email,
-        otp_verified=False,
-        is_active=True,
-        created_at=datetime.utcnow()
-    )
-    user.save()
-
-    # 3️⃣ Create Nurse Profile
-    nurse = NurseProfile(
-        user=user,
-        nurse_type=payload.nurse_type,
-        aadhaar_number=payload.aadhaar_number,
-        qualification_docs=payload.qualification_docs,
-        experience_docs=payload.experience_docs,
-        joining_date=payload.joining_date,
-        verification_status="PENDING",
-        police_verification_status="PENDING",
-        created_at=datetime.utcnow()
-    )
-    nurse.save()
-
-    return NurseResponse(
-        nurse_id=str(nurse.id),
-        user_id=str(user.id),
-        verification_status=nurse.verification_status
-    )
-
-@router.post("/profile/create")
-def create_profile(nurse_type: str, user=Depends(get_current_user)):
-    if user.role != "NURSE":
-        raise HTTPException(403, "Only nurses allowed")
-
-    if NurseProfile.objects(user=user).first():
-        raise HTTPException(400, "Profile already exists")
-
-    profile = NurseProfile(
-        user=user,
-        nurse_type=nurse_type,
-        joining_date=datetime.utcnow().date()
+        is_active=True
     ).save()
 
-    return {"message": "Profile created", "id": str(profile.id)}
+    nurse = NurseProfile(
+        user=user,
+        nurse_type=payload.nurse_type,
+        aadhaar_number=payload.aadhaar_number,
+        qualification_docs=payload.qualification_docs,
+        experience_docs=payload.experience_docs,
+        profile_photo=payload.profile_photo,
+        digital_signature=payload.digital_signature,
+        joining_date=payload.joining_date,
+        resignation_date=payload.resignation_date,
+        verification_status="PENDING",
+        police_verification_status="PENDING"
+    ).save()
+
+
+    # 🔥 AUTO CREATE PENDING CONSENT
+    NurseConsent(
+        nurse=nurse,
+
+        shift_type=payload.shift_type,
+        duty_hours=payload.duty_hours,
+
+        salary_type=payload.salary_type,
+        salary_amount=payload.salary_amount,
+        payment_mode=payload.payment_mode,
+        salary_date=payload.salary_date,
+
+        status="PENDING",
+        created_at=datetime.utcnow()
+    ).save()
+
+    return NurseResponse(
+        nurse_id=str(nurse.id),
+        user_id=str(user.id),
+        verification_status=nurse.verification_status
+    )
+
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
     return NurseProfile.objects(user=user).first()
@@ -261,29 +240,6 @@ def duty_status(user=Depends(get_current_user)):
             "can_punch_in": True,
             "can_punch_out": False,
         }
-
-@router.post("/consent/sign")
-def sign_consent(
-    shift_type: str,
-    duty_hours: int,
-    salary_amount: float,
-    user=Depends(get_current_user)
-):
-    nurse = NurseProfile.objects(user=user).first()
-
-    consent = NurseConsent(
-        nurse=nurse,
-        shift_type=shift_type,
-        duty_hours=duty_hours,
-        salary_type="MONTHLY",
-        salary_amount=salary_amount,
-        confidentiality_accepted=True,
-        no_direct_payment_accepted=True,
-        police_termination_accepted=True,
-        status="SIGNED"
-    ).save()
-
-    return {"message": "Consent signed", "id": str(consent.id)}
 
 
 @router.post("/visit")
@@ -701,3 +657,84 @@ def nurse_month_attendance(
         },
         "attendance": daily
     }
+class NurseConsentSignRequest(BaseModel):
+    confidentiality_accepted: bool
+    no_direct_payment_accepted: bool
+    police_termination_accepted: bool
+    signature_image: Optional[str]
+
+@router.post("/consent/sign")
+def sign_consent(
+    payload: NurseConsentSignRequest,
+    user=Depends(get_current_user)
+):
+    # 🔐 Role check
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    nurse = NurseProfile.objects(user=user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse profile not found")
+
+    # ❌ Already signed check
+    already_signed = NurseConsent.objects(
+        nurse=nurse,
+        status="SIGNED"
+    ).first()
+
+    if already_signed:
+        raise HTTPException(400, "Consent already signed")
+
+    # ✅ Get pending consent
+    consent = NurseConsent.objects(
+        nurse=nurse,
+        status="PENDING"
+    ).first()
+
+    if not consent:
+        raise HTTPException(404, "No pending consent found")
+
+    # ❌ Checkbox validation
+    if not (
+        payload.confidentiality_accepted and
+        payload.no_direct_payment_accepted and
+        payload.police_termination_accepted
+    ):
+        raise HTTPException(400, "All checkboxes must be accepted")
+
+    # ✅ Update consent
+    consent.confidentiality_accepted = True
+    consent.no_direct_payment_accepted = True
+    consent.police_termination_accepted = True
+    consent.signature_image = payload.signature_image
+    consent.status = "SIGNED"
+    consent.signed_at = datetime.utcnow()   # 🔥 better than overwriting created_at
+    consent.save()
+
+    return {
+        "message": "Consent signed successfully",
+        "status": consent.status
+    }
+
+
+@router.get("/consent/status")
+def consent_status(user=Depends(get_current_user)):
+
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    nurse = NurseProfile.objects(user=user).first()
+    consent = NurseConsent.objects(nurse=nurse).first()
+
+    if not consent or consent.status != "SIGNED":
+        return {
+            "signed": False,
+            "status": "NOT_SIGNED"
+        }
+
+    return {
+        "signed": True,
+        "status": consent.status,
+        "signed_at": consent.created_at
+    }
+

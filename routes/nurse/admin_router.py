@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from datetime import date, datetime
 from core.dependencies import admin_required, get_current_user
 from models import NurseProfile, NurseDuty, NurseSalary, NurseConsent, NurseVisit, PatientProfile
 from routes.auth.schemas import NurseVisitCreate
@@ -129,3 +129,56 @@ def admin_create_visit(
     visit.save()
 
     return {"message": "Visit created by admin"}
+@router.post("/{nurse_id}/update")
+def update_nurse_admin(
+    nurse_id: str,
+    request: Request,
+
+    # ---- VERIFICATION ----
+    aadhaar_verified: bool = Form(False),
+    police_verification_status: str = Form(...),
+
+    # ---- PROFILE ----
+    nurse_type: str = Form(...),
+    joining_date: date | None = Form(None),
+    resignation_date: date | None = Form(None),
+    is_active: bool = Form(True),
+
+    # ---- SALARY / CONSENT ----
+    salary_type: str = Form(...),
+    salary_amount: float = Form(...),
+    payment_mode: str = Form(...),
+    salary_date: int = Form(...)
+):
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    # ===== UPDATE NURSE PROFILE =====
+    nurse.update(
+        set__aadhaar_verified=aadhaar_verified,
+        set__police_verification_status=police_verification_status,
+        set__nurse_type=nurse_type,
+        set__joining_date=joining_date,
+        set__resignation_date=resignation_date
+    )
+
+    # ===== USER ACTIVE =====
+    nurse.user.update(set__is_active=is_active)
+
+    # ===== UPDATE / CREATE CONSENT =====
+    consent = NurseConsent.objects(nurse=nurse, status="PENDING").first()
+
+    if not consent:
+        consent = NurseConsent(nurse=nurse)
+
+    consent.update(
+        set__salary_type=salary_type,
+        set__salary_amount=salary_amount,
+        set__payment_mode=payment_mode,
+        set__salary_date=salary_date
+    )
+
+    print("✅ ADMIN UPDATED NURSE:", nurse_id)
+
+    return {"success": True}

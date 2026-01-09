@@ -1,4 +1,7 @@
-from datetime import timedelta
+import calendar
+from collections import defaultdict
+from datetime import date, timedelta
+from http.client import HTTPException
 import json
 from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
@@ -147,7 +150,11 @@ def users(request: Request):
     return templates.TemplateResponse(
         "admin/users.html", {"request": request}
     )
-
+@router.get("/create/nurse", response_class=HTMLResponse)
+def create_nurse(request: Request):
+    return templates.TemplateResponse(
+        "admin/nurse_create.html", {"request": request}
+    )
 
 # -------------------------
 # NURSE MODULE
@@ -346,5 +353,146 @@ def notifications(request: Request):
         {
             "request": request,
             "notifications": notifications_qs
+        }
+    )
+
+
+@router.get("/nurses/{nurse_id}")
+def nurse_detail_page(
+    nurse_id: str,
+    request: Request,
+    month: str = datetime.utcnow().strftime("%Y-%m")  # YYYY-MM
+):
+    print("\n========== NURSE DETAIL PAGE ==========")
+    print("Nurse ID:", nurse_id)
+    print("Month:", month)
+
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    user = nurse.user
+
+    # ================= MONTH RANGE =================
+    year, mon = map(int, month.split("-"))
+    last_day = calendar.monthrange(year, mon)[1]
+
+    start_date = date(year, mon, 1)
+    end_date = date(year, mon, last_day)
+
+    print("Date Range:", start_date, "to", end_date)
+
+    # ================= ATTENDANCE =================
+    attendance_qs = NurseAttendance.objects(
+        nurse=nurse,
+        date__gte=start_date,
+        date__lte=end_date
+    ).order_by("date")
+
+    total_present = attendance_qs.count()
+
+    print("Total Attendance:", total_present)
+
+    # -------- GRAPH DATA (Day-wise count) --------
+    attendance_map = defaultdict(int)
+    for att in attendance_qs:
+        attendance_map[att.date.day] += 1
+
+    chart_labels = list(range(1, last_day + 1))
+    chart_values = [attendance_map.get(day, 0) for day in chart_labels]
+
+    print("Attendance Chart Labels:", chart_labels)
+    print("Attendance Chart Values:", chart_values)
+
+    # ================= SALARY =================
+    salary = NurseSalary.objects(
+        nurse=nurse,
+        month=month
+    ).first()
+
+    print("Salary:", salary.net_salary if salary else "N/A")
+
+    # ================= DUTY =================
+    active_duty = NurseDuty.objects(
+        nurse=nurse,
+        is_active=True
+    ).first()
+
+    print("Active Duty:", active_duty.duty_type if active_duty else "None")
+
+    # ================= VISITS =================
+    visits = NurseVisit.objects(
+        nurse=nurse
+    ).order_by("-visit_time")[:10]
+
+    print("Recent Visits:", visits.count())
+
+    # ================= CONSENT =================
+    consent = NurseConsent.objects(
+        nurse=nurse
+    ).order_by("-created_at").first()
+
+    print("Consent Status:", consent.status if consent else "None")
+
+    # ================= COMPLETE NURSE DUMP =================
+    print("\n--- USER DATA ---")
+    print("Phone:", user.phone)
+    print("Email:", user.email)
+    print("Role:", user.role)
+
+    print("\n--- NURSE PROFILE ---")
+    print("Type:", nurse.nurse_type)
+    print("Aadhaar:", nurse.aadhaar_number)
+    print("Verified:", nurse.verification_status)
+    print("Police Verification:", nurse.police_verification_status)
+    print("Joining:", nurse.joining_date)
+    print("Resignation:", nurse.resignation_date)
+    print("Qualification Docs:", nurse.qualification_docs)
+    print("Experience Docs:", nurse.experience_docs)
+    print("Profile Photo:", nurse.profile_photo)
+
+    print("========================================\n")
+
+    return templates.TemplateResponse(
+        "admin/nurse_detail.html",
+        {
+            "request": request,
+
+            # BASIC
+            "nurse": nurse,
+            "user": user,
+            "month": month,
+
+            # ATTENDANCE
+            "attendance": attendance_qs,
+            "total_present": total_present,
+
+            # GRAPH
+            "chart_labels": chart_labels,
+            "chart_values": chart_values,
+
+            # OTHERS
+            "salary": salary,
+            "duty": active_duty,
+            "visits": visits,
+            "consent": consent
+        }
+    )
+
+
+@router.get("/nurses/{nurse_id}/edit", response_class=HTMLResponse)
+def nurse_edit_page(nurse_id: str, request: Request):
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
+
+    return templates.TemplateResponse(
+        "admin/nurse_edit.html",
+        {
+            "request": request,
+            "nurse": nurse,
+            "consent": consent
         }
     )

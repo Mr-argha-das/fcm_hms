@@ -1,0 +1,184 @@
+{% extends "admin/base.html" %}
+{% block title %}Nurse Details{% endblock %}
+
+{% block content %}
+
+<!-- ================= BASIC INFO ================= -->
+<div class="card mb-4">
+  <div class="d-flex align-items-center">
+    {% if nurse.profile_photo %}
+      <img src="/{{ nurse.profile_photo }}"
+           style="width:90px;height:90px;border-radius:50%" class="me-3">
+    {% endif %}
+    <div>
+      <h4>{{ user.phone }}</h4>
+      <p class="mb-1">
+        {{ nurse.nurse_type }} Nurse
+        {% if nurse.aadhaar_verified %}
+          <span class="badge bg-success ms-2">Aadhaar Verified</span>
+        {% endif %}
+      </p>
+      <span class="badge bg-warning">{{ nurse.verification_status }}</span>
+      <span class="badge bg-info">{{ nurse.police_verification_status }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================= KPI SUMMARY ================= -->
+<div class="row g-4 mb-4">
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <small>Attendance ({{ month }})</small>
+      <h3>{{ total_present }} Days</h3>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <small>Salary</small>
+      <h3>
+        ₹ {{ salary.net_salary if salary else "N/A" }}
+      </h3>
+      {% if salary and salary.is_paid %}
+        <small class="text-success">Paid</small>
+      {% elif salary %}
+        <small class="text-danger">Unpaid</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <small>Active Duty</small>
+      <h3>{{ duty.duty_type if duty else "N/A" }}</h3>
+      {% if duty %}
+        <small>{{ duty.shift }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card kpi">
+      <small>Consent Status</small>
+      <h3>{{ consent.status if consent else "N/A" }}</h3>
+      {% if consent %}
+        <small>Version {{ consent.version }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= ATTENDANCE GRAPH ================= -->
+<div class="card mb-4">
+  <h5>Attendance Graph – {{ month }}</h5>
+  <canvas id="attendanceChart" height="120"></canvas>
+</div>
+
+<!-- ================= ATTENDANCE TABLE ================= -->
+<div class="card mb-4">
+  <h5>Attendance Records – {{ month }}</h5>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Check In</th>
+        <th>Check Out</th>
+        <th>Method</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in attendance %}
+      <tr>
+        <td>{{ a.date.strftime("%d %b %Y") }}</td>
+        <td>{{ a.check_in.strftime("%H:%M") if a.check_in else "-" }}</td>
+        <td>{{ a.check_out.strftime("%H:%M") if a.check_out else "-" }}</td>
+        <td>{{ a.method }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-muted text-center">
+          No attendance for this month
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ================= RECENT VISITS ================= -->
+<div class="card mb-4">
+  <h5>Recent Nurse Visits</h5>
+  <ul class="activity">
+    {% for v in visits %}
+      <li>
+        <strong>{{ v.visit_type }}</strong> |
+        Patient ID: {{ v.patient.id }} |
+        {{ v.visit_time.strftime("%d %b %H:%M") }}
+      </li>
+    {% else %}
+      <li class="text-muted">No visits recorded</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- ================= DOCUMENTS ================= -->
+<div class="card mb-4">
+  <h5>Documents</h5>
+
+  <div class="row">
+    <div class="col-md-6">
+      <strong>Qualification Documents</strong>
+      <ul>
+        {% for doc in nurse.qualification_docs %}
+          <li>
+            <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
+          </li>
+        {% else %}
+          <li class="text-muted">No documents</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="col-md-6">
+      <strong>Experience Documents</strong>
+      <ul>
+        {% for doc in nurse.experience_docs %}
+          <li>
+            <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
+          </li>
+        {% else %}
+          <li class="text-muted">No documents</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CHART JS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById("attendanceChart"), {
+  type: "bar",
+  data: {
+    labels: {{ chart_labels | safe }},
+    datasets: [{
+      label: "Attendance",
+      data: {{ chart_values | safe }},
+      borderWidth: 1
+    }]
+  },
+  options: {
+    plugins:{ legend:{ display:false }},
+    scales:{
+      y:{
+        beginAtZero:true,
+        ticks:{ stepSize:1 }
+      }
+    }
+  }
+});
+</script>
+
+{% endblock %}
