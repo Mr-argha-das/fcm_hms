@@ -36,15 +36,42 @@
             }),
           }
         );
+
         const d = await r.json();
+
         if (d.access_token) {
-          ß;
+          // Save token in localStorage
           localStorage.setItem("token", d.access_token);
+          // Redirect
           window.location.href = "/admin/dashboard";
         } else {
           alert("Login failed");
         }
       }
     </script>
+
+    <!-- <script>
+      async function login() {
+        const r = await fetch(
+          "https://waltraud-unmalleable-fecklessly.ngrok-free.dev/auth/login-password",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: phone.value,
+              password: password.value,
+            }),
+          }
+        );
+        const d = await r.json();
+        if (d.access_token) {
+          // Save token in localStorage
+          localStorage.setItem("token", d.access_token);
+          window.location.href = "/admin/dashboard";
+        } else {
+          alert("Login failed");
+        }
+      }
+    </script> -->
   </body>
 </html>
