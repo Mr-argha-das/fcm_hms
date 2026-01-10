@@ -150,34 +150,38 @@ def update_nurse_admin(
     payment_mode: str = Form(...),
     salary_date: int = Form(...)
 ):
+    # 🔹 Get NurseProfile
     nurse = NurseProfile.objects(id=nurse_id).first()
     if not nurse:
         raise HTTPException(404, "Nurse not found")
 
-    # ===== UPDATE NURSE PROFILE =====
-    nurse.update(
-        set__aadhaar_verified=aadhaar_verified,
-        set__police_verification_status=police_verification_status,
-        set__nurse_type=nurse_type,
-        set__joining_date=joining_date,
-        set__resignation_date=resignation_date
-    )
+    # 🔹 Update NurseProfile fields
+    nurse.aadhaar_verified = aadhaar_verified
+    nurse.police_verification_status = police_verification_status
+    nurse.nurse_type = nurse_type
+    nurse.joining_date = joining_date
+    nurse.resignation_date = resignation_date
+    nurse.save()  # mandatory
 
-    # ===== USER ACTIVE =====
-    nurse.user.update(set__is_active=is_active)
+    # 🔹 Update User active status
+    if nurse.user:
+        nurse.user.is_active = is_active
+        nurse.user.save()
 
-    # ===== UPDATE / CREATE CONSENT =====
+    # 🔹 Update or Create NurseConsent (PENDING)
     consent = NurseConsent.objects(nurse=nurse, status="PENDING").first()
-
     if not consent:
-        consent = NurseConsent(nurse=nurse)
+        consent = NurseConsent(
+            nurse=nurse,
+            shift_type="DAY",     # default value, change if needed
+            duty_hours=8          # default, admin can update
+        )
 
-    consent.update(
-        set__salary_type=salary_type,
-        set__salary_amount=salary_amount,
-        set__payment_mode=payment_mode,
-        set__salary_date=salary_date
-    )
+    consent.salary_type = salary_type
+    consent.salary_amount = salary_amount
+    consent.payment_mode = payment_mode
+    consent.salary_date = salary_date
+    consent.save()  # mandatory
 
     print("✅ ADMIN UPDATED NURSE:", nurse_id)
 
