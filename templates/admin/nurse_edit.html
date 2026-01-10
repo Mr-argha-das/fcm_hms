@@ -8,7 +8,7 @@
   <p class="text-muted">Admin controls & verification</p>
 </div>
 
-<form id="nurseForm">
+<form id="nurseForm" onsubmit="return false;"> <!-- prevent default browser submit -->
 
 <!-- ================= VERIFICATION ================= -->
 <div class="card mb-4">
@@ -128,7 +128,7 @@
   </div>
 </div>
 
-<button type="submit" class="btn btn-success">💾 Save Changes</button>
+<button type="submit" class="btn btn-success" id="submitBtn">💾 Save Changes</button>
 <a href="/admin/nurses/{{ nurse.id }}" class="btn btn-secondary">Cancel</a>
 
 </form>
@@ -151,25 +151,20 @@ function guard() {
 
 guard();
 
-document.getElementById("nurseForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const form = e.target;
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  const form = document.getElementById("nurseForm");
   const formData = new FormData(form);
 
-  // ✅ checkbox handling
+  // ✅ Checkbox fix
   formData.set("aadhaar_verified", form.aadhaar_verified.checked ? "true" : "false");
   formData.set("is_active", form.is_active.checked ? "true" : "false");
 
   try {
-    const res = await fetch(
-      `${API}/admin/nurses/{{ nurse.id }}/update`,
-      {
-        method: "POST",
-        headers: headers(),
-        body: formData,
-      }
-    );
+    const res = await fetch(`${API}/admin/nurses/{{ nurse.id }}/update`, {
+      method: "POST",
+      headers: headers(),
+      body: formData
+    });
 
     const data = await res.json();
 
