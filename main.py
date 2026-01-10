@@ -28,7 +28,7 @@ app.add_middleware(
         "*",
        
        
-      "https://cpu-system-possess-sign.trycloudflare.com/"
+      "https://wecarehhcs.in"
     ],
     allow_credentials=True,
     allow_methods=["*"],
