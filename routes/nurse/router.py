@@ -1,6 +1,10 @@
 from calendar import calendar
 from fastapi import APIRouter, Depends, HTTPException,status
 from datetime import datetime, timedelta
+from mongoengine.errors import ValidationError, NotUniqueError
+
+
+
 from core.dependencies import get_current_user
 from models import (
     NurseProfile, NurseDuty, NurseAttendance,
@@ -13,6 +17,8 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import date
 import calendar as cal
+import traceback
+
 class NurseCreateRequest(BaseModel):
 
     phone: str = Field(..., example="9876543210")
@@ -92,6 +98,7 @@ class NurseResponse(BaseModel):
     nurse_id: str
     user_id: str
     verification_status: str
+
 router = APIRouter(prefix="/nurse", tags=["Nurse"])
 class NurseSelfSignupRequest(BaseModel):
 
@@ -159,56 +166,78 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
 
 @router.post("/create", response_model=NurseResponse)
 def create_nurse(payload: NurseCreateRequest):
+    try:
+        print("Creating nurse payload:", payload.dict())
 
-    if User.objects(phone=payload.phone).first():
-        raise HTTPException(400, "Phone number already registered")
+        # 🔹 Duplicate phone check
+        if User.objects(phone=payload.phone).first():
+            raise HTTPException(status_code=400, detail="Phone number already registered")
 
-    user = User(
-        role="NURSE",
-        phone=payload.phone,
-        email=payload.email,
-        is_active=True,
-        name=payload.name,
-        father_name=payload.father_name
-    ).save()
+        # 🔹 Create User
+        user = User(
+            role="NURSE",
+            phone=payload.phone,
+            email=payload.email,
+            name=payload.name,
+            father_name=payload.father_name,
+            is_active=True,
+            otp_verified=True
+        ).save()
 
-    nurse = NurseProfile(
-        user=user,
-        nurse_type=payload.nurse_type,
-        aadhaar_number=payload.aadhaar_number,
-        qualification_docs=payload.qualification_docs,
-        experience_docs=payload.experience_docs,
-        profile_photo=payload.profile_photo,
-        digital_signature=payload.digital_signature,
-        joining_date=payload.joining_date,
-        resignation_date=payload.resignation_date,
-        verification_status="PENDING",
-        police_verification_status="PENDING",
-        created_by="ADMIN"
-    ).save()
+        # 🔹 Create Nurse Profile
+        nurse = NurseProfile(
+            user=user,
+            nurse_type=payload.nurse_type,
+            aadhaar_number=payload.aadhaar_number,
+            qualification_docs=payload.qualification_docs,
+            experience_docs=payload.experience_docs,
+            profile_photo=payload.profile_photo,
+            digital_signature=payload.digital_signature,
+            joining_date=payload.joining_date,
+            resignation_date=payload.resignation_date,
+            created_by="ADMIN"
+        ).save()
 
+        # 🔹 Auto create Nurse Consent
+        NurseConsent(
+            nurse=nurse,
+            shift_type=payload.shift_type,
+            duty_hours=payload.duty_hours,
+            salary_type=payload.salary_type,
+            salary_amount=payload.salary_amount,
+            payment_mode=payload.payment_mode,
+            salary_date=payload.salary_date
+        ).save()
 
-    # 🔥 AUTO CREATE PENDING CONSENT
-    NurseConsent(
-        nurse=nurse,
+        # ✅ Success response
+        return NurseResponse(
+            nurse_id=str(nurse.id),
+            user_id=str(user.id),
+            verification_status=nurse.verification_status
+        )
 
-        shift_type=payload.shift_type,
-        duty_hours=payload.duty_hours,
+    # 🔴 MongoEngine validation error
+    except ValidationError as e:
+        print("ValidationError:", e)
+        raise HTTPException(status_code=400, detail=str(e))
 
-        salary_type=payload.salary_type,
-        salary_amount=payload.salary_amount,
-        payment_mode=payload.payment_mode,
-        salary_date=payload.salary_date,
+    # 🔴 Unique key error (phone / email etc.)
+    except NotUniqueError as e:
+        print("NotUniqueError:", e)
+        raise HTTPException(status_code=400, detail="Duplicate data error")
 
-        status="PENDING",
-        created_at=datetime.utcnow()
-    ).save()
+    # 🔴 FastAPI raised error (re-throw)
+    except HTTPException as e:
+        raise e
 
-    return NurseResponse(
-        nurse_id=str(nurse.id),
-        user_id=str(user.id),
-        verification_status=nurse.verification_status
-    )
+    # 🔴 Any unknown crash (VERY IMPORTANT)
+    except Exception as e:
+        print("Unhandled Exception:", e)
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while creating nurse"
+        )
 
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
@@ -787,21 +816,48 @@ def sign_consent(
 @router.get("/consent/status")
 def consent_status(user=Depends(get_current_user)):
 
+    # 🔒 Only nurses allowed
     if user.role != "NURSE":
         raise HTTPException(403, "Access denied")
 
     nurse = NurseProfile.objects(user=user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse profile not found")
+
     consent = NurseConsent.objects(nurse=nurse).first()
 
+    # ❌ Condition 1: Consent must exist and be SIGNED
     if not consent or consent.status != "SIGNED":
         return {
             "signed": False,
-            "status": "NOT_SIGNED"
+            "reason": "CONSENT_NOT_SIGNED",
+            "police_verified": nurse.police_verification_status,
+            "aadhaar_verified": nurse.aadhaar_verified
         }
 
+    # ❌ Condition 2: Police verification must be CLEAR
+    if nurse.police_verification_status != "CLEAR":
+        return {
+            "signed": False,
+            "reason": "POLICE_VERIFICATION_PENDING",
+            "police_verified": nurse.police_verification_status,
+            "aadhaar_verified": nurse.aadhaar_verified
+        }
+
+    # ❌ Condition 3: Aadhaar must be verified
+    if not nurse.aadhaar_verified:
+        return {
+            "signed": False,
+            "reason": "AADHAAR_NOT_VERIFIED",
+            "police_verified": nurse.police_verification_status,
+            "aadhaar_verified": nurse.aadhaar_verified
+        }
+
+    # ✅ ALL CONDITIONS PASSED
     return {
         "signed": True,
-        "status": consent.status,
-        "signed_at": consent.created_at
+        "status": "SIGNED",
+        "signed_at": consent.signed_at,
+        "police_verified": "CLEAR",
+        "aadhaar_verified": True
     }
-

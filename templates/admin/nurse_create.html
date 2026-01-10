@@ -1,50 +1,40 @@
-{% extends "admin/base.html" %}
-{% block title %}Create Nurse{% endblock %}
+{% extends "admin/base.html" %} {% block title %}Create Nurse{% endblock %} {%
+block content %}
 
-{% block content %}
-
-<div class="card mb-4">
+<div class="card mb-4 p-3">
   <h4>Create Nurse</h4>
-  <p class="text-muted">Step-by-step nurse onboarding</p>
+  <p class="text-muted mb-0">Nurse onboarding</p>
 </div>
 
-<div class="mb-3">
-  <span id="stepLabel" class="badge bg-primary"></span>
-</div>
+<span id="stepLabel" class="badge bg-primary mb-3"></span>
 
 <form id="nurseForm">
+  <!-- hidden uploaded paths -->
+  <input type="hidden" id="qualification_docs" />
+  <input type="hidden" id="experience_docs" />
+  <input type="hidden" id="profile_photo" />
+  <input type="hidden" id="digital_signature" />
 
-  <!-- ================= HIDDEN FIELDS ================= -->
-  <input type="hidden" id="qualification_docs">
-  <input type="hidden" id="experience_docs">
-  <input type="hidden" id="profile_photo">
-  <input type="hidden" id="digital_signature">
-
-  <!-- ================= STEP 1 : BASIC DETAILS ================= -->
-  <div class="card step mb-4" id="step1">
+  <!-- STEP 1 -->
+  <div class="card step p-3 mb-4" id="step1">
     <h5>Basic Details</h5>
-
     <div class="row">
       <div class="col-md-6 mb-3">
-        <label>Full Name *</label>
-        <input class="form-control" id="name" required>
+        <label>Name *</label>
+        <input class="form-control" id="name" required />
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Father Name</label>
-        <input class="form-control" id="father_name">
+        <input class="form-control" id="father_name" />
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Phone *</label>
-        <input class="form-control" id="phone" required>
+        <input class="form-control" id="phone" required />
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Email</label>
-        <input class="form-control" id="email">
+        <input type="email" class="form-control" id="email" />
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Nurse Type *</label>
         <select class="form-control" id="nurse_type" required>
@@ -56,208 +46,299 @@
           <option>COMBO</option>
         </select>
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Aadhaar Number</label>
-        <input class="form-control" id="aadhaar">
+        <input class="form-control" id="aadhaar" />
       </div>
     </div>
   </div>
 
-  <!-- ================= STEP 2 : DOCUMENTS ================= -->
-  <div class="card step mb-4 d-none" id="step2">
-    <h5>Documents & Proofs</h5>
+  <!-- STEP 2 -->
+  <div class="card step p-3 mb-4 d-none" id="step2">
+    <h5>Documents</h5>
 
     <div class="mb-3">
       <label>Qualification Documents</label>
-      <input type="file" class="form-control" multiple
-             onchange="uploadMultipleFiles(this,'qualification_docs','documents')">
-      <ul id="qualification_docs_preview" class="mt-2"></ul>
+      <input
+        type="file"
+        multiple
+        class="form-control"
+        onchange="uploadMultipleFiles(this,'qualification_docs','documents')"
+      />
     </div>
 
     <div class="mb-3">
       <label>Experience Documents</label>
-      <input type="file" class="form-control" multiple
-             onchange="uploadMultipleFiles(this,'experience_docs','documents')">
-      <ul id="experience_docs_preview" class="mt-2"></ul>
+      <input
+        type="file"
+        multiple
+        class="form-control"
+        onchange="uploadMultipleFiles(this,'experience_docs','documents')"
+      />
     </div>
 
     <div class="mb-3">
       <label>Profile Photo</label>
-      <input type="file" class="form-control" accept="image/*"
-             onchange="uploadSingleImage(this,'profile_photo','images')">
-      <img id="profile_photo_preview"
-           style="max-width:120px;border-radius:12px;margin-top:10px;display:none">
+      <input
+        type="file"
+        class="form-control"
+        accept="image/*"
+        onchange="uploadSingleImage(this,'profile_photo','images')"
+      />
     </div>
 
     <div class="mb-3">
-      <label>Digital Signature (Image)</label>
-      <input type="file" class="form-control" accept="image/*"
-             onchange="uploadSingleImage(this,'digital_signature','signatures')">
-      <img id="digital_signature_preview"
-           style="max-width:120px;border-radius:12px;margin-top:10px;display:none">
+      <label>Digital Signature</label>
+      <input
+        type="file"
+        class="form-control"
+        accept="image/*"
+        onchange="uploadSingleImage(this,'digital_signature','signatures')"
+      />
     </div>
 
     <div class="row">
       <div class="col-md-6 mb-3">
         <label>Joining Date</label>
-        <input type="date" class="form-control" id="joining_date">
+        <input type="date" class="form-control" id="joining_date" />
       </div>
       <div class="col-md-6 mb-3">
         <label>Resignation Date</label>
-        <input type="date" class="form-control" id="resignation_date">
+        <input type="date" class="form-control" id="resignation_date" />
       </div>
     </div>
   </div>
 
-  <!-- ================= STEP 3 : SHIFT & SALARY (ADMIN) ================= -->
-  <div class="card step mb-4 d-none" id="step3">
-    <h5>Shift & Salary (Admin Controlled)</h5>
-
+  <!-- STEP 3 -->
+  <div class="card step p-3 mb-4 d-none" id="step3">
+    <h5>Shift & Salary</h5>
     <div class="row">
       <div class="col-md-4 mb-3">
         <label>Shift Type *</label>
-        <select class="form-control" id="shift_type">
+        <select class="form-control" id="shift_type" required>
+          <option value="">Select</option>
           <option>DAY</option>
           <option>NIGHT</option>
           <option>24_HOURS</option>
         </select>
       </div>
-
       <div class="col-md-4 mb-3">
         <label>Duty Hours *</label>
-        <input type="number" class="form-control" id="duty_hours">
+        <input type="number" class="form-control" id="duty_hours" required />
       </div>
-
       <div class="col-md-4 mb-3">
         <label>Salary Type *</label>
-        <select class="form-control" id="salary_type">
+        <select class="form-control" id="salary_type" required>
+          <option value="">Select</option>
           <option>MONTHLY</option>
           <option>DAILY</option>
         </select>
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Salary Amount *</label>
-        <input type="number" class="form-control" id="salary_amount">
+        <input type="number" class="form-control" id="salary_amount" required />
       </div>
-
       <div class="col-md-6 mb-3">
         <label>Payment Mode *</label>
-        <select class="form-control" id="payment_mode">
+        <select class="form-control" id="payment_mode" required>
+          <option value="">Select</option>
           <option>BANK</option>
           <option>CASH</option>
           <option>UPI</option>
         </select>
       </div>
-
       <div class="col-md-4 mb-3">
         <label>Salary Credit Date *</label>
-        <input type="number" min="1" max="31" class="form-control" id="salary_date">
+        <input
+          type="number"
+          min="1"
+          max="31"
+          class="form-control"
+          id="salary_date"
+          required
+        />
       </div>
     </div>
   </div>
 
-  <!-- ================= BUTTONS ================= -->
   <div class="d-flex justify-content-between">
-    <button type="button" id="backBtn" class="btn btn-secondary d-none" onclick="prevStep()">Back</button>
-    <button type="button" id="nextBtn" class="btn btn-primary" onclick="nextStep()">Next</button>
-    <button type="submit" id="submitBtn" class="btn btn-success d-none">Create Nurse</button>
+    <button type="button" class="btn btn-secondary d-none" id="backBtn">
+      Back
+    </button>
+    <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+    <button type="submit" class="btn btn-success d-none" id="submitBtn">
+      Create Nurse
+    </button>
   </div>
-
 </form>
 
 <script>
-const FILE_API = "/upload/file";
-let step = 1;
-const totalSteps = 3;
+  document.addEventListener("DOMContentLoaded", function () {
+    /* ================= AUTH GUARD ================= */
+    guard(); // 🔐 auto redirect if no token
 
-function showStep(){
-  for(let i=1;i<=totalSteps;i++){
-    document.getElementById("step"+i).classList.add("d-none");
-  }
-  document.getElementById("step"+step).classList.remove("d-none");
-  stepLabel.innerText = `Step ${step} of ${totalSteps}`;
-  backBtn.classList.toggle("d-none", step===1);
-  nextBtn.classList.toggle("d-none", step===totalSteps);
-  submitBtn.classList.toggle("d-none", step!==totalSteps);
-}
-function nextStep(){ if(step<totalSteps){ step++; showStep(); } }
-function prevStep(){ if(step>1){ step--; showStep(); } }
-showStep();
+    /* ================= API ENDPOINTS ================= */
+    const FILE_API = API + "/upload/file";
+    const CREATE_API = API + "/nurse/create";
 
-async function uploadMultipleFiles(input, fieldId, folder){
-  const files = Array.from(input.files);
-  let paths = document.getElementById(fieldId).value ? JSON.parse(document.getElementById(fieldId).value) : [];
+    /* ================= FORM & BUTTONS ================= */
+    const nurseForm = document.getElementById("nurseForm");
+    const stepLabel = document.getElementById("stepLabel");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const submitBtn = document.getElementById("submitBtn");
 
-  for(const file of files){
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("folder", folder);
+    /* ================= INPUT BINDS ================= */
+    const phone = document.getElementById("phone");
+    const name = document.getElementById("name");
+    const father_name = document.getElementById("father_name");
+    const email = document.getElementById("email");
+    const nurse_type = document.getElementById("nurse_type");
+    const aadhaar = document.getElementById("aadhaar");
 
-    const res = await fetch(FILE_API,{method:"POST",body:fd});
-    const data = await res.json();
-    if(res.ok){
-      paths.push(data.path);
-      const li = document.createElement("li");
-      li.innerText = "📄 " + file.name;
-      document.getElementById(fieldId+"_preview").appendChild(li);
+    const qualification_docs = document.getElementById("qualification_docs");
+    const experience_docs = document.getElementById("experience_docs");
+    const profile_photo = document.getElementById("profile_photo");
+    const digital_signature = document.getElementById("digital_signature");
+
+    const joining_date = document.getElementById("joining_date");
+    const resignation_date = document.getElementById("resignation_date");
+
+    const shift_type = document.getElementById("shift_type");
+    const duty_hours = document.getElementById("duty_hours");
+    const salary_type = document.getElementById("salary_type");
+    const salary_amount = document.getElementById("salary_amount");
+    const payment_mode = document.getElementById("payment_mode");
+    const salary_date = document.getElementById("salary_date");
+
+    /* ================= STEP HANDLER ================= */
+    let step = 1;
+
+    function showStep() {
+      ["step1", "step2", "step3"].forEach((id) =>
+        document.getElementById(id).classList.add("d-none")
+      );
+      document.getElementById("step" + step).classList.remove("d-none");
+      stepLabel.innerText = `Step ${step} of 3`;
+      backBtn.classList.toggle("d-none", step === 1);
+      nextBtn.classList.toggle("d-none", step === 3);
+      submitBtn.classList.toggle("d-none", step !== 3);
     }
-  }
-  document.getElementById(fieldId).value = JSON.stringify(paths);
-  input.value="";
-}
 
-async function uploadSingleImage(input, fieldId, folder){
-  const fd = new FormData();
-  fd.append("file", input.files[0]);
-  fd.append("folder", folder);
+    showStep();
+    nextBtn.onclick = () => {
+      if (step < 3) {
+        step++;
+        showStep();
+      }
+    };
+    backBtn.onclick = () => {
+      if (step > 1) {
+        step--;
+        showStep();
+      }
+    };
 
-  const res = await fetch(FILE_API,{method:"POST",body:fd});
-  const data = await res.json();
+    /* ================= DATE FORMAT ================= */
+    function formatDate(val) {
+      if (!val) return null;
+      return new Date(val).toISOString().split("T")[0];
+    }
 
-  if(res.ok){
-    document.getElementById(fieldId).value = data.path;
-    document.getElementById(fieldId+"_preview").src = "/" + data.path;
-    document.getElementById(fieldId+"_preview").style.display="block";
-  }
-}
+    /* ================= FILE UPLOAD ================= */
+    window.uploadMultipleFiles = async function (input, field, folder) {
+      const paths = [];
+      for (const file of input.files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("folder", folder);
 
-nurseForm.onsubmit = async e =>{
-  e.preventDefault();
+        const res = await fetch(FILE_API, {
+          method: "POST",
+          headers: { Authorization: headers().Authorization }, // 🔐 token
+          body: fd,
+        });
 
-  const payload = {
-    phone: phone.value,
-    name: name.value,
-    father_name: father_name.value || null,
-    email: email.value || null,
+        const data = await res.json();
+        if (res.ok) paths.push(data.path);
+      }
+      document.getElementById(field).value = JSON.stringify(paths);
+    };
 
-    nurse_type: nurse_type.value,
-    aadhaar_number: aadhaar.value || null,
-    qualification_docs: qualification_docs.value ? JSON.parse(qualification_docs.value) : [],
-    experience_docs: experience_docs.value ? JSON.parse(experience_docs.value) : [],
-    profile_photo: profile_photo.value || null,
-    digital_signature: digital_signature.value || null,
-    joining_date: joining_date.value || null,
-    resignation_date: resignation_date.value || null,
+    window.uploadSingleImage = async function (input, field, folder) {
+      const fd = new FormData();
+      fd.append("file", input.files[0]);
+      fd.append("folder", folder);
 
-    shift_type: shift_type.value,
-    duty_hours: Number(duty_hours.value),
-    salary_type: salary_type.value,
-    salary_amount: Number(salary_amount.value),
-    payment_mode: payment_mode.value,
-    salary_date: Number(salary_date.value)
-  };
+      const res = await fetch(FILE_API, {
+        method: "POST",
+        headers: { Authorization: headers().Authorization }, // 🔐 token
+        body: fd,
+      });
 
-  const res = await fetch("/nurse/create",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(payload)
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById(field).value = data.path;
+      }
+    };
+
+    /* ================= FORM SUBMIT ================= */
+    nurseForm.onsubmit = async function (e) {
+      e.preventDefault();
+
+      const payload = {
+        phone: phone.value.trim(),
+        name: name.value.trim(),
+        nurse_type: nurse_type.value,
+        shift_type: shift_type.value,
+        duty_hours: Number(duty_hours.value),
+        salary_type: salary_type.value,
+        salary_amount: Number(salary_amount.value),
+        payment_mode: payment_mode.value,
+        salary_date: Number(salary_date.value),
+      };
+
+      if (father_name.value) payload.father_name = father_name.value.trim();
+      if (email.value) payload.email = email.value.trim();
+      if (aadhaar.value) payload.aadhaar_number = aadhaar.value.trim();
+
+      payload.qualification_docs = qualification_docs.value
+        ? JSON.parse(qualification_docs.value)
+        : [];
+
+      payload.experience_docs = experience_docs.value
+        ? JSON.parse(experience_docs.value)
+        : [];
+
+      if (profile_photo.value) payload.profile_photo = profile_photo.value;
+      if (digital_signature.value)
+        payload.digital_signature = digital_signature.value;
+
+      if (joining_date.value)
+        payload.joining_date = formatDate(joining_date.value);
+
+      if (resignation_date.value)
+        payload.resignation_date = formatDate(resignation_date.value);
+
+      console.log("🚀 FINAL PAYLOAD:", payload);
+
+      const res = await fetch(CREATE_API, {
+        method: "POST",
+        headers: headers(), // 🔐 centralized headers
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Nurse created successfully");
+        window.location.href = "/admin/nurses";
+      } else {
+        console.error(data);
+        alert(data.detail || "API Error");
+      }
+    };
   });
-
-  if(res.ok) window.location.href="/admin/nurses";
-  else alert("Error creating nurse");
-};
 </script>
 
 {% endblock %}

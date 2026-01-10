@@ -25,14 +25,17 @@
     </div>
     <script>
       async function login() {
-        const r = await fetch("http://localhost:8000/auth/login-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: phone.value,
-            password: password.value,
-          }),
-        });
+        const r = await fetch(
+          "https://waltraud-unmalleable-fecklessly.ngrok-free.dev/auth/login-password",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: phone.value,
+              password: password.value,
+            }),
+          }
+        );
 
         const d = await r.json();
 

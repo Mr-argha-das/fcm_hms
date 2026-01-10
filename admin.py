@@ -27,7 +27,22 @@ def admin_login(request: Request):
     )
 
 
+@router.get("/nurses/self", response_class=HTMLResponse)
+def self_registered_nurses(request: Request):
 
+    nurses_qs = (
+        NurseProfile.objects(created_by="SELF")
+        .select_related()
+       
+    )
+
+    return templates.TemplateResponse(
+        "admin/nurses_self.html",
+        {
+            "request": request,
+            "nurses": nurses_qs
+        }
+    )
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
 

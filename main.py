@@ -26,10 +26,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "*",
-        "http://localhost",
-        "http://localhost:8000",
        
-      #  https://waltraud-unmalleable-fecklessly.ngrok-free.dev
+       
+      "https://waltraud-unmalleable-fecklessly.ngrok-free.dev"
     ],
     allow_credentials=True,
     allow_methods=["*"],
