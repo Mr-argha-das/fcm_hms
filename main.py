@@ -28,7 +28,7 @@ app.add_middleware(
         "*",
        
        
-      "https://waltraud-unmalleable-fecklessly.ngrok-free.dev"
+      "https://cpu-system-possess-sign.trycloudflare.com/"
     ],
     allow_credentials=True,
     allow_methods=["*"],

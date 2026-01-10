@@ -1,4 +1,4 @@
-const API = "https://waltraud-unmalleable-fecklessly.ngrok-free.dev";
+const API = "https://cpu-system-possess-sign.trycloudflare.com";
 
 function headers() {
   return {
