@@ -46,7 +46,7 @@ class NurseProfile(Document):
         choices=["PENDING", "CLEAR", "FAILED"],
         default="PENDING"
     )
-
+    created_by = StringField(default="ADMIN", required=True)
     created_at = DateTimeField(default=datetime.utcnow)
 
 class NurseDuty(Document):
