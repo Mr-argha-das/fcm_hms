@@ -25,17 +25,14 @@
     </div>
     <script>
       async function login() {
-        const r = await fetch(
-          "https://cpu-system-possess-sign.trycloudflare.com/auth/login-password",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              phone: phone.value,
-              password: password.value,
-            }),
-          }
-        );
+        const r = await fetch("https://wecarehhcs.in/auth/login-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: phone.value,
+            password: password.value,
+          }),
+        });
 
         const d = await r.json();
 
