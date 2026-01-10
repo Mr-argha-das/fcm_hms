@@ -130,7 +130,7 @@ def admin_create_visit(
 
     return {"message": "Visit created by admin"}
 @router.post("/{nurse_id}/update")
-def update_nurse_admin(
+async def update_nurse_admin(
     nurse_id: str,
     request: Request,
 
@@ -142,47 +142,50 @@ def update_nurse_admin(
     nurse_type: str = Form(...),
     joining_date: date | None = Form(None),
     resignation_date: date | None = Form(None),
-    is_active: bool = Form(True),
+    is_active: bool = Form(False),
 
-    # ---- SALARY / CONSENT ----
+    # ---- SALARY ----
     salary_type: str = Form(...),
     salary_amount: float = Form(...),
     payment_mode: str = Form(...),
     salary_date: int = Form(...)
 ):
-    # 🔹 Get NurseProfile
+    print("🔥 UPDATE API HIT:", nurse_id)
+    print("📦 FORM DATA:", await request.form())
+
     nurse = NurseProfile.objects(id=nurse_id).first()
     if not nurse:
         raise HTTPException(404, "Nurse not found")
 
-    # 🔹 Update NurseProfile fields
+    # ================= UPDATE NURSE =================
     nurse.aadhaar_verified = aadhaar_verified
     nurse.police_verification_status = police_verification_status
     nurse.nurse_type = nurse_type
     nurse.joining_date = joining_date
     nurse.resignation_date = resignation_date
-    nurse.save()  # mandatory
+    nurse.save()
 
-    # 🔹 Update User active status
+    # ================= UPDATE USER =================
     if nurse.user:
         nurse.user.is_active = is_active
         nurse.user.save()
 
-    # 🔹 Update or Create NurseConsent (PENDING)
+    # ================= CONSENT =================
     consent = NurseConsent.objects(nurse=nurse, status="PENDING").first()
+
     if not consent:
         consent = NurseConsent(
             nurse=nurse,
-            shift_type="DAY",     # default value, change if needed
-            duty_hours=8          # default, admin can update
+            shift_type="DAY",
+            duty_hours=8
         )
 
     consent.salary_type = salary_type
     consent.salary_amount = salary_amount
     consent.payment_mode = payment_mode
     consent.salary_date = salary_date
-    consent.save()  # mandatory
+    consent.save()
 
-    print("✅ ADMIN UPDATED NURSE:", nurse_id)
+    print("✅ UPDATED SUCCESSFULLY")
 
     return {"success": True}
