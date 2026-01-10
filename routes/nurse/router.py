@@ -93,6 +93,67 @@ class NurseResponse(BaseModel):
     user_id: str
     verification_status: str
 router = APIRouter(prefix="/nurse", tags=["Nurse"])
+class NurseSelfSignupRequest(BaseModel):
+
+    # -------- USER --------
+    phone: str = Field(..., example="9876543210")
+    name: str = Field(..., example="Sruti Das")
+    father_name: Optional[str] = Field(None, example="Ram Das")
+    email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
+
+    # -------- NURSE PROFILE --------
+    nurse_type: str = Field(
+        ...,
+        example="GNM",
+        description="GNM | ANM | CARETAKER | PHYSIO | COMBO"
+    )
+
+    aadhaar_number: Optional[str] = Field(None, example="123412341234")
+
+    qualification_docs: List[str] = Field(default_factory=list)
+    experience_docs: List[str] = Field(default_factory=list)
+
+    profile_photo: Optional[str] = None
+    digital_signature: Optional[str] = None
+
+    joining_date: Optional[date] = None
+@router.post("/self-signup", response_model=NurseResponse)
+def nurse_self_signup(payload: NurseSelfSignupRequest):
+
+    # ❌ Duplicate check
+    if User.objects(phone=payload.phone).first():
+        raise HTTPException(400, "Phone number already registered")
+
+    # 1️⃣ Create USER
+    user = User(
+        role="NURSE",
+        phone=payload.phone,
+        email=payload.email,
+        name=payload.name,
+        father_name=payload.father_name,
+        is_active=False,          # 🔥 ADMIN approval needed
+        otp_verified=False
+    ).save()
+
+    # 2️⃣ Create NURSE PROFILE
+    nurse = NurseProfile(
+        user=user,
+        nurse_type=payload.nurse_type,
+        aadhaar_number=payload.aadhaar_number,
+        qualification_docs=payload.qualification_docs,
+        experience_docs=payload.experience_docs,
+        profile_photo=payload.profile_photo,
+        digital_signature=payload.digital_signature,
+        joining_date=payload.joining_date,
+        verification_status="PENDING",
+        police_verification_status="PENDING"
+    ).save()
+
+    return NurseResponse(
+        nurse_id=str(nurse.id),
+        user_id=str(user.id),
+        verification_status=nurse.verification_status
+    )
 
 
 @router.post("/create", response_model=NurseResponse)
