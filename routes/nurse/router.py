@@ -754,17 +754,14 @@ def nurse_month_attendance(
         "attendance": daily
     }
 class NurseConsentSignRequest(BaseModel):
-    confidentiality_accepted: bool
-    no_direct_payment_accepted: bool
-    police_termination_accepted: bool
-    signature_image: Optional[str]
+    signature_image: str  
 
 @router.post("/consent/sign")
 def sign_consent(
     payload: NurseConsentSignRequest,
     user=Depends(get_current_user)
 ):
-    # 🔐 Role check
+    # 🔒 Only nurse can sign
     if user.role != "NURSE":
         raise HTTPException(403, "Access denied")
 
@@ -773,43 +770,26 @@ def sign_consent(
         raise HTTPException(404, "Nurse profile not found")
 
     # ❌ Already signed check
-    already_signed = NurseConsent.objects(
-        nurse=nurse,
-        status="SIGNED"
-    ).first()
-
-    if already_signed:
+    existing = NurseConsent.objects(nurse=nurse, status="SIGNED").first()
+    if existing:
         raise HTTPException(400, "Consent already signed")
 
     # ✅ Get pending consent
-    consent = NurseConsent.objects(
-        nurse=nurse,
-        status="PENDING"
-    ).first()
-
+    consent = NurseConsent.objects(nurse=nurse, status="PENDING").first()
     if not consent:
         raise HTTPException(404, "No pending consent found")
 
-    # ❌ Checkbox validation
-    if not (
-        payload.confidentiality_accepted and
-        payload.no_direct_payment_accepted and
-        payload.police_termination_accepted
-    ):
-        raise HTTPException(400, "All checkboxes must be accepted")
-
-    # ✅ Update consent
-    consent.confidentiality_accepted = True
-    consent.no_direct_payment_accepted = True
-    consent.police_termination_accepted = True
+    # ✅ Save signature and mark consent as signed
     consent.signature_image = payload.signature_image
     consent.status = "SIGNED"
-    consent.signed_at = datetime.utcnow()   # 🔥 better than overwriting created_at
+    consent.signed_at = datetime.utcnow()
     consent.save()
 
     return {
         "message": "Consent signed successfully",
-        "status": consent.status
+        "status": consent.status,
+        "signed_at": consent.signed_at,
+        "signature_image": consent.signature_image
     }
 
 
