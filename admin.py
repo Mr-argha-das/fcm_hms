@@ -502,7 +502,7 @@ def edit_nurse(nurse_id: str, request: Request):
         raise HTTPException(404, "Nurse not found")
 
     return templates.TemplateResponse(
-        "admin/edit_nurse.html",
+        "admin/nurse_edit.html",
         {
             "request": request,
             "nurse": nurse
