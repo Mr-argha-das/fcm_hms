@@ -129,64 +129,64 @@ def admin_create_visit(
     visit.save()
 
     return {"message": "Visit created by admin"}
-@router.post("/nurses/{nurse_id}/update")
-async def update_nurse_admin(nurse_id: str, request: Request):
-    form = await request.form()
+@router.post("/{nurse_id}/update")
+def update_nurse_admin(
+    nurse_id: str,
 
+    aadhaar_verified: str = Form("false"),
+    police_verification_status: str = Form(...),
+
+    nurse_type: str = Form(...),
+    joining_date: str | None = Form(None),
+    resignation_date: str | None = Form(None),
+    is_active: str = Form("false"),
+
+    salary_type: str = Form(...),
+    salary_amount: float = Form(...),
+    payment_mode: str = Form(...),
+    salary_date: int = Form(...)
+):
     nurse = NurseProfile.objects(id=nurse_id).first()
     if not nurse:
-        raise HTTPException(status_code=404, detail="Nurse not found")
+        raise HTTPException(404, "Nurse not found")
 
-    # ================= VERIFICATION =================
-    nurse.aadhaar_verified = "aadhaar_verified" in form
+    # ✅ checkbox fix
+    nurse.aadhaar_verified = aadhaar_verified == "true"
+    nurse.police_verification_status = police_verification_status
+    nurse.nurse_type = nurse_type
 
-    if "police_verification_status" in form:
-        nurse.police_verification_status = form.get("police_verification_status")
-
-    # ================= PROFILE =================
-    if "nurse_type" in form:
-        nurse.nurse_type = form.get("nurse_type")
-
-    joining_date = form.get("joining_date")
+    # ✅ date fix
     nurse.joining_date = (
-        datetime.strptime(joining_date, "%Y-%m-%d").date()
+        date.fromisoformat(joining_date)
         if joining_date else None
     )
-
-    resignation_date = form.get("resignation_date")
     nurse.resignation_date = (
-        datetime.strptime(resignation_date, "%Y-%m-%d").date()
+        date.fromisoformat(resignation_date)
         if resignation_date else None
     )
 
-    nurse.save()  # 🔥 MUST
+    nurse.save()
 
-    # ================= USER ACTIVE =================
+    # ✅ user active fix
     if nurse.user:
-        nurse.user.is_active = "is_active" in form
+        nurse.user.is_active = is_active == "true"
         nurse.user.save()
 
-    # ================= SALARY (NurseConsent) =================
-    consent = NurseConsent.objects(nurse=nurse, status="PENDING").first()
+    # ✅ consent FIX (no hardcoded status)
+    consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
 
     if not consent:
         consent = NurseConsent(
             nurse=nurse,
-            # 👇 required fields — but values HTML se hi aa rahi hain
-            salary_type=form.get("salary_type"),
-            salary_amount=float(form.get("salary_amount") or 0),
-            payment_mode=form.get("payment_mode"),
-            salary_date=int(form.get("salary_date") or 1),
+            shift_type="DAY",      # default only if missing
+            duty_hours=8,
+            status="PENDING"
         )
-    else:
-        consent.salary_type = form.get("salary_type")
-        consent.salary_amount = float(form.get("salary_amount") or 0)
-        consent.payment_mode = form.get("payment_mode")
-        consent.salary_date = int(form.get("salary_date") or 1)
 
-    consent.save()  # 🔥 MUST
+    consent.salary_type = salary_type
+    consent.salary_amount = salary_amount
+    consent.payment_mode = payment_mode
+    consent.salary_date = salary_date
+    consent.save()
 
-    return {
-        "success": True,
-        "message": "Nurse updated successfully"
-    }
+    return {"success": True}
