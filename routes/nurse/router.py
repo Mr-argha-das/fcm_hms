@@ -146,7 +146,8 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
         digital_signature=payload.digital_signature,
         joining_date=payload.joining_date,
         verification_status="PENDING",
-        police_verification_status="PENDING"
+        police_verification_status="PENDING",
+        created_by="SELF"
     ).save()
 
     return NurseResponse(
@@ -182,7 +183,8 @@ def create_nurse(payload: NurseCreateRequest):
         joining_date=payload.joining_date,
         resignation_date=payload.resignation_date,
         verification_status="PENDING",
-        police_verification_status="PENDING"
+        police_verification_status="PENDING",
+        created_by="ADMIN"
     ).save()
 
 
