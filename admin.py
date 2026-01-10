@@ -496,19 +496,16 @@ def nurse_detail_page(
 
 
 @router.get("/nurses/{nurse_id}/edit", response_class=HTMLResponse)
-def nurse_edit_page(nurse_id: str, request: Request):
+def edit_nurse(nurse_id: str, request: Request):
     nurse = NurseProfile.objects(id=nurse_id).first()
     if not nurse:
         raise HTTPException(404, "Nurse not found")
 
-    consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
-
     return templates.TemplateResponse(
-        "admin/nurse_edit.html",
+        "admin/edit_nurse.html",
         {
             "request": request,
-            "nurse": nurse,
-            "consent": consent
+            "nurse": nurse
         }
     )
 @router.get("/create/doctor", response_class=HTMLResponse)

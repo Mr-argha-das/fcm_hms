@@ -2,6 +2,7 @@
 {% block title %}Manage Nurse{% endblock %}
 
 {% block content %}
+
 <div class="card mb-4">
   <h4>Manage Nurse</h4>
   <p class="text-muted">Admin controls & verification</p>
@@ -9,14 +10,19 @@
 
 <form id="nurseForm">
 
-  <!-- VERIFICATION -->
-  <div class="card mb-4">
-    <h5>Verification</h5>
+<!-- ================= VERIFICATION ================= -->
+<div class="card mb-4">
+  <h5>Verification</h5>
 
-    <input type="checkbox" name="aadhaar_verified"
-      {% if nurse.aadhaar_verified %}checked{% endif %}> Aadhaar Verified
+  <div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" name="aadhaar_verified"
+           {% if nurse.aadhaar_verified %}checked{% endif %}>
+    <label class="form-check-label">Aadhaar Verified</label>
+  </div>
 
-    <select name="police_verification_status" class="form-select mt-2">
+  <div class="mb-3">
+    <label>Police Verification</label>
+    <select class="form-select" name="police_verification_status">
       {% for s in ["PENDING","CLEAR","FAILED"] %}
         <option value="{{ s }}"
           {% if nurse.police_verification_status==s %}selected{% endif %}>
@@ -25,88 +31,156 @@
       {% endfor %}
     </select>
   </div>
+</div>
 
-  <!-- PROFILE -->
-  <div class="card mb-4">
-    <h5>Profile</h5>
+<!-- ================= PROFILE ================= -->
+<div class="card mb-4">
+  <h5>Profile</h5>
 
-    <select name="nurse_type" class="form-select mb-2">
-      {% for t in ["GNM","ANM","CARETAKER","PHYSIO","COMBO"] %}
-        <option value="{{ t }}" {% if nurse.nurse_type==t %}selected{% endif %}>
-          {{ t }}
-        </option>
-      {% endfor %}
-    </select>
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label>Nurse Type</label>
+      <select class="form-select" name="nurse_type">
+        {% for t in ["GNM","ANM","CARETAKER","PHYSIO","COMBO"] %}
+          <option value="{{ t }}" {% if nurse.nurse_type==t %}selected{% endif %}>
+            {{ t }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
 
-    <input type="date" name="joining_date" class="form-control mb-2"
-           value="{{ nurse.joining_date }}">
+    <div class="col-md-4 mb-3">
+      <label>Joining Date</label>
+      <input type="date" class="form-control" name="joining_date"
+             value="{{ nurse.joining_date }}">
+    </div>
 
-    <input type="date" name="resignation_date" class="form-control mb-2"
-           value="{{ nurse.resignation_date }}">
-
-    <input type="checkbox" name="is_active"
-      {% if nurse.user.is_active %}checked{% endif %}> Active Nurse
+    <div class="col-md-4 mb-3">
+      <label>Resignation Date</label>
+      <input type="date" class="form-control" name="resignation_date"
+             value="{{ nurse.resignation_date }}">
+    </div>
   </div>
 
-  <!-- SALARY -->
-  <div class="card mb-4">
-    <h5>Salary</h5>
-
-    <select name="salary_type" class="form-select mb-2">
-      <option value="DAILY">DAILY</option>
-      <option value="MONTHLY" selected>MONTHLY</option>
-    </select>
-
-    <input type="number" name="salary_amount" class="form-control mb-2"
-           value="{{ consent.salary_amount if consent else '' }}">
-
-    <select name="payment_mode" class="form-select mb-2">
-      {% for p in ["CASH","BANK","UPI"] %}
-        <option value="{{ p }}"
-          {% if consent and consent.payment_mode==p %}selected{% endif %}>
-          {{ p }}
-        </option>
-      {% endfor %}
-    </select>
-
-    <input type="number" name="salary_date" min="1" max="31"
-           class="form-control"
-           value="{{ consent.salary_date if consent else '' }}">
+  <div class="form-check mt-2">
+    <input class="form-check-input" type="checkbox" name="is_active"
+           {% if nurse.user.is_active %}checked{% endif %}>
+    <label class="form-check-label">Active Nurse</label>
   </div>
+</div>
 
-  <button class="btn btn-success">💾 Save Changes</button>
+<!-- ================= SALARY ================= -->
+<div class="card mb-4">
+  <h5>Salary & Payment</h5>
+
+  <div class="row">
+    <div class="col-md-3 mb-3">
+      <label>Salary Type</label>
+      <select class="form-select" name="salary_type">
+        <option value="DAILY"
+          {% if consent and consent.salary_type=="DAILY" %}selected{% endif %}>
+          DAILY
+        </option>
+        <option value="MONTHLY"
+          {% if consent and consent.salary_type=="MONTHLY" %}selected{% endif %}>
+          MONTHLY
+        </option>
+      </select>
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <label>Salary Amount</label>
+      <input type="number" step="0.01" class="form-control"
+             name="salary_amount"
+             value="{{ consent.salary_amount if consent else '' }}">
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <label>Payment Mode</label>
+      <select class="form-select" name="payment_mode">
+        {% for p in ["CASH","BANK","UPI"] %}
+          <option value="{{ p }}"
+            {% if consent and consent.payment_mode==p %}selected{% endif %}>
+            {{ p }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <label>Salary Date</label>
+      <input type="number" min="1" max="31"
+             class="form-control"
+             name="salary_date"
+             value="{{ consent.salary_date if consent else '' }}">
+    </div>
+  </div>
+</div>
+
+<button type="submit" class="btn btn-success">💾 Save Changes</button>
+<a href="/admin/nurses/{{ nurse.id }}" class="btn btn-secondary">Cancel</a>
+
 </form>
 
+<!-- ================= JS ================= -->
 <script>
 const API = "https://wecarehhcs.in";
 
-document.getElementById("nurseForm").addEventListener("submit", async function(e) {
+function headers() {
+  return {
+    Authorization: "Bearer " + localStorage.getItem("token"),
+  };
+}
+
+function guard() {
+  if (!localStorage.getItem("token")) {
+    window.location.href = "/admin/login";
+  }
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "/admin/login";
+}
+
+guard();
+
+document.getElementById("nurseForm").addEventListener("submit", async function (e) {
   e.preventDefault();
 
-  const form = this;
+  const form = e.target;
   const formData = new FormData(form);
 
-  // checkbox fix for FastAPI
+  // checkbox fix
   formData.set("aadhaar_verified", form.aadhaar_verified.checked ? "true" : "false");
   formData.set("is_active", form.is_active.checked ? "true" : "false");
 
-  const res = await fetch(`${API}/admin/nurses/{{ nurse.id }}/update`, {
-    method: "POST",
-    headers: {
-      Authorization: "Bearer " + localStorage.getItem("token")
-    },
-    body: formData
-  });
+  try {
+    const res = await fetch(
+      `${API}/admin/nurses/{{ nurse.id }}/update`,
+      {
+        method: "POST",
+        headers: headers(),
+        body: formData,
+      }
+    );
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.success) {
-    alert("✅ Updated successfully");
-    location.reload();
-  } else {
-    alert("❌ Update failed");
-    console.log(data);
+    if (!res.ok) {
+      console.error(data);
+      alert(data.detail || "❌ Update failed");
+      return;
+    }
+
+    alert("✅ Nurse updated successfully");
+    window.location.reload();
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Server error");
   }
 });
 </script>
+
 {% endblock %}
