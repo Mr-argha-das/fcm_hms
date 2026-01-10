@@ -8,7 +8,7 @@
   <p class="text-muted">Admin controls & verification</p>
 </div>
 
-<form id="nurseForm" onsubmit="return false;"> <!-- prevent default browser submit -->
+<form id="nurseForm">
 
 <!-- ================= VERIFICATION ================= -->
 <div class="card mb-4">
@@ -128,58 +128,65 @@
   </div>
 </div>
 
-<button type="submit" class="btn btn-success" id="submitBtn">💾 Save Changes</button>
+<!-- Submit -->
+<button type="button" class="btn btn-success" id="submitBtn">💾 Save Changes</button>
 <a href="/admin/nurses/{{ nurse.id }}" class="btn btn-secondary">Cancel</a>
 
 </form>
 
 <!-- ================= JS ================= -->
 <script>
-const API = "https://wecarehhcs.in";
+document.addEventListener("DOMContentLoaded", () => {
 
-function headers() {
-  return {
-    Authorization: "Bearer " + localStorage.getItem("token"),
-  };
-}
+  const API = "https://wecarehhcs.in";
 
-function guard() {
-  if (!localStorage.getItem("token")) {
-    window.location.href = "/admin/login";
+  function headers() {
+    return {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    };
   }
-}
 
-guard();
-
-document.getElementById("submitBtn").addEventListener("click", async () => {
-  const form = document.getElementById("nurseForm");
-  const formData = new FormData(form);
-
-  // ✅ Checkbox fix
-  formData.set("aadhaar_verified", form.aadhaar_verified.checked ? "true" : "false");
-  formData.set("is_active", form.is_active.checked ? "true" : "false");
-
-  try {
-    const res = await fetch(`${API}/admin/nurses/{{ nurse.id }}/update`, {
-      method: "POST",
-      headers: headers(),
-      body: formData
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.detail || "❌ Update failed");
-      return;
+  function guard() {
+    if (!localStorage.getItem("token")) {
+      window.location.href = "/admin/login";
     }
-
-    alert("✅ Nurse updated successfully");
-    window.location.reload();
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ Server error");
   }
+
+  guard();
+
+  const form = document.getElementById("nurseForm");
+  const btn = document.getElementById("submitBtn");
+
+  btn.addEventListener("click", async () => {
+
+    const formData = new FormData(form);
+
+    // ✅ Checkbox fix
+    formData.set("aadhaar_verified", form.aadhaar_verified.checked ? "true" : "false");
+    formData.set("is_active", form.is_active.checked ? "true" : "false");
+
+    try {
+      const res = await fetch(`${API}/admin/nurses/{{ nurse.id }}/update`, {
+        method: "POST",
+        headers: headers(),
+        body: formData
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.detail || "❌ Update failed");
+        return;
+      }
+
+      alert("✅ Nurse updated successfully");
+      window.location.reload();
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Server error");
+    }
+  });
+
 });
 </script>
 
