@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     formData.set("is_active", form.is_active.checked ? "true" : "false");
 
     try {
-      const res = await fetch(`${API}/admin/nurses/{{ nurse.id }}/update`, {
+      const res = await fetch(`${API}/admin/nurse/{{ nurse.id }}/update`, {
         method: "POST",
         headers: headers(),
         body: formData
