@@ -1,4 +1,5 @@
 from calendar import calendar
+from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request,status
 from datetime import datetime, timedelta
 from mongoengine.errors import ValidationError, NotUniqueError
@@ -946,3 +947,96 @@ def log_visit(nurse_id: str, payload: dict):
     )
     visit.save()
     return {"status": "success", "message": "Visit logged"}
+
+@router.get("/profile/me/json")
+def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
+    """
+    Returns the logged-in nurse's detailed info, attendance, salary, visits, consent, etc.
+    """
+    nurse = NurseProfile.objects(user=current_user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse profile not found")
+
+    user = nurse.user
+
+    # ================= MONTH RANGE =================
+    if month is None:
+        month = datetime.utcnow().strftime("%Y-%m")
+
+    year, mon = map(int, month.split("-"))
+    last_day = calendar.monthrange(year, mon)[1]
+    start_date = date(year, mon, 1)
+    end_date = date(year, mon, last_day)
+
+    # ================= ATTENDANCE =================
+    attendance_qs = NurseAttendance.objects(
+        nurse=nurse,
+        date__gte=start_date,
+        date__lte=end_date
+    ).order_by("date")
+
+    total_present = attendance_qs.count()
+
+    attendance_map = defaultdict(int)
+    for att in attendance_qs:
+        attendance_map[att.date.day] += 1
+
+    chart_labels = list(range(1, last_day + 1))
+    chart_values = [attendance_map.get(day, 0) for day in chart_labels]
+
+    # ================= SALARY =================
+    salary = NurseSalary.objects(nurse=nurse, month=month).first()
+
+    # ================= ACTIVE DUTY =================
+    active_duty = NurseDuty.objects(nurse=nurse, is_active=True).first()
+
+    # ================= RECENT VISITS =================
+    visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")[:10]
+
+    # ================= CONSENT =================
+    consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
+
+    # ================= RETURN JSON =================
+    return {
+        "nurse": {
+            "id": str(nurse.id),
+            "phone": user.phone,
+            "nurse_type": nurse.nurse_type,
+            "aadhaar_verified": nurse.aadhaar_verified,
+            "verification_status": nurse.verification_status,
+            "police_verification_status": nurse.police_verification_status,
+            "joining_date": str(nurse.joining_date),
+            "resignation_date": str(nurse.resignation_date) if nurse.resignation_date else None,
+            "profile_photo": nurse.profile_photo,
+            "qualification_docs": nurse.qualification_docs,
+            "experience_docs": nurse.experience_docs,
+        },
+        "kpi": {
+            "attendance": total_present,
+            "salary": salary.net_salary if salary else None,
+            "salary_paid": salary.is_paid if salary else None,
+            "active_duty": active_duty.duty_type if active_duty else None,
+            "shift": active_duty.shift if active_duty else None,
+            "consent_status": consent.status if consent else None,
+            "consent_version": consent.version if consent else None
+        },
+        "attendance_graph": {
+            "labels": chart_labels,
+            "values": chart_values
+        },
+        "attendance_records": [
+            {
+                "date": att.date.strftime("%Y-%m-%d"),
+                "check_in": att.check_in.strftime("%H:%M") if att.check_in else None,
+                "check_out": att.check_out.strftime("%H:%M") if att.check_out else None,
+                "method": att.method
+            } for att in attendance_qs
+        ],
+        "recent_visits": [
+            {
+                "visit_type": v.visit_type,
+                "patient_id": str(v.patient.id),
+                "visit_time": v.visit_time.strftime("%Y-%m-%d %H:%M")
+            } for v in visits
+        ]
+    }
