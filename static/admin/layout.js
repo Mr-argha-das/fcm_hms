@@ -1,5 +1,5 @@
-const API = "https://wecarehhcs.in";
-  
+const API = "http://localhost:8000";
+// const API = "https://wecarehhcs.in";
 function headers() {
   return {
     "Content-Type": "application/json",
