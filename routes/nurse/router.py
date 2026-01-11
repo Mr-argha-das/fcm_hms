@@ -637,7 +637,6 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
 @router.get("/nurse/visits")
 def nurse_visits(
     request: Request,
-    month: str,
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role != "NURSE":
@@ -647,15 +646,19 @@ def nurse_visits(
     if not nurse:
         raise HTTPException(404, "Nurse profile not found")
 
-    year, mon = map(int, month.split("-"))
-    start = datetime(year, mon, 1)
-    end = datetime(year, mon, calendar.monthrange(year, mon)[1], 23, 59, 59)
-
-    visits = NurseVisit.objects(
+    # 🔥 1️⃣ Pending visits (NOT completed)
+    pending_visits = NurseVisit.objects(
         nurse=nurse,
-        visit_time__gte=start,
-        visit_time__lte=end
+        notes__in=[None, ""]
     ).order_by("-visit_time")
+
+    # 🔥 2️⃣ Completed visits
+    completed_visits = NurseVisit.objects(
+        nurse=nurse,
+        notes__nin=[None, ""]
+    ).order_by("-visit_time")
+
+    visits = list(pending_visits) + list(completed_visits)
 
     data = []
     for v in visits:
@@ -663,10 +666,13 @@ def nurse_visits(
             "visit_id": str(v.id),
             "patient_name": v.patient.user.name if v.patient else "Unknown",
             "address": v.patient.address if v.patient else "",
-            "completed": bool(v.notes)
+            "completed": bool(v.notes),
+            "visit_type": v.visit_type,
+            "visit_time": v.visit_time.isoformat()
         })
 
     return data
+
 
 @router.post("/visits/{visit_id}/complete")
 def complete_visit(
