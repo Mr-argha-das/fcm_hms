@@ -1,7 +1,7 @@
 from calendar import calendar
 from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request,status
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,date
 from mongoengine.errors import ValidationError, NotUniqueError
 
 
@@ -17,10 +17,10 @@ from .utils import ensure_consent_active, ensure_duty_time
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import date
-import calendar as cal
+
 import traceback
 from zoneinfo import ZoneInfo
-
+import calendar 
 IST = ZoneInfo("Asia/Kolkata")
 
 def ist_now():
@@ -953,22 +953,27 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
     """
     Returns the logged-in nurse's detailed info, attendance, salary, visits, consent, etc.
     """
+    # ------------------ NURSE PROFILE ------------------
     nurse = NurseProfile.objects(user=current_user).first()
     if not nurse:
         raise HTTPException(404, "Nurse profile not found")
 
     user = nurse.user
 
-    # ================= MONTH RANGE =================
+    # ------------------ MONTH RANGE ------------------
     if month is None:
         month = datetime.utcnow().strftime("%Y-%m")
 
-    year, mon = map(int, month.split("-"))
-    last_day = calendar.monthrange(year, mon)[1]
+    try:
+        year, mon = map(int, month.split("-"))
+        last_day = calendar.monthrange(year, mon)[1]  # ✅ calendar module
+    except Exception:
+        raise HTTPException(400, "Invalid month format. Expected YYYY-MM")
+
     start_date = date(year, mon, 1)
     end_date = date(year, mon, last_day)
 
-    # ================= ATTENDANCE =================
+    # ------------------ ATTENDANCE ------------------
     attendance_qs = NurseAttendance.objects(
         nurse=nurse,
         date__gte=start_date,
@@ -976,7 +981,6 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
     ).order_by("date")
 
     total_present = attendance_qs.count()
-
     attendance_map = defaultdict(int)
     for att in attendance_qs:
         attendance_map[att.date.day] += 1
@@ -984,19 +988,19 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
     chart_labels = list(range(1, last_day + 1))
     chart_values = [attendance_map.get(day, 0) for day in chart_labels]
 
-    # ================= SALARY =================
+    # ------------------ SALARY ------------------
     salary = NurseSalary.objects(nurse=nurse, month=month).first()
 
-    # ================= ACTIVE DUTY =================
+    # ------------------ ACTIVE DUTY ------------------
     active_duty = NurseDuty.objects(nurse=nurse, is_active=True).first()
 
-    # ================= RECENT VISITS =================
+    # ------------------ RECENT VISITS ------------------
     visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")[:10]
 
-    # ================= CONSENT =================
+    # ------------------ CONSENT ------------------
     consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
 
-    # ================= RETURN JSON =================
+    # ------------------ RETURN JSON ------------------
     return {
         "nurse": {
             "id": str(nurse.id),
