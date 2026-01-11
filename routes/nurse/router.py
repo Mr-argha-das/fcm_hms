@@ -646,13 +646,13 @@ def nurse_visits(
     if not nurse:
         raise HTTPException(404, "Nurse profile not found")
 
-    # 🔥 1️⃣ Pending visits (NOT completed)
+    # 🔥 Pending first
     pending_visits = NurseVisit.objects(
         nurse=nurse,
         notes__in=[None, ""]
     ).order_by("-visit_time")
 
-    # 🔥 2️⃣ Completed visits
+    # 🔥 Completed later
     completed_visits = NurseVisit.objects(
         nurse=nurse,
         notes__nin=[None, ""]
@@ -661,14 +661,41 @@ def nurse_visits(
     visits = list(pending_visits) + list(completed_visits)
 
     data = []
+
     for v in visits:
+        patient = v.patient
+
+        # 🔹 MEDICATIONS for this patient
+        meds = []
+        if patient:
+            medications = PatientMedication.objects(patient=patient)
+            for m in medications:
+                meds.append({
+                    "medicine_name": m.medicine_name,
+                    "dosage": m.dosage,
+                    "timing": m.timing,
+                    "duration_days": m.duration_days
+                })
+
         data.append({
             "visit_id": str(v.id),
-            "patient_name": v.patient.user.name if v.patient else "Unknown",
-            "address": v.patient.address if v.patient else "",
-            "completed": bool(v.notes),
+
+            # PATIENT
+            "patient_id": str(patient.id) if patient else None,
+            "patient_name": patient.user.name if patient else "Unknown",
+            "address": patient.address if patient else "",
+
+            # VISIT
             "visit_type": v.visit_type,
-            "visit_time": v.visit_time.isoformat()
+            "visit_time": v.visit_time.isoformat(),
+            "completed": bool(v.notes),
+
+            # LOCATION
+            "ward": v.ward,
+            "room_no": v.room_no,
+
+            # 💊 MEDICATIONS
+            "medications": meds
         })
 
     return data
