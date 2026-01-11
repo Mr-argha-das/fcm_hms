@@ -1,4 +1,4 @@
-from calendar import calendar
+
 from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request,status
 from datetime import datetime, timedelta,date
@@ -950,23 +950,18 @@ def log_visit(nurse_id: str, payload: dict):
 
 @router.get("/profile/me/json")
 def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
-    """
-    Returns the logged-in nurse's detailed info, attendance, salary, visits, consent, etc.
-    """
-    # ------------------ NURSE PROFILE ------------------
     nurse = NurseProfile.objects(user=current_user).first()
     if not nurse:
         raise HTTPException(404, "Nurse profile not found")
 
     user = nurse.user
 
-    # ------------------ MONTH RANGE ------------------
     if month is None:
         month = datetime.utcnow().strftime("%Y-%m")
 
     try:
         year, mon = map(int, month.split("-"))
-        last_day = calendar.monthrange(year, mon)[1]  # ✅ calendar module
+        last_day = calendar.monthrange(year, mon)[1]  # ✅ works now
     except Exception:
         raise HTTPException(400, "Invalid month format. Expected YYYY-MM")
 
