@@ -1,5 +1,5 @@
 from calendar import calendar
-from fastapi import APIRouter, Depends, HTTPException,status
+from fastapi import APIRouter, Depends, HTTPException, Request,status
 from datetime import datetime, timedelta
 from mongoengine.errors import ValidationError, NotUniqueError
 
@@ -634,25 +634,40 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
         }
         for m in meds
     ]
-@router.get("/visitsss")
-def list_visits(user=Depends(get_current_user)):
+@@router.get("/nurse/visits")
+def nurse_visits(
+    request: Request,
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "NURSE":
+        raise HTTPException(403, "Unauthorized")
 
-    if user.role != "NURSE":
-        raise HTTPException(403, "Access denied")
+    nurse = NurseProfile.objects(user=current_user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse profile not found")
 
-    nurse = NurseProfile.objects(user=user).first()
-    visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")
+    year, mon = map(int, month.split("-"))
+    start = datetime(year, mon, 1)
+    end = datetime(year, mon, calendar.monthrange(year, mon)[1], 23, 59, 59)
 
-    return [
-        {
+    visits = NurseVisit.objects(
+        nurse=nurse,
+        visit_time__gte=start,
+        visit_time__lte=end
+    ).order_by("-visit_time")
+
+    data = []
+    for v in visits:
+        data.append({
             "visit_id": str(v.id),
-            "patient_name": v.patient.user.email.split("@")[0],
-            "address": f"Ward {v.ward}, Room {v.room_no}",
-            "visit_time": v.visit_time,
+            "patient_name": v.patient.user.name if v.patient else "Unknown",
+            "address": v.patient.address if v.patient else "",
             "completed": bool(v.notes)
-        }
-        for v in visits
-    ]
+        })
+
+    return data
+
 @router.post("/visits/{visit_id}/complete")
 def complete_visit(
     visit_id: str,
