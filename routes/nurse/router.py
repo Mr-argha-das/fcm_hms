@@ -587,10 +587,12 @@ def create_vitals(
     ).save()
 
     return {"message": "Vitals saved successfully"}
+class DailyNotePayload(BaseModel):
+    note: str
 @router.post("/patients/{patient_id}/notes")
 def add_daily_note(
     patient_id: str,
-    note: str,
+    payload: DailyNotePayload,
     user=Depends(get_current_user)
 ):
     if user.role != "NURSE":
@@ -605,11 +607,12 @@ def add_daily_note(
     PatientDailyNote(
         patient=patient,
         nurse=nurse,
-        note=note,
+        note=payload.note,
         created_at=datetime.utcnow()
     ).save()
 
     return {"message": "Note saved"}
+
 
 @router.get("/patients/{patient_id}/notes")
 def get_notes(patient_id: str, user=Depends(get_current_user)):
