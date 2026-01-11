@@ -26,8 +26,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "*",
-       
-       
       "https://wecarehhcs.in",
       "http://192.0.0.2:8000"
     ],

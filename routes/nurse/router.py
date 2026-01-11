@@ -634,7 +634,7 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
         }
         for m in meds
     ]
-@@router.get("/nurse/visits")
+@router.get("/nurse/visits")
 def nurse_visits(
     request: Request,
     month: str,
