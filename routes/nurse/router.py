@@ -320,7 +320,7 @@ def duty_status(user=Depends(get_current_user)):
     
     return {
             "can_punch_in": True,
-            "can_punch_out": False,
+            "can_punch_out": True,
         }
         
 
