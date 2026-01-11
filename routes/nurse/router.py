@@ -294,18 +294,12 @@ def duty_check_out(user=Depends(get_current_user)):
 
     now = datetime.now(IST)
 
-    duty = NurseDuty.objects(
-        nurse=nurse,
-        is_active=True
-    ).first()
+    
 
-    if not duty or not duty.check_in:
-        raise HTTPException(400, "Invalid check-out")
+
 
     # duty update
-    duty.check_out = now
-    duty.is_active = False
-    duty.save()
+  
 
     # attendance update
     attendance = NurseAttendance.objects(
