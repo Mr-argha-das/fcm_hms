@@ -18,6 +18,12 @@ from typing import List, Optional
 from datetime import date
 import calendar as cal
 import traceback
+from zoneinfo import ZoneInfo
+
+IST = ZoneInfo("Asia/Kolkata")
+
+def ist_now():
+    return datetime.now(IST)
 
 class NurseCreateRequest(BaseModel):
 
@@ -249,54 +255,72 @@ def current_duty(user=Depends(get_current_user)):
 @router.post("/duty/check-in")
 def duty_check_in(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
 
     if nurse.police_verification_status == "FAILED":
         raise HTTPException(403, "Police verification failed")
 
     ensure_consent_active(nurse)
 
-    duty = NurseDuty.objects(nurse=nurse, is_active=True).first()
-    if not duty:
-        raise HTTPException(400, "No active duty")
+    now = datetime.now(IST)
 
-    ensure_duty_time(duty)
+    # prevent double check-in
+    existing = NurseAttendance.objects(
+        nurse=nurse,
+        date=now.date()
+    ).first()
 
-    if duty.check_in:
-        raise HTTPException(400, "Already checked in")
-
-    duty.check_in = datetime.utcnow()
-    duty.save()
+    if existing and existing.check_in:
+        raise HTTPException(400, "Already checked in today")
 
     NurseAttendance(
         nurse=nurse,
-        date=datetime.utcnow().date(),
-        check_in=duty.check_in,
+        date=now.date(),
+        check_in=now,
         method="FACE"
     ).save()
 
-    return {"message": "Checked in successfully"}
+    return {
+        "message": "Checked in successfully",
+        "check_in_time": now.isoformat()
+    }
 @router.post("/duty/check-out")
 def duty_check_out(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
-    duty = NurseDuty.objects(nurse=nurse, is_active=True).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    now = datetime.now(IST)
+
+    duty = NurseDuty.objects(
+        nurse=nurse,
+        is_active=True
+    ).first()
 
     if not duty or not duty.check_in:
         raise HTTPException(400, "Invalid check-out")
 
-    duty.check_out = datetime.utcnow()
+    # duty update
+    duty.check_out = now
     duty.is_active = False
     duty.save()
 
+    # attendance update
     attendance = NurseAttendance.objects(
         nurse=nurse,
-        date=datetime.utcnow().date()
+        date=now.date()
     ).first()
 
     if attendance:
-        attendance.check_out = duty.check_out
+        attendance.check_out = now
         attendance.save()
 
-    return {"message": "Checked out & duty closed"}
+    return {
+        "message": "Checked out successfully",
+        "check_out_time": now.isoformat()
+    }
+
 @router.get("/salary/my")
 def my_salary(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
