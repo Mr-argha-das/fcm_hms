@@ -559,14 +559,16 @@ def get_patient_dashboard(patient_id: str, user=Depends(get_current_user)):
         "gender": patient.gender,
         "medical_history": patient.medical_history,
     }
+class VitalsPayload(BaseModel):
+    bp: str
+    pulse: int
+    spo2: int
+    temperature: float
+    sugar: Optional[float] = None
 @router.post("/patients/{patient_id}/vitals")
 def create_vitals(
     patient_id: str,
-    bp: str,
-    pulse: int,
-    spo2: int,
-    temperature: float,
-    sugar: float = None,
+    payload: VitalsPayload,
     user=Depends(get_current_user)
 ):
     if user.role != "NURSE":
@@ -578,15 +580,16 @@ def create_vitals(
 
     PatientVitals(
         patient=patient,
-        bp=bp,
-        pulse=pulse,
-        spo2=spo2,
-        temperature=temperature,
-        sugar=sugar,
+        bp=payload.bp,
+        pulse=payload.pulse,
+        spo2=payload.spo2,
+        temperature=payload.temperature,
+        sugar=payload.sugar,
         recorded_at=datetime.utcnow()
     ).save()
 
     return {"message": "Vitals saved successfully"}
+
 class DailyNotePayload(BaseModel):
     note: str
 @router.post("/patients/{patient_id}/notes")
