@@ -4,8 +4,9 @@ from datetime import date, timedelta
 from http.client import HTTPException
 import json
 from fastapi import APIRouter, Request
+from fastapi.params import Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from models import *
 
 router = APIRouter(prefix="/admin", tags=["Admin Pages"])
@@ -171,13 +172,26 @@ def create_nurse(request: Request):
         "admin/nurse_create.html", {"request": request}
     )
 
+
+@router.get("/create/patient", response_class=HTMLResponse)
+def create_patient_page(request: Request):
+
+    doctors = DoctorProfile.objects(available=True)
+
+    return templates.TemplateResponse(
+        "admin/add_pataint.html",
+        {
+            "request": request,
+            "doctors": doctors
+        }
+    )
 # -------------------------
 # NURSE MODULE
 # -------------------------
 @router.get("/nurses", response_class=HTMLResponse)
 def nurses(request: Request):
 
-    nurses_qs = NurseProfile.objects.select_related()
+    nurses_qs = NurseProfile.objects(created_by="ADMIN").select_related()
 
     return templates.TemplateResponse(
         "admin/nurses.html",
@@ -186,6 +200,8 @@ def nurses(request: Request):
             "nurses": nurses_qs
         }
     )
+
+
 @router.get("/duty/assign", response_class=HTMLResponse)
 def duty_assign(request: Request):
     return templates.TemplateResponse(
@@ -494,18 +510,26 @@ def nurse_detail_page(
         }
     )
 
-
 @router.get("/nurses/{nurse_id}/edit", response_class=HTMLResponse)
 def edit_nurse(nurse_id: str, request: Request):
     nurse = NurseProfile.objects(id=nurse_id).first()
     if not nurse:
         raise HTTPException(404, "Nurse not found")
 
+    patients = PatientProfile.objects()
+    duties = NurseDuty.objects(nurse=nurse, is_active=True).order_by("-duty_start")
+    visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")[:10]
+    consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
+
     return templates.TemplateResponse(
         "admin/nurse_edit.html",
         {
             "request": request,
-            "nurse": nurse
+            "nurse": nurse,
+            "patients": patients,
+            "duties": duties,
+            "visits": visits,
+            "consent": consent
         }
     )
 @router.get("/create/doctor", response_class=HTMLResponse)
@@ -563,3 +587,140 @@ def doctor_edit_page(doctor_id: str, request: Request):
             "user": doctor.user
         }
     )
+
+
+@router.get("/patient/{patient_id}/care", response_class=HTMLResponse)
+def render_patient_care(
+    request: Request,
+    patient_id: str
+):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    nurses = NurseProfile.objects()
+    duties = NurseDuty.objects(patient=patient, is_active=True)
+    notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
+    vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
+
+    return templates.TemplateResponse(
+        "admin/edit_patient.html",
+        {
+            "request": request,
+            "patient": patient,
+            "doctor": patient.assigned_doctor,
+            "nurses": nurses,
+            "duties": duties,
+            "notes": notes,
+            "vitals": vitals,
+        }
+    )
+
+
+@router.get("/patient/{patient_id}/view", response_class=HTMLResponse)
+def view_patient_details(request: Request, patient_id: str):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    nurses = NurseProfile.objects()
+    duties = NurseDuty.objects(patient=patient, is_active=True)
+    notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
+    vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
+    medications = PatientMedication.objects(patient=patient)
+    relatives = RelativeAccess.objects(patient=patient)
+    relatives = RelativeAccess.objects(patient=patient)
+    all_users = User.objects(role="RELATIVE")
+    
+    return templates.TemplateResponse(
+        "admin/view_patient.html",
+        {
+            "request": request,
+            "patient": patient,
+            "doctor": patient.assigned_doctor,
+            "nurses": nurses,
+            "duties": duties,
+            "notes": notes,
+            "vitals": vitals,
+            "medications": medications,
+            "relatives": relatives,
+            "relatives": relatives,
+        }
+    )
+
+
+
+
+@router.get("/staff/{user_id}/attendance-salary", response_class=HTMLResponse)
+def attendance_salary(request: Request, user_id: str, month: str | None = None):
+    from bson import ObjectId
+    from datetime import datetime
+
+    if not month or month.strip() == "":
+        month = datetime.utcnow().strftime("%Y-%m")
+
+    # Convert string id to ObjectId
+    try:
+        user = User.objects(id=ObjectId(user_id)).first()
+    except:
+        raise HTTPException(404, "Invalid User ID")
+
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    context = {"request": request, "month": month, "user": user}
+
+    if user.role == "NURSE":
+        staff = NurseProfile.objects(user=user).first()
+        attendance = NurseAttendance.objects(nurse=staff, date__startswith=month)
+        salary = NurseSalary.objects(nurse=staff, month=month).first()
+        template = "admin/nurse_attendance_salary.html"
+
+    elif user.role == "DOCTOR":
+        staff = DoctorProfile.objects(user=user).first()
+        attendance = DoctorAttendance.objects(doctor=staff, date__startswith=month)
+        salary = DoctorSalary.objects(doctor=staff, month=month).first()
+        template = "admin/doctor_attendance_salary.html"
+
+    else:
+        staff = StaffProfile.objects(user=user).first()
+        attendance = StaffAttendance.objects(staff=staff, date__startswith=month)
+        salary = StaffSalary.objects(staff=staff, month=month).first()
+        template = "admin/staff_attendance_salary.html"
+
+    context.update({"staff": staff, "attendance": attendance, "salary": salary, "role": user.role})
+
+    # Chart
+    chart_labels = [a.date.strftime("%d") for a in attendance] if attendance else []
+    chart_values = [1 if a.check_in else 0 for a in attendance] if attendance else []
+    context.update({"chart_labels": chart_labels, "chart_values": chart_values})
+
+    return templates.TemplateResponse(template, context)
+
+
+@router.post("/staff/{user_id}/mark-paid")
+def mark_salary_paid(user_id: str, month: str = Form(...)):
+    user = User.objects(id=user_id).first()
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    if user.role == "NURSE":
+        staff = NurseProfile.objects(user=user).first()
+        salary = NurseSalary.objects(nurse=staff, month=month).first()
+        if salary:
+            salary.is_paid = True
+            salary.save()
+    elif user.role == "DOCTOR":
+        staff = DoctorProfile.objects(user=user).first()
+        salary = DoctorSalary.objects(doctor=staff, month=month).first()
+        if salary:
+            salary.is_paid = True
+            salary.save()
+    else:
+        staff = StaffProfile.objects(user=user).first()
+        salary = StaffSalary.objects(staff=staff, month=month).first()
+        if salary:
+            salary.is_paid = True
+            salary.save()
+
+    return RedirectResponse(f"/admin/staff/{user_id}/attendance-salary?month={month}", status_code=303)

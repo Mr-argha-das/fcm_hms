@@ -1,0 +1,175 @@
+{% extends "admin/base.html" %} {% block title %}Add Patient{% endblock %} {%
+block content %}
+
+<div class="card mb-4">
+  <h4>Add New Patient</h4>
+  <p class="text-muted">Register patient for home / hospital care</p>
+</div>
+
+<div class="card p-4">
+  <!-- ================= BASIC DETAILS ================= -->
+  <h5 class="mb-3">Basic Details</h5>
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Service Start Date</label>
+      <input id="service_start" type="date" class="form-control" />
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Service End Date</label>
+      <input id="service_end" type="date" class="form-control" />
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Patient Name</label>
+      <input id="name" class="form-control" placeholder="Full name" />
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Primary Phone</label>
+      <input id="phone" class="form-control" placeholder="10 digit mobile" />
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Alternate / Emergency Number</label>
+      <input id="other_number" class="form-control" />
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Email</label>
+      <input id="email" class="form-control" />
+    </div>
+  </div>
+
+  <!-- ================= PERSONAL DETAILS ================= -->
+  <h5 class="mb-3">Personal Details</h5>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label class="form-label">Age</label>
+      <input id="age" type="number" class="form-control" />
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Gender</label>
+      <select id="gender" class="form-select">
+        <option value="">Select</option>
+        <option>Male</option>
+        <option>Female</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Medical History</label>
+      <textarea id="medical_history" class="form-control"></textarea>
+    </div>
+
+    <!-- ================= ADDRESS ================= -->
+    <div class="col-md-12">
+      <label class="form-label">Address</label>
+      <textarea
+        id="address"
+        class="form-control"
+        rows="2"
+        placeholder="Full home / hospital address"
+      ></textarea>
+    </div>
+  </div>
+
+  <!-- ================= SERVICE DETAILS ================= -->
+  <h5 class="mb-3">Service Details</h5>
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Assign Doctor</label>
+      <select id="doctor" class="form-select">
+        <option value="">Not Assigned</option>
+        {% for doc in doctors %}
+        <option value="{{ doc.id }}">
+          {{ doc.user.name }} ({{ doc.specialization }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- ================= ACTION ================= -->
+  <div class="text-end">
+    <button
+      type="button"
+      class="btn btn-primary px-4"
+      onclick="createPatient()"
+    >
+      Save Patient
+    </button>
+  </div>
+</div>
+
+<!-- ================= GLOBAL API ================= -->
+<script>
+  const API = "http://localhost:8000";
+
+  function headers() {
+    return {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    };
+  }
+
+  function guard() {
+    if (!localStorage.getItem("token")) {
+      window.location.href = "/admin/login";
+    }
+  }
+
+  guard();
+</script>
+
+<!-- ================= PAGE JS ================= -->
+<script>
+  async function createPatient() {
+    const payload = {
+      name: document.getElementById("name").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      other_number:
+        document.getElementById("other_number").value.trim() || null,
+      email: document.getElementById("email").value.trim() || null,
+      age: document.getElementById("age").value || null,
+      gender: document.getElementById("gender").value || null,
+      medical_history: document.getElementById("medical_history").value || null,
+      address: document.getElementById("address").value.trim() || null, // ✅ NEW
+      service_start: document.getElementById("service_start").value || null,
+      service_end: document.getElementById("service_end").value || null,
+      assigned_doctor: document.getElementById("doctor").value || null,
+    };
+
+    console.log("📦 Payload:", payload);
+
+    if (!payload.name || !payload.phone) {
+      alert("Name and phone required");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/patient/create`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      console.log("✅ Response:", data);
+
+      if (res.ok && data.success) {
+        alert("Patient added successfully!");
+        window.location.href = "/admin/patients";
+      } else {
+        alert(data.detail || "Failed to add patient");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong!");
+    }
+  }
+</script>
+
+{% endblock %}

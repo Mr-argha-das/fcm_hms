@@ -1,0 +1,105 @@
+{% extends "admin/base.html" %} {% block title %}Staff Attendance & Salary{%
+endblock %} {% block content %}
+
+<!-- ================= HEADER & BASIC INFO ================= -->
+<div class="card mb-4">
+  <div class="d-flex align-items-center">
+    <div>
+      <h4>{{ staff.user.name or staff.user.phone }}</h4>
+      <p class="mb-1">{{ staff.staff_type or "Other Staff" }}</p>
+      <span class="badge bg-info"
+        >Joined: {{ staff.joining_date.strftime("%d %b %Y") }}</span
+      >
+    </div>
+  </div>
+</div>
+
+<!-- ================= KPI SUMMARY ================= -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="card kpi">
+      <small>Attendance ({{ month }})</small>
+      <h3>{{ attendance|length }} Days</h3>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card kpi">
+      <small>Salary</small>
+      <h3>₹ {{ salary.amount if salary else "N/A" }}</h3>
+      {% if salary %} {% if salary.is_paid %}
+      <small class="text-success">Paid</small>
+      {% else %}
+      <small class="text-danger">Unpaid</small>
+      {% endif %} {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ================= ATTENDANCE GRAPH ================= -->
+<div class="card mb-4">
+  <h5>Attendance Graph – {{ month }}</h5>
+  <canvas id="attendanceChart" height="120"></canvas>
+</div>
+
+<!-- ================= ATTENDANCE TABLE ================= -->
+<div class="card mb-4">
+  <h5>Attendance Records – {{ month }}</h5>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Check In</th>
+        <th>Check Out</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in attendance %}
+      <tr>
+        <td>{{ a.date.strftime("%d %b %Y") }}</td>
+        <td>{{ a.check_in.strftime("%H:%M") if a.check_in else "-" }}</td>
+        <td>{{ a.check_out.strftime("%H:%M") if a.check_out else "-" }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3" class="text-center text-muted">
+          No attendance for this month
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ================= MARK SALARY PAID ================= -->
+{% if salary and not salary.is_paid %}
+<form method="post" action="/admin/staff/{{ staff.user.id }}/mark-paid">
+  <input type="hidden" name="month" value="{{ month }}" />
+  <button type="submit" class="btn btn-success mb-4">Mark Salary Paid</button>
+</form>
+{% endif %}
+
+<!-- ================= CHART JS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  new Chart(document.getElementById("attendanceChart"), {
+    type: "bar",
+    data: {
+      labels: {{ chart_labels|safe }},
+      datasets: [{
+        label: "Attendance",
+        data: {{ chart_values|safe }},
+        backgroundColor: "rgba(255, 159, 64, 0.6)",
+        borderColor: "rgba(255, 159, 64, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      plugins:{ legend:{ display:false }},
+      scales:{
+        y:{ beginAtZero:true, ticks:{ stepSize:1 } }
+      }
+    }
+  });
+</script>
+
+{% endblock %}

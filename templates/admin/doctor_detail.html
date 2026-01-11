@@ -1,23 +1,28 @@
-{% extends "admin/base.html" %}
-{% block title %}Doctor Details{% endblock %}
+{% extends "admin/base.html" %} {% block title %}Doctor Details{% endblock %} {%
+block content %}
 
-{% block content %}
-
-<div class="card mb-4 d-flex flex-row justify-content-between align-items-center">
+<div
+  class="card mb-4 d-flex flex-row justify-content-between align-items-center"
+>
   <div>
     <h4>{{ user.phone }}</h4>
     <p class="mb-1">{{ doctor.specialization }}</p>
     <span class="badge bg-info">{{ doctor.registration_number }}</span>
     {% if doctor.available %}
-      <span class="badge bg-success">Available</span>
+    <span class="badge bg-success">Available</span>
     {% else %}
-      <span class="badge bg-secondary">Unavailable</span>
+    <span class="badge bg-secondary">Unavailable</span>
     {% endif %}
   </div>
 
-  <a href="/admin/doctors/{{ doctor.id }}/edit"
-     class="btn btn-outline-warning">
+  <a href="/admin/doctors/{{ doctor.id }}/edit" class="btn btn-outline-warning">
     ✏️ Edit Doctor
+  </a>
+  <a
+    href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
+    class="btn btn-outline-warning"
+  >
+    📊 Attendance & Salary
   </a>
 </div>
 

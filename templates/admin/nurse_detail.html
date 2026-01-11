@@ -1,32 +1,46 @@
-{% extends "admin/base.html" %}
-{% block title %}Nurse Details{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Nurse Details{% endblock %} {%
+block content %}
 
 <!-- ================= BASIC INFO ================= -->
 <div class="card mb-4">
-  <div class="d-flex align-items-center">
-    {% if nurse.profile_photo %}
-      <img src="/{{ nurse.profile_photo }}"
-           style="width:90px;height:90px;border-radius:50%" class="me-3">
-    {% endif %}
-    <div>
-      <h4>{{ user.phone }}</h4>
-      <p class="mb-1">
-        {{ nurse.nurse_type }} Nurse
-        {% if nurse.aadhaar_verified %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+      {% if nurse.profile_photo %}
+      <img
+        src="/{{ nurse.profile_photo }}"
+        style="width: 90px; height: 90px; border-radius: 50%"
+        class="me-3"
+      />
+      {% endif %}
+
+      <div>
+        <h4>{{ user.phone }}</h4>
+        <p class="mb-1">
+          {{ nurse.nurse_type }} Nurse {% if nurse.aadhaar_verified %}
           <span class="badge bg-success ms-2">Aadhaar Verified</span>
-        {% endif %}
-      </p>
-      <span class="badge bg-warning">{{ nurse.verification_status }}</span>
-      <span class="badge bg-info">{{ nurse.police_verification_status }}</span>
+          {% endif %}
+        </p>
+        <span class="badge bg-warning">{{ nurse.verification_status }}</span>
+        <span class="badge bg-info"
+          >{{ nurse.police_verification_status }}</span
+        >
+      </div>
+    </div>
+
+    <!-- 🔥 NAVIGATION BUTTON -->
+    <div>
+      <a
+        href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
+        class="btn btn-outline-primary btn-sm"
+      >
+        📊 Attendance & Salary
+      </a>
     </div>
   </div>
 </div>
 
 <!-- ================= KPI SUMMARY ================= -->
 <div class="row g-4 mb-4">
-
   <div class="col-md-3">
     <div class="card kpi">
       <small>Attendance ({{ month }})</small>
@@ -37,13 +51,11 @@
   <div class="col-md-3">
     <div class="card kpi">
       <small>Salary</small>
-      <h3>
-        ₹ {{ salary.net_salary if salary else "N/A" }}
-      </h3>
+      <h3>₹ {{ salary.net_salary if salary else "N/A" }}</h3>
       {% if salary and salary.is_paid %}
-        <small class="text-success">Paid</small>
+      <small class="text-success">Paid</small>
       {% elif salary %}
-        <small class="text-danger">Unpaid</small>
+      <small class="text-danger">Unpaid</small>
       {% endif %}
     </div>
   </div>
@@ -53,7 +65,7 @@
       <small>Active Duty</small>
       <h3>{{ duty.duty_type if duty else "N/A" }}</h3>
       {% if duty %}
-        <small>{{ duty.shift }}</small>
+      <small>{{ duty.shift }}</small>
       {% endif %}
     </div>
   </div>
@@ -63,11 +75,10 @@
       <small>Consent Status</small>
       <h3>{{ consent.status if consent else "N/A" }}</h3>
       {% if consent %}
-        <small>Version {{ consent.version }}</small>
+      <small>Version {{ consent.version }}</small>
       {% endif %}
     </div>
   </div>
-
 </div>
 
 <!-- ================= ATTENDANCE GRAPH ================= -->
@@ -111,14 +122,13 @@
 <div class="card mb-4">
   <h5>Recent Nurse Visits</h5>
   <ul class="activity">
-    {% for v in visits %}
-      <li>
-        <strong>{{ v.visit_type }}</strong> |
-        Patient ID: {{ v.patient.id }} |
-        {{ v.visit_time.strftime("%d %b %H:%M") }}
-      </li>
+    {% for v in visits %}x
+    <li>
+      <strong>{{ v.visit_type }}</strong> | Patient ID: {{ v.patient.id }} | {{
+      v.visit_time.strftime("%d %b %H:%M") }}
+    </li>
     {% else %}
-      <li class="text-muted">No visits recorded</li>
+    <li class="text-muted">No visits recorded</li>
     {% endfor %}
   </ul>
 </div>
@@ -132,11 +142,11 @@
       <strong>Qualification Documents</strong>
       <ul>
         {% for doc in nurse.qualification_docs %}
-          <li>
-            <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
-          </li>
+        <li>
+          <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
+        </li>
         {% else %}
-          <li class="text-muted">No documents</li>
+        <li class="text-muted">No documents</li>
         {% endfor %}
       </ul>
     </div>
@@ -145,11 +155,11 @@
       <strong>Experience Documents</strong>
       <ul>
         {% for doc in nurse.experience_docs %}
-          <li>
-            <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
-          </li>
+        <li>
+          <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
+        </li>
         {% else %}
-          <li class="text-muted">No documents</li>
+        <li class="text-muted">No documents</li>
         {% endfor %}
       </ul>
     </div>
@@ -159,26 +169,26 @@
 <!-- ================= CHART JS ================= -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-new Chart(document.getElementById("attendanceChart"), {
-  type: "bar",
-  data: {
-    labels: {{ chart_labels | safe }},
-    datasets: [{
-      label: "Attendance",
-      data: {{ chart_values | safe }},
-      borderWidth: 1
-    }]
-  },
-  options: {
-    plugins:{ legend:{ display:false }},
-    scales:{
-      y:{
-        beginAtZero:true,
-        ticks:{ stepSize:1 }
+  new Chart(document.getElementById("attendanceChart"), {
+    type: "bar",
+    data: {
+      labels: {{ chart_labels | safe }},
+      datasets: [{
+        label: "Attendance",
+        data: {{ chart_values | safe }},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      plugins:{ legend:{ display:false }},
+      scales:{
+        y:{
+          beginAtZero:true,
+          ticks:{ stepSize:1 }
+        }
       }
     }
-  }
-});
+  });
 </script>
 
 {% endblock %}

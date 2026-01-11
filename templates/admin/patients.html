@@ -1,24 +1,17 @@
-{% extends "admin/base.html" %}
-{% block title %}Patients{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Patients{% endblock %} {% block
+content %}
 
 <div class="card">
-
   <!-- HEADER -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">Patients</h5>
 
     <div class="d-flex gap-2">
-      <a href="/admin/patient/vitals" class="btn btn-sm btn-outline-secondary">
-        ❤️ Patient Vitals
-      </a>
 
-      <a href="/admin/patient/notes" class="btn btn-sm btn-outline-secondary">
-        📝 Patient Notes
-      </a>
-
-      <button class="btn btn-sm btn-primary">
+      <button
+        class="btn btn-sm btn-primary"
+        onclick="location.href='/admin/create/patient'"
+      >
         ➕ Add Patient
       </button>
     </div>
@@ -31,6 +24,9 @@
         <th>Name</th>
         <th>Age</th>
         <th>Gender</th>
+        <th>Age</th>
+        <th>Mobile</th>
+        <th>Doctor</th>
         <th>Room / Ward</th>
         <th>Status</th>
         <th class="text-center">Actions</th>
@@ -38,74 +34,72 @@
     </thead>
 
     <tbody>
-      {% if patients %}
-        {% for patient in patients %}
-        <tr>
+      {% if patients %} {% for patient in patients %}
+      <tr>
+        <!-- NAME -->
+        <td>{{ patient.user.name }}</td>
 
-          <!-- NAME -->
-          <td>
-            {{ patient.user.phone }}
-          </td>
+        <!-- AGE -->
+        <td>{{ patient.age or "-" }}</td>
 
-          <!-- AGE -->
-          <td>
-            {{ patient.age or "-" }}
-          </td>
+        <!-- GENDER -->
+        <td>{{ patient.gender or "-" }}</td>
+        <!-- AGE -->
+        <td>{{ patient.age or "-" }}</td>
 
-          <!-- GENDER -->
-          <td>
-            {{ patient.gender or "-" }}
-          </td>
-
+        <!-- MOBILE -->
+        <td>{{ patient.user.phone }}</td>
+        <td>
+          {% if patient.assigned_doctor %} Dr. {{
+          patient.assigned_doctor.user.name }} {% else %}
+          <span class="text-muted">Not Assigned</span>
+          {% endif %}
           <!-- ROOM / WARD -->
-          <td>
-            {% if patient.service_end %}
-              Discharged
-            {% else %}
-              Under Care
-            {% endif %}
-          </td>
+        </td>
 
-          <!-- STATUS -->
-          <td>
-            {% if patient.service_end %}
-              <span class="badge bg-success">Recovered</span>
-            {% elif patient.assigned_doctor %}
-              <span class="badge bg-info text-dark">Under Observation</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">Admitted</span>
-            {% endif %}
-          </td>
+        <td>{{ patient.address}}</td>
 
-          <!-- ACTIONS -->
-          <td class="text-center">
-            <button class="btn btn-sm btn-outline-primary" title="View Details">
-              👁️
-            </button>
+        <!-- STATUS -->
+        <td>
+          {% if patient.service_end %}
+          <span class="badge bg-success">Recovered</span>
+          {% elif patient.assigned_doctor %}
+          <span class="badge bg-info text-dark">Under Observation</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Admitted</span>
+          {% endif %}
+        </td>
 
-            <button class="btn btn-sm btn-outline-warning" title="Edit">
-              ✏️
-            </button>
+        <!-- ACTIONS -->
+        <td class="text-center">
+          <a
+            href="/admin/patient/{{ patient.id }}/view"
+            class="btn btn-sm btn-outline-secondary"
+          >
+            👁️
+          </a>
 
-            {% if not patient.service_end %}
-              <button class="btn btn-sm btn-outline-danger" title="Discharge">
-                🏥
-              </button>
-            {% endif %}
-          </td>
+          <a
+            href="/admin/patient/{{ patient.id }}/care"
+            class="btn btn-sm btn-primary"
+          >
+            ✏️
+          </a>
 
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="6" class="text-center text-muted">
-            No patients found
-          </td>
-        </tr>
+          {% if not patient.service_end %}
+          <button class="btn btn-sm btn-outline-danger" title="Discharge">
+            🏥
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %} {% else %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">No patients found</td>
+      </tr>
       {% endif %}
     </tbody>
   </table>
-
 </div>
 
 {% endblock %}

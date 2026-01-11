@@ -9,6 +9,7 @@ class User(Document):
     name = StringField(required=False)
     father_name = StringField(required=False)
     phone = StringField(required=True, unique=True)
+    other_number = StringField(required=False)
     email = EmailField()
     password_hash = StringField()     # Admin / Doctor
     otp_verified = BooleanField(default=False)
@@ -150,6 +151,7 @@ class DoctorVisit(Document):
 
     created_at = DateTimeField(default=datetime.utcnow)
 class PatientProfile(Document):
+
     user = ReferenceField(User, required=True)
 
     age = IntField()
@@ -157,7 +159,7 @@ class PatientProfile(Document):
     medical_history = StringField()
 
     assigned_doctor = ReferenceField(DoctorProfile)
-
+    address = StringField()
     service_start = DateField()
     service_end = DateField()
 class PatientDailyNote(Document):
@@ -244,3 +246,28 @@ class NurseVisit(Document):
 
     created_by = ReferenceField(User)   # 🔥 IMPORTANT
     created_at = DateTimeField(default=datetime.utcnow)
+
+class DoctorAttendance(Document):
+    doctor = ReferenceField(DoctorProfile)
+    date = DateField()
+    check_in = DateTimeField()
+    check_out = DateTimeField()
+    method = StringField()
+class DoctorSalary(Document):
+    doctor = ReferenceField(DoctorProfile)
+    month = StringField()
+    amount = FloatField()
+    is_paid = BooleanField(default=False)
+class StaffProfile(Document):
+    user = ReferenceField(User)
+    staff_type = StringField()   # DRIVER, ATTENDANT, etc
+    joining_date = DateField()
+class StaffAttendance(Document):
+    staff = ReferenceField(StaffProfile)
+    date = DateField()
+    check_in = DateTimeField()
+    check_out = DateTimeField()
+class StaffSalary(Document):
+    staff = ReferenceField(StaffProfile)
+    month = StringField()
+    amount = FloatField()

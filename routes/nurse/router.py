@@ -841,3 +841,43 @@ def consent_status(user=Depends(get_current_user)):
         "police_verified": "CLEAR",
         "aadhaar_verified": True
     }
+
+# Add Medication for a patient
+@router.post("/nurse/{nurse_id}/assign-duty")
+def assign_duty(nurse_id: str, payload: dict):
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    patient = PatientProfile.objects(id=payload["patient_id"]).first()
+    if not nurse or not patient:
+        raise HTTPException(status_code=404, detail="Nurse or Patient not found")
+
+    duty = NurseDuty(
+        nurse=nurse,
+        patient=patient,
+        duty_type=payload["duty_type"],
+        shift=payload["shift"],
+        duty_start=datetime.fromisoformat(payload["duty_start"]),
+        duty_end=datetime.fromisoformat(payload["duty_end"]),
+        is_active=True
+    )
+    duty.save()
+    return {"status": "success", "message": "Duty assigned"}
+
+# Log Visit
+@router.post("/nurse/{nurse_id}/log-visit")
+def log_visit(nurse_id: str, payload: dict):
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    patient = PatientProfile.objects(id=payload["patient_id"]).first()
+    if not nurse or not patient:
+        raise HTTPException(status_code=404, detail="Nurse or Patient not found")
+
+    visit = NurseVisit(
+        nurse=nurse,
+        patient=patient,
+        ward=payload.get("ward"),
+        room_no=payload.get("room_no", ""),
+        visit_type=payload["visit_type"],
+        visit_time=datetime.utcnow(),
+        created_by=nurse.user
+    )
+    visit.save()
+    return {"status": "success", "message": "Visit logged"}

@@ -1,0 +1,310 @@
+{% extends "admin/base.html" %} {% block title %}Patient Care{% endblock %} {%
+block content %}
+
+<h4 class="mb-3">🧑‍⚕️ Patient Care Management</h4>
+
+<!-- ================= PATIENT INFO ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4">
+        <p><b>Name:</b> {{ patient.user.name }}</p>
+        <p><b>Phone:</b> {{ patient.user.phone }}</p>
+        <p><b>Email:</b> {{ patient.user.email }}</p>
+        <p><b>Address:</b> {{ patient.address }}</p>
+        <p><b>Age:</b> {{ patient.age }}</p>
+        <p><b>Other number:</b> {{ patient.user.other_number }}</p>
+      </div>
+
+      <div class="col-md-4">
+        <p><b>Gender:</b> {{ patient.gender }}</p>
+        <p><b>Service Start:</b> {{ patient.service_start }}</p>
+        <p>
+          <b>Service End:</b>
+          {% if patient.service_end %} {{ patient.service_end }} {% else %} — {%
+          endif %}
+        </p>
+      </div>
+
+      <div class="col-md-4">
+        <p>
+          <b>Assigned Doctor:</b>
+          {% if doctor %} Dr. {{ doctor.user.name }} ({{ doctor.specialization
+          }}) {% else %}
+          <span class="text-muted">Not Assigned</span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ASSIGN NURSE ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>👩‍⚕️ Assign Nurse</b></div>
+  <div class="card-body row g-3">
+    <div class="col-md-4">
+      <select id="nurse" class="form-select">
+        {% for n in nurses %}
+        <option value="{{ n.id }}">
+          {{ n.user.name }} ({{ n.nurse_type }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <select id="duty_type" class="form-select">
+        <option value="10HR">10 Hours</option>
+        <option value="12HR">12 Hours</option>
+        <option value="24HR">24 Hours</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <select id="shift" class="form-select">
+        <option value="DAY">Day</option>
+        <option value="NIGHT">Night</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100" id="assignBtn">Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DAILY NOTES ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>📝 Daily Nursing Notes</b></div>
+  <div class="card-body">
+    <textarea id="note" class="form-control mb-2" rows="3"></textarea>
+    <button class="btn btn-success btn-sm" id="saveNoteBtn">Save Note</button>
+
+    <hr />
+    {% for n in notes %}
+    <p class="mb-1">
+      <b>{{ n.nurse.user.name }}</b> : {{ n.note }}
+      <span class="text-muted float-end">
+        {{ n.created_at.strftime("%d %b %Y %H:%M") }}
+      </span>
+    </p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ================= VITALS ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>❤️ Patient Vitals</b></div>
+  <div class="card-body row g-2">
+    <div class="col-md-2">
+      <input id="bp" class="form-control" placeholder="BP" />
+    </div>
+    <div class="col-md-2">
+      <input id="pulse" class="form-control" placeholder="Pulse" />
+    </div>
+    <div class="col-md-2">
+      <input id="spo2" class="form-control" placeholder="SpO2" />
+    </div>
+    <div class="col-md-2">
+      <input id="temp" class="form-control" placeholder="Temp" />
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-danger w-100" id="saveVitalsBtn">Save</button>
+    </div>
+
+    <hr />
+    {% for v in vitals %}
+    <div class="col-12 small text-muted">
+      {{ v.recorded_at.strftime("%d %b %Y %H:%M") }} — BP: {{ v.bp }}, Pulse: {{
+      v.pulse }}, SpO2: {{ v.spo2 }}, Temp: {{ v.temperature }}
+    </div>
+    {% endfor %}
+  </div>
+  <!-- ================= MEDICATIONS ================= -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light"><b>💊 Medications</b></div>
+    <div class="card-body row g-2">
+      <div class="col-md-3">
+        <input
+          id="medicine_name"
+          class="form-control"
+          placeholder="Medicine Name"
+        />
+      </div>
+      <div class="col-md-2">
+        <input id="dosage" class="form-control" placeholder="Dosage" />
+      </div>
+      <div class="col-md-3">
+        <input
+          id="timing"
+          class="form-control"
+          placeholder="Timing (comma separated)"
+        />
+      </div>
+      <div class="col-md-2">
+        <input
+          id="duration_days"
+          type="number"
+          class="form-control"
+          placeholder="Duration (days)"
+        />
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-warning w-100" id="saveMedicationBtn">
+          Add
+        </button>
+      </div>
+
+      <hr />
+      {% if medications %} {% for med in medications %}
+      <div class="col-12 small text-muted mb-1">
+        {{ med.medicine_name }} — {{ med.dosage }}, Duration: {{
+        med.duration_days }} days, Timing: {{ med.timing | join(', ') }}
+      </div>
+      {% endfor %} {% else %}
+      <p class="text-muted">No medications assigned.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<!-- ================= RELATIVES ACCESS ================= -->
+
+<script>
+  const patientId = "{{ patient.id }}";
+
+  function headers() {
+    return {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    };
+  }
+
+  // 🔹 Assign Nurse with duty_start and duty_end
+  document.getElementById("assignBtn").addEventListener("click", async () => {
+    const nurseId = document.getElementById("nurse").value;
+    const dutyType = document.getElementById("duty_type").value;
+    const shift = document.getElementById("shift").value;
+
+    const now = new Date().toISOString(); // ISO format
+    const end = new Date();
+    end.setHours(end.getHours() + 12); // Example: duty_end 12 hours later
+    const dutyEnd = end.toISOString();
+
+    await fetch(`${API}/patient/${patientId}/assign-nurse`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        nurse_id: nurseId,
+        duty_type: dutyType,
+        shift: shift,
+        duty_start: now,
+        duty_end: dutyEnd,
+      }),
+    });
+
+    alert("Nurse assigned successfully!");
+  });
+
+  // 🔹 Save Note
+  document.getElementById("saveNoteBtn").addEventListener("click", async () => {
+    const nurseId = document.getElementById("nurse").value;
+    const noteText = document.getElementById("note").value;
+
+    await fetch(`${API}/patient/${patientId}/daily-note`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ nurse_id: nurseId, note: noteText }),
+    });
+
+    location.reload();
+  });
+
+  // 🔹 Save Vitals
+  document
+    .getElementById("saveVitalsBtn")
+    .addEventListener("click", async () => {
+      const bp = document.getElementById("bp").value;
+      const pulse = document.getElementById("pulse").value;
+      const spo2 = document.getElementById("spo2").value;
+      const temp = document.getElementById("temp").value;
+
+      await fetch(`${API}/patient/${patientId}/vitals`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ bp, pulse, spo2, temperature: temp }),
+      });
+
+      location.reload();
+    });
+</script>
+<script>
+  // 🔹 Save Medication
+  document
+    .getElementById("saveMedicationBtn")
+    .addEventListener("click", async () => {
+      const medicine_name = document.getElementById("medicine_name").value;
+      const dosage = document.getElementById("dosage").value;
+      const timing = document
+        .getElementById("timing")
+        .value.split(",")
+        .map((t) => t.trim());
+      const duration_days = parseInt(
+        document.getElementById("duration_days").value
+      );
+
+      if (!medicine_name || !dosage || !duration_days) {
+        alert("Please fill all required fields");
+        return;
+      }
+
+      await fetch(`${API}/patient/${patientId}/medication`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ medicine_name, dosage, timing, duration_days }),
+      });
+
+      location.reload(); // reload page to see new medication
+    });
+</script>
+
+<script>
+  // 🔹 Add Relative Access
+  document
+    .getElementById("addRelativeBtn")
+    .addEventListener("click", async () => {
+      const relative_user_id = document.getElementById("relative_user").value;
+      const access_type = document.getElementById("access_type").value;
+      const permissions = Array.from(
+        document.getElementById("permissions").selectedOptions
+      ).map((opt) => opt.value);
+
+      if (!relative_user_id) {
+        alert("Select a relative");
+        return;
+      }
+
+      await fetch(`${API}/patient/${patientId}/relative-access`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ relative_user_id, access_type, permissions }),
+      });
+
+      location.reload();
+    });
+
+  // 🔹 Remove Relative Access
+  async function removeRelative(accessId) {
+    if (!confirm("Are you sure you want to remove this relative's access?"))
+      return;
+
+    await fetch(`${API}/patient/${patientId}/relative-access/${accessId}`, {
+      method: "DELETE",
+      headers: headers(),
+    });
+
+    location.reload();
+  }
+</script>
+
+{% endblock %}

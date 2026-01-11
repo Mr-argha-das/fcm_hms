@@ -1,10 +1,7 @@
-{% extends "admin/base.html" %}
-{% block title %}Self Registered Nurses{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Self Registered Nurses{%
+endblock %} {% block content %}
 
 <div class="card">
-
   <!-- HEADER -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -12,12 +9,6 @@
       <small class="text-muted">
         Nurses who signed up themselves (Admin approval pending)
       </small>
-    </div>
-
-    <div class="d-flex gap-2">
-      <a href="/admin/nurses" class="btn btn-sm btn-outline-secondary">
-        ← All Nurses
-      </a>
     </div>
   </div>
 
@@ -35,28 +26,34 @@
     </thead>
 
     <tbody>
-      {% if nurses %}
-      {% for nurse in nurses %}
+      {% if nurses %} {% for nurse in nurses %}
       <tr>
-
         <!-- NAME -->
         <td>
           <div class="d-flex align-items-center gap-2">
             {% if nurse.profile_photo %}
-            <img src="/{{ nurse.profile_photo }}"
-                 style="width:36px;height:36px;border-radius:50%">
+            <img
+              src="/{{ nurse.profile_photo }}"
+              style="width: 36px; height: 36px; border-radius: 50%"
+            />
             {% else %}
-            <div style="width:36px;height:36px;border-radius:50%;
-                        background:#e5e7eb;
-                        display:flex;align-items:center;justify-content:center;">
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
               👩‍⚕️
             </div>
             {% endif %}
 
             <div>
-              <div class="fw-semibold">
-                {{ nurse.user.phone }}
-              </div>
+              <div class="fw-semibold">{{ nurse.user.phone }}</div>
               <small class="text-muted">
                 {{ nurse.user.name }}
                 <span class="badge bg-primary ms-1">SELF</span>
@@ -67,23 +64,17 @@
 
         <!-- TYPE -->
         <td>
-          <span class="badge bg-info text-dark">
-            {{ nurse.nurse_type }}
-          </span>
+          <span class="badge bg-info text-dark"> {{ nurse.nurse_type }} </span>
         </td>
 
         <!-- VERIFICATION -->
         <td>
-          <span class="badge bg-warning text-dark">
-            Pending
-          </span>
+          <span class="badge bg-warning text-dark"> Pending </span>
         </td>
 
         <!-- POLICE -->
         <td>
-          <span class="badge bg-warning text-dark">
-            Pending
-          </span>
+          <span class="badge bg-warning text-dark"> Pending </span>
         </td>
 
         <!-- STATUS -->
@@ -97,25 +88,26 @@
 
         <!-- ACTIONS -->
         <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary"
-                  onclick="window.location.href='/admin/nurses/{{ nurse.id }}'">
+          <button
+            class="btn btn-sm btn-outline-primary"
+            onclick="window.location.href='/admin/nurses/{{ nurse.id }}'"
+          >
             👁️
           </button>
 
-          <button class="btn btn-sm btn-outline-success"
-                  title="Approve & Activate">
-            ✅
-          </button>
+          <a
+            href="/admin/nurses/{{ nurse.id }}/edit"
+            class="btn btn-sm btn-outline-warning"
+          >
+            ✏️
+          </a>
 
-          <button class="btn btn-sm btn-outline-danger"
-                  title="Reject">
+          <button class="btn btn-sm btn-outline-danger" title="Reject">
             ❌
           </button>
         </td>
-
       </tr>
-      {% endfor %}
-      {% else %}
+      {% endfor %} {% else %}
       <tr>
         <td colspan="6" class="text-center text-muted py-4">
           No self registered nurses found
@@ -124,7 +116,6 @@
       {% endif %}
     </tbody>
   </table>
-
 </div>
 
 {% endblock %}

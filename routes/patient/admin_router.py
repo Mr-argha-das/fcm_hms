@@ -18,3 +18,4 @@ def update_patient(
     patient.gender = gender
     patient.save()
     return {"message": "Patient updated"}
+

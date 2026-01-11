@@ -1,0 +1,134 @@
+{% extends "admin/base.html" %} {% block title %}Patient Details{% endblock %}
+{% block content %}
+
+<h4 class="mb-3">🧑‍⚕️ Patient Details</h4>
+
+<!-- ================= PATIENT INFO ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4">
+        <p><b>Name:</b> {{ patient.user.name }}</p>
+        <p><b>Phone:</b> {{ patient.user.phone }}</p>
+        <p><b>Email:</b> {{ patient.user.email }}</p>
+        <p><b>Address:</b> {{ patient.address }}</p>
+        <p><b>Age:</b> {{ patient.age }}</p>
+        <p><b>Gender:</b> {{ patient.gender }}</p>
+      </div>
+
+      <div class="col-md-4">
+        <p><b>Service Start:</b> {{ patient.service_start }}</p>
+        <p>
+          <b>Service End:</b> {% if patient.service_end %} {{
+          patient.service_end }} {% else %} — {% endif %}
+        </p>
+      </div>
+
+      <div class="col-md-4">
+        <p>
+          <b>Assigned Doctor:</b> {% if doctor %} Dr. {{ doctor.user.name }} ({{
+          doctor.specialization }}) {% else %}
+          <span class="text-muted">Not Assigned</span> {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ASSIGNED NURSES ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>👩‍⚕️ Assigned Nurses</b></div>
+  <div class="card-body">
+    {% if duties %}
+    <ul class="list-group">
+      {% for duty in duties %}
+      <li
+        class="list-group-item d-flex justify-content-between align-items-center"
+      >
+        {{ duty.nurse.user.name }} ({{ duty.nurse.nurse_type }}) — {{
+        duty.duty_type }}, {{ duty.shift }}
+        <span class="badge bg-success rounded-pill">
+          {{ duty.duty_start.strftime("%d %b %Y %H:%M") }} - {{
+          duty.duty_end.strftime("%d %b %Y %H:%M") }}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No nurses assigned.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ================= DAILY NOTES ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>📝 Daily Nursing Notes</b></div>
+  <div class="card-body">
+    {% if notes %} {% for note in notes %}
+    <p>
+      <b>{{ note.nurse.user.name }}:</b> {{ note.note }}
+      <span class="text-muted float-end"
+        >{{ note.created_at.strftime("%d %b %Y %H:%M") }}</span
+      >
+    </p>
+    {% endfor %} {% else %}
+    <p class="text-muted">No notes recorded.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ================= VITALS ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>❤️ Patient Vitals</b></div>
+  <div class="card-body">
+    {% if vitals %}
+    <table class="table table-sm table-bordered">
+      <thead>
+        <tr>
+          <th>Recorded At</th>
+          <th>BP</th>
+          <th>Pulse</th>
+          <th>SpO2</th>
+          <th>Temp</th>
+          <th>Sugar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vitals %}
+        <tr>
+          <td>{{ v.recorded_at.strftime("%d %b %Y %H:%M") }}</td>
+          <td>{{ v.bp }}</td>
+          <td>{{ v.pulse }}</td>
+          <td>{{ v.spo2 }}</td>
+          <td>{{ v.temperature }}</td>
+          <td>{{ v.sugar or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No vitals recorded.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ================= MEDICATIONS ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light"><b>💊 Medications</b></div>
+  <div class="card-body">
+    {% if medications %}
+    <ul>
+      {% for med in medications %}
+      <li>
+        {{ med.medicine_name }} — {{ med.dosage }}, Duration: {{
+        med.duration_days }} days, Timing: {{ med.timing | join(', ') }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No medications assigned.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
