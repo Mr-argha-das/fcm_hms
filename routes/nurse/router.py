@@ -317,25 +317,12 @@ def advance_request(amount: float, user=Depends(get_current_user)):
 @router.get("/duty/status")
 def duty_status(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
-    duty = NurseDuty.objects(nurse=nurse).order_by("-created_at").first()
-
-    if not duty:
-        return {
+    
+    return {
             "can_punch_in": True,
             "can_punch_out": False,
         }
-
-    if duty.check_in and not duty.check_out:
-        return {
-            "can_punch_in": False,
-            "can_punch_out": True,
-        }
-
-    if duty.check_out:
-        return {
-            "can_punch_in": True,
-            "can_punch_out": False,
-        }
+        
 
 
 @router.post("/visit")
