@@ -396,7 +396,7 @@ def serialize_patient(patient):
 
 
 @router.get("/profile/view")
-def view_patient_details(user=Depends(get_current_user)):
+def view_patient_detailsfgcg(user=Depends(get_current_user)):
     patient = PatientProfile.objects(user=user).first()
     if not patient:
         raise HTTPException(404, "Patient not found")
@@ -416,8 +416,8 @@ def view_patient_details(user=Depends(get_current_user)):
     }
 
 @router.get("{isd}/view")
-def view_patient_details(isd:str):
-    patient = PatientProfile.objects(id=ObjectId(isd)).first()
+def view_patient_detailsbjjbj(isd:str):
+    patient = PatientProfile.objects(id=isd).first()
     if not patient:
         raise HTTPException(404, "Patient not found")
 
@@ -428,7 +428,6 @@ def view_patient_details(isd:str):
 
     return {
         "patient": serialize_patient(patient),
-
         "duties": [serialize_duty(d) for d in duties],
         "notes": [serialize_note(n) for n in notes],
         "vitals": [serialize_vital(v) for v in vitals],
