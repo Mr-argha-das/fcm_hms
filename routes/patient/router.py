@@ -415,7 +415,7 @@ def view_patient_detailsfgcg(user=Depends(get_current_user)):
         "medications": [serialize_medication(m) for m in medications],
     }
 
-@router.get("{isd}/view")
+@router.get("/{isd}/view")
 def view_patient_detailsbjjbj(isd:str):
     patient = PatientProfile.objects(id=isd).first()
     if not patient:
