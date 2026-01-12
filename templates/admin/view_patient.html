@@ -8,6 +8,27 @@
 
 <h4 class="mb-4">🧑‍⚕️ Patient Details</h4>
 
+<!-- ================= TABS ================= -->
+<ul class="nav nav-tabs mb-4">
+  <li class="nav-item">
+    <a class="nav-link active" data-bs-toggle="tab" href="#tab-details">
+      🧑‍⚕️ Details
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-billing">
+      💰 Billing
+    </a>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+<!-- ========================================================= -->
+<!-- ================= DETAILS TAB =========================== -->
+<!-- ========================================================= -->
+<div class="tab-pane fade show active" id="tab-details">
+
 <!-- ================= PATIENT BASIC INFO ================= -->
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-light">
@@ -20,19 +41,14 @@
         <p><b>Phone:</b> {{ patient.user.phone }}</p>
         <p><b>Email:</b> {{ patient.user.email or "-" }}</p>
       </div>
-
       <div class="col-md-4">
         <p><b>Age:</b> {{ patient.age }}</p>
         <p><b>Gender:</b> {{ patient.gender }}</p>
         <p><b>Address:</b> {{ patient.address }}</p>
       </div>
-
       <div class="col-md-4">
         <p><b>Service Start:</b> {{ patient.service_start }}</p>
-        <p>
-          <b>Service End:</b>
-          {{ patient.service_end if patient.service_end else "—" }}
-        </p>
+        <p><b>Service End:</b> {{ patient.service_end if patient.service_end else "—" }}</p>
         <p>
           <b>Assigned Doctor:</b>
           {% if doctor %}
@@ -46,8 +62,6 @@
   </div>
 </div>
 
-<!-- ================= NURSE VISITS ================= -->
-<div class="card shadow-sm mb-4">
 <!-- ================= NURSE VISITS ================= -->
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-light">
@@ -130,7 +144,7 @@
           <th>BP</th>
           <th>Pulse</th>
           <th>SpO2</th>
-          <th>Temp (°C)</th>
+          <th>Temp</th>
           <th>Sugar</th>
         </tr>
       </thead>
@@ -166,7 +180,7 @@
           <th>Medicine</th>
           <th>Dosage</th>
           <th>Timing</th>
-          <th>Duration (Days)</th>
+          <th>Duration</th>
           <th>Price</th>
         </tr>
       </thead>
@@ -177,13 +191,7 @@
           <td>{{ m.dosage }}</td>
           <td>{{ m.timing | join(", ") }}</td>
           <td>{{ m.duration_days }}</td>
-          <td>
-            {% if m.price %}
-              ₹ {{ m.price }}
-            {% else %}
-              <span class="text-muted">N/A</span>
-            {% endif %}
-          </td>
+          <td>{% if m.price %}₹ {{ m.price }}{% else %}-{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -193,5 +201,118 @@
     {% endif %}
   </div>
 </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- ================= BILLING TAB =========================== -->
+<!-- ========================================================= -->
+<div class="tab-pane fade" id="tab-billing">
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light">
+    <b>🧾 Generate Bill</b>
+  </div>
+  <div class="card-body">
+    <div class="row g-2 mb-3">
+      <div class="col-md-3">
+        <input id="discount" class="form-control" placeholder="Discount">
+      </div>
+      <div class="col-md-3">
+        <input id="extra_charges" class="form-control" placeholder="Extra Charges">
+      </div>
+    </div>
+    <button class="btn btn-sm btn-primary" onclick="generateBill()">Generate Bill</button>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-light">
+    <b>📄 Bills</b>
+  </div>
+  <div class="card-body">
+    <table class="table table-sm table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>PDF</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="billTable">
+        <tr>
+          <td colspan="5" class="text-center text-muted">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+const patientId = "{{ patient.id }}";
+
+function generateBill() {
+  fetch("/billing/admin/billing/generate", {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      patient_id: patientId,
+      discount: parseFloat(document.getElementById("discount").value) || 0,
+      extra_charges: parseFloat(document.getElementById("extra_charges").value) || 0
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.message);
+    loadBills();
+  });
+}
+
+function loadBills() {
+  fetch(`/billing/admin/patient/${patientId}/bills`, { headers: headers() })
+  .then(r => r.json())
+  .then(data => {
+    const tbody = document.getElementById("billTable");
+    tbody.innerHTML = "";
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center">No bills</td></tr>`;
+      return;
+    }
+    data.forEach(b => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${new Date(b.date).toLocaleDateString()}</td>
+          <td>₹ ${b.amount}</td>
+          <td>${b.status}</td>
+          <td><a href="/${b.pdf}" target="_blank">📄</a></td>
+          <td>
+            ${b.status === "UNPAID"
+              ? `<button class="btn btn-sm btn-success" onclick="markPaid('${b.bill_id}')">Mark Paid</button>`
+              : "-"}
+          </td>
+        </tr>`;
+    });
+  });
+}
+
+function markPaid(id) {
+  fetch(`/billing/admin/billing/mark-paid?bill_id=${id}`, {
+    method: "POST",
+    headers: headers()
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.message);
+    loadBills();
+  });
+}
+
+document.querySelector('a[href="#tab-billing"]').addEventListener("click", loadBills);
+</script>
 
 {% endblock %}
