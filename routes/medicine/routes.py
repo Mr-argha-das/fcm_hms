@@ -30,7 +30,7 @@ def create_medicine(
 
 
 @router.get("/admin/medicine")
-def get_all_medicines(admin=Depends(admin_required)):
+def get_all_medicines():
     meds = Medicine.objects(is_active=True)
 
     return [

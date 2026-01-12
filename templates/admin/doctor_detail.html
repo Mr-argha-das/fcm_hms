@@ -1,77 +1,109 @@
-{% extends "admin/base.html" %} {% block title %}Doctor Details{% endblock %} {%
-block content %}
+{% extends "admin/base.html" %}
+{% block title %}Doctor Details{% endblock %}
+{% block content %}
 
-<div
-  class="card mb-4 d-flex flex-row justify-content-between align-items-center"
->
+<!-- Doctor Header -->
+<div class="card mb-4 d-flex flex-row justify-content-between align-items-center p-3">
   <div>
     <h4>{{ user.phone }}</h4>
     <p class="mb-1">{{ doctor.specialization }}</p>
-    <span class="badge bg-info">{{ doctor.registration_number }}</span>
+
+    {% if doctor.registration_number %}
+      <span class="badge bg-info">{{ doctor.registration_number }}</span>
+    {% endif %}
+
     {% if doctor.available %}
-    <span class="badge bg-success">Available</span>
+      <span class="badge bg-success">Available</span>
     {% else %}
-    <span class="badge bg-secondary">Unavailable</span>
+      <span class="badge bg-secondary">Unavailable</span>
     {% endif %}
   </div>
 
-  <a href="/admin/doctors/{{ doctor.id }}/edit" class="btn btn-outline-warning">
-    ✏️ Edit Doctor
-  </a>
-  <a
-    href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
-    class="btn btn-outline-warning"
-  >
-    📊 Attendance & Salary
-  </a>
+  <div class="d-flex gap-2">
+    <a href="/admin/doctors/{{ doctor.id }}/edit" class="btn btn-outline-warning">
+      ✏️ Edit Doctor
+    </a>
+    <a
+      href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
+      class="btn btn-outline-warning"
+    >
+      📊 Attendance & Salary
+    </a>
+  </div>
 </div>
 
 <!-- KPIs -->
 <div class="row g-4 mb-4">
   <div class="col-md-4">
-    <div class="card kpi">
-      <small>Total Visits</small>
-      <h3>{{ total_visits }}</h3>
-    </div>
-  </div>
-
-  <div class="col-md-4">
-    <div class="card kpi">
+    <div class="card kpi p-3">
       <small>Total Patients</small>
       <h3>{{ total_patients }}</h3>
     </div>
   </div>
 
   <div class="col-md-4">
-    <div class="card kpi">
+    <div class="card kpi p-3">
       <small>Experience</small>
       <h3>{{ doctor.experience_years }} yrs</h3>
     </div>
   </div>
+
+  <div class="col-md-4">
+    <div class="card kpi p-3">
+      <small>Status</small>
+      <h3>
+        {% if doctor.available %}
+          Active
+        {% else %}
+          Inactive
+        {% endif %}
+      </h3>
+    </div>
+  </div>
 </div>
 
-<!-- VISITS -->
-<div class="card">
-  <h5>Recent Visits</h5>
+<!-- PATIENT LIST -->
+<div class="card p-3">
+  <h5 class="mb-3">Assigned Patients</h5>
 
-  <table class="table">
+  <table class="table table-hover">
     <thead>
       <tr>
-        <th>Patient</th>
-        <th>Type</th>
-        <th>Date</th>
+        <th>Patient Name</th>
+        <th>Phone</th>
+        <th>Age</th>
+        <th>Gender</th>
+        <th>Service Start</th>
+        <th>Service End</th>
       </tr>
     </thead>
     <tbody>
-      {% for v in visits %}
+      {% for patient in patients %}
       <tr>
-        <td>{{ v.patient.user.phone }}</td>
-        <td>{{ v.visit_type }}</td>
-        <td>{{ v.visit_time.strftime("%d %b %Y %H:%M") }}</td>
+        <td>{{ patient.user.name or "-" }}</td>
+        <td>{{ patient.user.phone }}</td>
+        <td>{{ patient.age or "-" }}</td>
+        <td>{{ patient.gender or "-" }}</td>
+        <td>
+          {% if patient.service_start %}
+            {{ patient.service_start.strftime("%d %b %Y") }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if patient.service_end %}
+            {{ patient.service_end.strftime("%d %b %Y") }}
+          {% else %}
+            Ongoing
+          {% endif %}
+        </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="3" class="text-muted text-center">No visits yet</td>
+        <td colspan="6" class="text-muted text-center">
+          No patients assigned
+        </td>
       </tr>
       {% endfor %}
     </tbody>

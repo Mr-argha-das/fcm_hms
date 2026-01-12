@@ -19,7 +19,7 @@ def send_otp(data: SendOTPRequest):
         "message": f"OTP sent to {data.phone}",
         "otp": STATIC_OTP  # remove in production
     }
-@router.post("/verify-otp", response_model=TokenResponse)
+@router.post("/verify-otp",)
 def verify_otp(data: VerifyOTPRequest):
     if data.otp != STATIC_OTP:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid OTP")
@@ -44,7 +44,7 @@ def verify_otp(data: VerifyOTPRequest):
         "role": user.role
     })
 
-    return {"access_token": token}
+    return {"access_token": token, "role": user.role}
 @router.post("/login-password", response_model=TokenResponse)
 def login_password(data: PasswordLoginRequest):
     user = User.objects(phone=data.phone).first()

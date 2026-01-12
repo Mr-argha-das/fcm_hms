@@ -1,3 +1,5 @@
+import json
+from urllib import request
 from fastapi import APIRouter, Depends, HTTPException
 from core.dependencies import get_current_user
 from models import (
@@ -6,6 +8,7 @@ from models import (
 )
 from datetime import datetime
 from mongoengine.errors import NotUniqueError
+from pydantic import BaseModel
 router = APIRouter(prefix="/patient", tags=["Patient"])
 
 @router.post("/create")
@@ -308,19 +311,23 @@ def delete_relative_access(patient_id: str, access_id: str):
     access.delete()
     return {"status": "success", "message": "Relative access removed successfully"}
 
+
+class PrescribeFromMasterPayload(BaseModel):
+    patient_id: str
+    medicine_id: str
+    timing: list[str]
+    duration_days: int
+
 @router.post("/doctor/prescribe-from-master")
 def prescribe_from_master(
-    patient_id: str,
-    medicine_id: str,
-    timing: list[str],
-    duration_days: int,
+    payload: PrescribeFromMasterPayload,
     doctor=Depends(get_current_user)
 ):
-    patient = PatientProfile.objects(id=patient_id).first()
+    patient = PatientProfile.objects(id=payload.patient_id).first()
     if not patient:
         raise HTTPException(404, "Patient not found")
 
-    med = Medicine.objects(id=medicine_id, is_active=True).first()
+    med = Medicine.objects(id=payload.medicine_id, is_active=True).first()
     if not med:
         raise HTTPException(404, "Medicine not found")
 
@@ -328,9 +335,97 @@ def prescribe_from_master(
         patient=patient,
         medicine_name=f"{med.name} ({med.company_name})",
         dosage=med.dosage,
-        timing=timing,
-        duration_days=duration_days,
+        timing=payload.timing,
+        duration_days=payload.duration_days,
         price=med.price        # 🔥 AUTO PRICE
     ).save()
 
     return {"message": "Medicine prescribed successfully"}
+
+
+
+def user_brief(user):
+    if not user:
+        return None
+    return {
+        "id": str(user.id),
+        "name": user.name,
+        "phone": user.phone,
+        "email": user.email,
+    }
+def serialize_duty(duty):
+    return {
+        "id": str(duty.id),
+        "duty_type": duty.duty_type,
+        "shift": duty.shift,
+        "start": duty.duty_start,
+        "end": duty.duty_end,
+        "nurse": {
+            "id": str(duty.nurse.id),
+            "type": duty.nurse.nurse_type,
+            "name": duty.nurse.user.name,
+            "phone": duty.nurse.user.phone,
+        }
+    }
+def serialize_note(n):
+    return {
+        "id": str(n.id),
+        "note": n.note,
+        "time": n.created_at,
+        "nurse_name": n.nurse.user.name if n.nurse else None,
+    }
+
+
+def serialize_vital(v):
+    return {
+        "time": v.recorded_at,
+        "bp": v.bp,
+        "pulse": v.pulse,
+        "spo2": v.spo2,
+        "temperature": v.temperature,
+        "sugar": v.sugar,
+    }
+
+
+def serialize_medication(m):
+    return {
+        "medicine": m.medicine_name,
+        "dosage": m.dosage,
+        "timing": m.timing,
+        "duration": m.duration_days,
+        "price": m.price,
+    }
+
+def serialize_patient(patient):
+    return {
+        "id": str(patient.id),
+        "name": patient.user.name,
+        "phone": patient.user.phone,
+        "age": patient.age,
+        "gender": patient.gender,
+        "address": patient.address,
+        "service_start": patient.service_start,
+        "service_end": patient.service_end,
+    }
+
+
+
+@router.get("/{patient_id}/view")
+def view_patient_details(patient_id: str):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    duties = NurseDuty.objects(patient=patient, is_active=True)
+    notes = PatientDailyNote.objects(patient=patient)
+    vitals = PatientVitals.objects(patient=patient)
+    medications = PatientMedication.objects(patient=patient)
+
+    return {
+        "patient": serialize_patient(patient),
+
+        "duties": [serialize_duty(d) for d in duties],
+        "notes": [serialize_note(n) for n in notes],
+        "vitals": [serialize_vital(v) for v in vitals],
+        "medications": [serialize_medication(m) for m in medications],
+    }

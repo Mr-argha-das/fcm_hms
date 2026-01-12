@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from http.client import HTTPException
 import json
+from core.dependencies import get_current_user
 from fastapi import APIRouter, Request
 from fastapi.params import Form
 from fastapi.templating import Jinja2Templates
@@ -539,27 +540,26 @@ def doctor_create_page(request: Request):
         {"request": request}
     )
 
+
+    return user
 @router.get("/doctors/{doctor_id}", response_class=HTMLResponse)
 def doctor_detail_page(doctor_id: str, request: Request):
+
     doctor = DoctorProfile.objects(id=doctor_id).first()
     if not doctor:
         raise HTTPException(404, "Doctor not found")
 
     user = doctor.user
 
-    # 🔹 Visits
-    visits = DoctorVisit.objects(
-        doctor=doctor
-    ).order_by("-visit_time")[:10]
+    # 🔹 Assigned Patients (ONLY 20)
+    patients = PatientProfile.objects(
+        assigned_doctor=doctor
+    ).order_by("-service_start")[:20]
 
-    total_visits = DoctorVisit.objects(doctor=doctor).count()
-
-    # 🔹 Assigned patients (unique)
-    patient_ids = DoctorVisit.objects(
-        doctor=doctor
-    ).distinct("patient")
-
-    total_patients = len(patient_ids)
+    # 🔹 Total Patients Count
+    total_patients = PatientProfile.objects(
+        assigned_doctor=doctor
+    ).count()
 
     return templates.TemplateResponse(
         "admin/doctor_detail.html",
@@ -567,11 +567,15 @@ def doctor_detail_page(doctor_id: str, request: Request):
             "request": request,
             "doctor": doctor,
             "user": user,
-            "visits": visits,
-            "total_visits": total_visits,
-            "total_patients": total_patients
+
+            # 👇 doctor visits ki jagah
+            "patients": patients,
+
+            # 👇 stats ke liye
+            "total_patients": total_patients,
         }
     )
+
 
 @router.get("/doctors/{doctor_id}/edit", response_class=HTMLResponse)
 def doctor_edit_page(doctor_id: str, request: Request):

@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, Form, HTTPException
+
+
+
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from datetime import datetime
 
 from fastapi.responses import RedirectResponse
 from core.dependencies import get_current_user
 from models import (
     DoctorProfile, DoctorVisit,
-    PatientProfile, PatientVitals, PatientMedication
+    PatientProfile, PatientVitals, PatientMedication, User
 )
 
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
@@ -50,7 +53,31 @@ def toggle_availability(
 @router.get("/patients")
 def my_patients(user=Depends(get_current_user)):
     doctor = DoctorProfile.objects(user=user).first()
-    return PatientProfile.objects(assigned_doctor=doctor)
+    if not doctor:
+        raise HTTPException(404, "Doctor profile not found")
+
+    patients = PatientProfile.objects(
+        assigned_doctor=doctor
+    ).limit(20)
+
+    return {
+        "total": PatientProfile.objects(
+            assigned_doctor=doctor
+        ).count(),
+        "patients": [
+            {
+                "id": str(p.id),
+                "name": p.user.name,
+                "phone": p.user.phone,
+                "age": p.age,
+                "gender": p.gender,
+                "address": p.address,
+                "service_start": p.service_start,
+                "service_end": p.service_end,
+            }
+            for p in patients
+        ]
+    }
 @router.post("/visit/start")
 def start_visit(
     patient_id: str,
@@ -153,3 +180,61 @@ def prescribe_medicine(
     med.save()
 
     return {"message": "Medicine prescribed"}
+
+
+def doctor_required(user: User = Depends(get_current_user)):
+    if user.role != "DOCTOR":
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Doctor access required"
+        )
+    
+@router.get(
+    "/my-patients",
+    dependencies=[Depends(doctor_required)],
+)
+def my_patients_api(
+    current_user: User = Depends(get_current_user),
+):
+    # 🔹 Doctor profile from token user
+    doctor = DoctorProfile.objects(user=current_user).first()
+    if not doctor:
+        raise HTTPException(
+            status_code=404,
+            detail="Doctor profile not found"
+        )
+
+    # 🔹 Only assigned patients (limit 20)
+    patients_qs = PatientProfile.objects(
+        assigned_doctor=doctor
+    ).limit(20)
+
+    patients = []
+    for patient in patients_qs:
+        user = patient.user
+        patients.append({
+            "patient_id": str(patient.id),
+            "name": user.name,
+            "phone": user.phone,
+            "age": patient.age,
+            "gender": patient.gender,
+            "address": patient.address,
+            "service_start": patient.service_start,
+            "service_end": patient.service_end,
+        })
+
+    total_patients = PatientProfile.objects(
+        assigned_doctor=doctor
+    ).count()
+
+    return {
+        "doctor": {
+            "id": str(doctor.id),
+            "name": current_user.name,
+            "phone": current_user.phone,
+            "specialization": doctor.specialization,
+            "experience_years": doctor.experience_years,
+        },
+        "total_patients": total_patients,
+        "patients": patients,
+    }

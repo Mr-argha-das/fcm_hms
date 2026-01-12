@@ -31,6 +31,7 @@ app.add_middleware(
       "http://192.0.0.2:8000",
       "http://localhost:8000",
       "http://0.0.0.0:8000",
+      "http://10.61.43.98:8000"
 
     ],
     allow_credentials=True,
