@@ -340,7 +340,7 @@ def sos(request: Request):
         .order_by("-created_at")
         
     )
-
+    print("SOS Alerts Count:", sos_qs.to_json())
     return templates.TemplateResponse(
         "admin/sos.html",
         {
@@ -724,3 +724,55 @@ def mark_salary_paid(user_id: str, month: str = Form(...)):
             salary.save()
 
     return RedirectResponse(f"/admin/staff/{user_id}/attendance-salary?month={month}", status_code=303)
+
+@router.get("/sos/{sos_id}", response_class=HTMLResponse)
+def sos_details_page(
+    request: Request,
+    sos_id: str,
+):
+    sos = SOSAlert.objects(id=sos_id).first()
+    if not sos:
+        raise HTTPException(404, "SOS not found")
+
+    patient = sos.patient
+
+    doctor = patient.assigned_doctor if patient else None
+
+    duty = None
+    nurse_profile = None
+    nurse_user = None
+
+    if patient:
+        duty = NurseDuty.objects(
+            patient=patient,
+            is_active=True
+        ).first()
+
+        if duty:
+            nurse_profile = duty.nurse
+            nurse_user = nurse_profile.user if nurse_profile else None
+
+    return templates.TemplateResponse(
+        "admin/sos_details.html",
+        {
+            "request": request,
+            "sos": sos,
+            "patient": patient,
+            "doctor": doctor,
+            "duty": duty,
+            "nurse": nurse_profile,
+            "nurse_user": nurse_user,
+        }
+    )
+
+
+
+@router.get("/medicine", response_class=HTMLResponse)
+def medicine_master_page(
+    request: Request,
+   
+):
+    return templates.TemplateResponse(
+        "admin/medicine/index.html",
+        {"request": request}
+    )

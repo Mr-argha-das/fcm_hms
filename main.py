@@ -15,6 +15,7 @@ from routes.sos.admin_router import router as sos_admin_router
 from routes.complaint.router import router as complaint_router
 from routes.complaint.admin_router import router as admin_complaint_router
 from routes.notification.router import router as notification_router
+from routes.medicine.routes import router as medicine_admin_router
 from admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
@@ -27,7 +28,10 @@ app.add_middleware(
     allow_origins=[
         "*",
       "https://wecarehhcs.in",
-      "http://192.0.0.2:8000"
+      "http://192.0.0.2:8000",
+      "http://localhost:8000",
+      "http://0.0.0.0:8000",
+
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -51,7 +55,7 @@ app.include_router(complaint_router)
 app.include_router(admin_complaint_router)
 app.include_router(notification_router)
 app.include_router(admin_router)
-
+app.include_router(medicine_admin_router)
 @app.on_event("startup")
 def startup_event():
     create_default_admin()

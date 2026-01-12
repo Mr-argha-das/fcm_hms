@@ -1,14 +1,19 @@
+import json
 from fastapi import APIRouter, Depends
 from datetime import datetime
 from core.dependencies import admin_required, get_current_user
-from models import SOSAlert, PatientProfile, Notification, NurseDuty
-
+from models import DoctorProfile, SOSAlert, PatientProfile, Notification, NurseDuty
+from pydantic import BaseModel
 router = APIRouter(prefix="/sos", tags=["SOS"])
+
+class SOSRequest(BaseModel):
+    message: str
 @router.post("/trigger")
-def trigger_sos(patient_id: str, user=Depends(get_current_user)):
+def trigger_sos(patient_id: str, message:SOSRequest, user=Depends(get_current_user)):
     sos = SOSAlert(
         triggered_by=user,
         patient=patient_id,
+        message=message.message,
         created_at=datetime.utcnow()
     ).save()
 
@@ -32,8 +37,24 @@ def trigger_sos(patient_id: str, user=Depends(get_current_user)):
 @router.get("/admin/active")
 def active_sos(admin=Depends(admin_required)):
     return SOSAlert.objects()
-@router.post("/admin/resolve")
+@router.post("/admin/resolve-admin")
 def resolve_sos(sos_id: str, admin=Depends(admin_required)):
     sos = SOSAlert.objects(id=sos_id).first()
-    sos.delete()
+    sos.status = "RESOLVED"
+    sos.save()
     return {"message": "SOS resolved"}
+
+@router.post("/admin/resolve-doctor")
+def resolve_sos(sos_id: str, admin=Depends(get_current_user)):
+    sos = SOSAlert.objects(id=sos_id).first()
+    sos.status = "RESOLVED"
+    sos.save()
+    return {"message": "SOS resolved"}
+
+@router.get("/doctor/active")
+def active_sos(user=Depends(get_current_user)):
+    doctor = DoctorProfile.objects(user=user).first()
+    sos = SOSAlert.objects(patient__assigned_doctor=doctor)
+    return {
+        "active_sos": json.loads(sos.to_json())
+    }

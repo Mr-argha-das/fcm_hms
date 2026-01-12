@@ -130,3 +130,26 @@ def add_medication(
 
     return {"message": "Medication added", "id": str(med.id)}
 
+@router.post("/doctor/prescribe-medicine")
+def prescribe_medicine(
+    patient_id: str,
+    medicine_name: str,
+    dosage: str,
+    timing: list[str],
+    duration_days: int,
+    doctor=Depends(get_current_user)
+):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    med = PatientMedication(
+        patient=patient,
+        medicine_name=medicine_name,
+        dosage=dosage,
+        timing=timing,
+        duration_days=duration_days
+    )
+    med.save()
+
+    return {"message": "Medicine prescribed"}

@@ -22,7 +22,7 @@
     <thead class="table-light">
       <tr>
         <th>Patient</th>
-        <th>Room / Ward</th>
+        <th>Address / Ward</th>
         <th>Alert Type</th>
         <th>Time</th>
         <th>Status</th>
@@ -37,16 +37,12 @@
 
           <!-- PATIENT -->
           <td>
-            {{ sos.patient.user.phone if sos.patient and sos.patient.user else "Unknown" }}
+            {{ sos.patient.user.name if sos.patient else "N/A" }}
           </td>
 
           <!-- ROOM / WARD -->
           <td>
-            {% if sos.patient and sos.patient.service_end %}
-              Discharged
-            {% else %}
-              Under Care
-            {% endif %}
+            {{sos.patient.address if sos.patient else "N/A"}}
           </td>
 
           <!-- ALERT TYPE -->
@@ -70,16 +66,14 @@
 
           <!-- STATUS -->
           <td>
-            {% if sos.patient and sos.patient.service_end %}
-              <span class="badge bg-secondary">Resolved</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">Unattended</span>
-            {% endif %}
+
+              <span class="badge bg-secondary">{{ sos.status }}</span>
+
           </td>
 
           <!-- ACTIONS -->
           <td class="text-center">
-            <button class="btn btn-sm btn-outline-primary" title="View Details">
+            <button class="btn btn-sm btn-outline-primary" title="View Details" onclick="location.href='/admin/sos/{{ sos.id }}'">
               👁️
             </button>
 

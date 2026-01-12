@@ -185,6 +185,7 @@ class PatientMedication(Document):
     dosage = StringField()
     timing = ListField(StringField())
     duration_days = IntField()
+    price = FloatField(required=False)
 class RelativeAccess(Document):
     patient = ReferenceField(PatientProfile)
     relative_user = ReferenceField(User)
@@ -217,8 +218,9 @@ class Complaint(Document):
 class SOSAlert(Document):
     triggered_by = ReferenceField(User)
     patient = ReferenceField(PatientProfile)
-
+    message = StringField(required=True, default="SOS Alert Triggered")
     location = PointField()
+    status = StringField(choices=["ACTIVE", "RESOLVED"], default="ACTIVE")
     created_at = DateTimeField(default=datetime.utcnow)
 class Notification(Document):
     user = ReferenceField(User)
@@ -271,3 +273,44 @@ class StaffSalary(Document):
     staff = ReferenceField(StaffProfile)
     month = StringField()
     amount = FloatField()
+
+
+class Medicine(Document):
+    name = StringField(required=True)
+    company_name = StringField()
+    dosage = StringField()          # 500mg, 250mg
+    dosage_form = StringField()     # Tablet, Syrup, Injection
+    price = FloatField(required=True)
+
+    is_active = BooleanField(default=True)
+    created_at = DateTimeField(default=datetime.utcnow)
+
+class BillItem(EmbeddedDocument):
+    title = StringField(required=True)
+    quantity = IntField(default=1)
+    unit_price = FloatField(required=True)
+    total_price = FloatField(required=True)
+
+
+class PatientBill(Document):
+    patient = ReferenceField(PatientProfile, required=True)
+
+    items = EmbeddedDocumentListField(BillItem)
+
+    sub_total = FloatField()
+    discount = FloatField(default=0)
+    extra_charges = FloatField(default=0)
+    grand_total = FloatField()
+
+    bill_date = DateTimeField(default=datetime.utcnow)
+    bill_month = StringField()   # YYYY-MM
+
+    pdf_file = StringField()
+    status = StringField(
+        choices=["UNPAID", "PAID"],
+        default="UNPAID"
+    )
+
+    created_by = ReferenceField(User)   # ADMIN
+    created_at = DateTimeField(default=datetime.utcnow)
+

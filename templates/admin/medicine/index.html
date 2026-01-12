@@ -1,0 +1,237 @@
+{% extends "admin/base.html" %}
+{% block title %}Medicine Master{% endblock %}
+
+{% block content %}
+<script>
+  guard();
+</script>
+
+<div class="card mb-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">💊 Medicine Master</h5>
+  </div>
+
+  <!-- CREATE MEDICINE -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h6>Add New Medicine</h6>
+
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input
+            id="name"
+            class="form-control"
+            placeholder="Medicine Name"
+            required
+            minlength="2"
+          >
+        </div>
+
+        <div class="col-md-3">
+          <input
+            id="company_name"
+            class="form-control"
+            placeholder="Company Name"
+            required
+          >
+        </div>
+
+        <div class="col-md-2">
+          <input
+            id="dosage"
+            class="form-control"
+            placeholder="Dosage (500mg)"
+            required
+          >
+        </div>
+
+        <div class="col-md-2">
+          <input
+            id="dosage_form"
+            class="form-control"
+            placeholder="Form (Tablet / Syrup)"
+            required
+          >
+        </div>
+
+        <div class="col-md-2">
+          <input
+            id="price"
+            class="form-control"
+            placeholder="Price"
+            type="number"
+            min="1"
+            step="0.01"
+            required
+          >
+        </div>
+      </div>
+
+      <button class="btn btn-sm btn-primary mt-3" onclick="createMedicine()">
+        ➕ Add Medicine
+      </button>
+    </div>
+  </div>
+
+  <!-- MEDICINE TABLE -->
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Name</th>
+        <th>Company</th>
+        <th>Dosage</th>
+        <th>Form</th>
+        <th>Price</th>
+        <th class="text-center">Action</th>
+      </tr>
+    </thead>
+
+    <tbody id="medicineTable">
+      <tr>
+        <td colspan="6" class="text-center text-muted">
+          Loading medicines...
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script>
+function createMedicine() {
+  const name = document.getElementById("name").value.trim();
+  const company = document.getElementById("company_name").value.trim();
+  const dosage = document.getElementById("dosage").value.trim();
+  const form = document.getElementById("dosage_form").value.trim();
+  const price = parseFloat(document.getElementById("price").value);
+
+  // 🔴 VALIDATION
+  if (!name || name.length < 2) {
+    alert("Medicine name must be at least 2 characters");
+    return;
+  }
+  if (!company) {
+    alert("Company name is required");
+    return;
+  }
+  if (!dosage) {
+    alert("Dosage is required");
+    return;
+  }
+  if (!form) {
+    alert("Dosage form is required");
+    return;
+  }
+  if (isNaN(price) || price <= 0) {
+    alert("Price must be greater than 0");
+    return;
+  }
+
+  const payload = {
+    name: name,
+    company_name: company,
+    dosage: dosage,
+    dosage_form: form,
+    price: price
+  };
+
+  fetch(`${API}/md/admin/medicine/create`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.detail) {
+      alert(d.detail);
+      return;
+    }
+
+    alert(d.message || "Medicine added successfully");
+
+    // Clear form
+    document.getElementById("name").value = "";
+    document.getElementById("company_name").value = "";
+    document.getElementById("dosage").value = "";
+    document.getElementById("dosage_form").value = "";
+    document.getElementById("price").value = "";
+
+    loadMedicines();
+  })
+  .catch(() => {
+    alert("Something went wrong while creating medicine");
+  });
+}
+
+function loadMedicines() {
+  fetch(`${API}/md/admin/medicine`, {
+    headers: headers()
+  })
+  .then(r => r.json())
+  .then(data => {
+    const tbody = document.getElementById("medicineTable");
+    tbody.innerHTML = "";
+
+    if (!data.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-center text-muted">
+            No medicines found
+          </td>
+        </tr>`;
+      return;
+    }
+
+    data.forEach(m => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${m.name}</td>
+          <td>${m.company}</td>
+          <td>${m.dosage}</td>
+          <td>${m.form}</td>
+          <td>₹ ${m.price}</td>
+          <td class="text-center">
+            <button
+              class="btn btn-sm btn-outline-danger"
+              onclick="deactivateMedicine('${m.id}')"
+            >
+              ❌
+            </button>
+          </td>
+        </tr>`;
+    });
+  })
+  .catch(() => {
+    document.getElementById("medicineTable").innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-danger">
+          Failed to load medicines
+        </td>
+      </tr>`;
+  });
+}
+
+function deactivateMedicine(id) {
+  if (!confirm("Are you sure you want to deactivate this medicine?")) return;
+
+  fetch(`${API}/md/admin/medicine/${id}`, {
+    method: "DELETE",
+    headers: headers()
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.message || "Medicine deactivated");
+    loadMedicines();
+  })
+  .catch(() => {
+    alert("Failed to deactivate medicine");
+  });
+}
+
+// Initial load
+loadMedicines();
+</script>
+
+{% endblock %}

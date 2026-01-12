@@ -75,99 +75,7 @@ block content %}
 </div>
 
 <!-- ================= DAILY NOTES ================= -->
-<div class="card shadow-sm mb-4">
-  <div class="card-header bg-light"><b>📝 Daily Nursing Notes</b></div>
-  <div class="card-body">
-    <textarea id="note" class="form-control mb-2" rows="3"></textarea>
-    <button class="btn btn-success btn-sm" id="saveNoteBtn">Save Note</button>
 
-    <hr />
-    {% for n in notes %}
-    <p class="mb-1">
-      <b>{{ n.nurse.user.name }}</b> : {{ n.note }}
-      <span class="text-muted float-end">
-        {{ n.created_at.strftime("%d %b %Y %H:%M") }}
-      </span>
-    </p>
-    {% endfor %}
-  </div>
-</div>
-
-<!-- ================= VITALS ================= -->
-<div class="card shadow-sm mb-4">
-  <div class="card-header bg-light"><b>❤️ Patient Vitals</b></div>
-  <div class="card-body row g-2">
-    <div class="col-md-2">
-      <input id="bp" class="form-control" placeholder="BP" />
-    </div>
-    <div class="col-md-2">
-      <input id="pulse" class="form-control" placeholder="Pulse" />
-    </div>
-    <div class="col-md-2">
-      <input id="spo2" class="form-control" placeholder="SpO2" />
-    </div>
-    <div class="col-md-2">
-      <input id="temp" class="form-control" placeholder="Temp" />
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-danger w-100" id="saveVitalsBtn">Save</button>
-    </div>
-
-    <hr />
-    {% for v in vitals %}
-    <div class="col-12 small text-muted">
-      {{ v.recorded_at.strftime("%d %b %Y %H:%M") }} — BP: {{ v.bp }}, Pulse: {{
-      v.pulse }}, SpO2: {{ v.spo2 }}, Temp: {{ v.temperature }}
-    </div>
-    {% endfor %}
-  </div>
-  <!-- ================= MEDICATIONS ================= -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-light"><b>💊 Medications</b></div>
-    <div class="card-body row g-2">
-      <div class="col-md-3">
-        <input
-          id="medicine_name"
-          class="form-control"
-          placeholder="Medicine Name"
-        />
-      </div>
-      <div class="col-md-2">
-        <input id="dosage" class="form-control" placeholder="Dosage" />
-      </div>
-      <div class="col-md-3">
-        <input
-          id="timing"
-          class="form-control"
-          placeholder="Timing (comma separated)"
-        />
-      </div>
-      <div class="col-md-2">
-        <input
-          id="duration_days"
-          type="number"
-          class="form-control"
-          placeholder="Duration (days)"
-        />
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-warning w-100" id="saveMedicationBtn">
-          Add
-        </button>
-      </div>
-
-      <hr />
-      {% if medications %} {% for med in medications %}
-      <div class="col-12 small text-muted mb-1">
-        {{ med.medicine_name }} — {{ med.dosage }}, Duration: {{
-        med.duration_days }} days, Timing: {{ med.timing | join(', ') }}
-      </div>
-      {% endfor %} {% else %}
-      <p class="text-muted">No medications assigned.</p>
-      {% endif %}
-    </div>
-  </div>
-</div>
 <!-- ================= RELATIVES ACCESS ================= -->
 
 <script>
@@ -252,8 +160,11 @@ block content %}
       const duration_days = parseInt(
         document.getElementById("duration_days").value
       );
+      const price = parseFloat(
+        document.getElementById("price")?.value || 0.0
+      );
 
-      if (!medicine_name || !dosage || !duration_days) {
+      if (!medicine_name || !dosage || !duration_days || !price) {
         alert("Please fill all required fields");
         return;
       }
@@ -261,7 +172,7 @@ block content %}
       await fetch(`${API}/patient/${patientId}/medication`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ medicine_name, dosage, timing, duration_days }),
+        body: JSON.stringify({ medicine_name, dosage, timing, duration_days, price }),
       });
 
       location.reload(); // reload page to see new medication

@@ -103,3 +103,5 @@ def attendance_salary(
 
     context["request"] = request
     return templates.TemplateResponse(template, context)
+
+

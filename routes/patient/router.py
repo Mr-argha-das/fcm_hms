@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from core.dependencies import get_current_user
 from models import (
-    NurseDuty, NurseProfile, PatientProfile, PatientDailyNote,
+    Medicine, NurseDuty, NurseProfile, PatientProfile, PatientDailyNote,
     PatientVitals, PatientMedication, RelativeAccess, User
 )
 from datetime import datetime
@@ -266,7 +266,8 @@ def add_medication(patient_id: str, payload: dict):
         medicine_name=payload.get("medicine_name"),
         dosage=payload.get("dosage"),
         timing=payload.get("timing", []),
-        duration_days=payload.get("duration_days")
+        duration_days=payload.get("duration_days"),
+        price=payload.get("price", 0.0)
     )
     med.save()
     return {"status": "success", "message": "Medication added successfully"}
@@ -306,3 +307,30 @@ def delete_relative_access(patient_id: str, access_id: str):
         raise HTTPException(status_code=404, detail="Access not found")
     access.delete()
     return {"status": "success", "message": "Relative access removed successfully"}
+
+@router.post("/doctor/prescribe-from-master")
+def prescribe_from_master(
+    patient_id: str,
+    medicine_id: str,
+    timing: list[str],
+    duration_days: int,
+    doctor=Depends(get_current_user)
+):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    med = Medicine.objects(id=medicine_id, is_active=True).first()
+    if not med:
+        raise HTTPException(404, "Medicine not found")
+
+    PatientMedication(
+        patient=patient,
+        medicine_name=f"{med.name} ({med.company_name})",
+        dosage=med.dosage,
+        timing=timing,
+        duration_days=duration_days,
+        price=med.price        # 🔥 AUTO PRICE
+    ).save()
+
+    return {"message": "Medicine prescribed successfully"}
