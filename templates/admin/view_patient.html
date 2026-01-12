@@ -209,23 +209,54 @@
 <!-- ========================================================= -->
 <div class="tab-pane fade" id="tab-billing">
 
+<!-- ================= GENERATE BILL ================= -->
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-light">
     <b>🧾 Generate Bill</b>
   </div>
   <div class="card-body">
+
+    <!-- DISCOUNT / EXTRA -->
     <div class="row g-2 mb-3">
       <div class="col-md-3">
-        <input id="discount" class="form-control" placeholder="Discount">
+        <input id="discount" type="number" class="form-control" placeholder="Discount">
       </div>
       <div class="col-md-3">
-        <input id="extra_charges" class="form-control" placeholder="Extra Charges">
+        <input id="extra_charges" type="number" class="form-control" placeholder="Extra Charges">
       </div>
     </div>
-    <button class="btn btn-sm btn-primary" onclick="generateBill()">Generate Bill</button>
+
+    <!-- OTHER ITEMS -->
+    <h6 class="mt-3">Other Billing Items</h6>
+
+    <table class="table table-sm table-bordered mb-3">
+      <thead class="table-light">
+        <tr>
+          <th>Title</th>
+          <th width="120">Qty</th>
+          <th width="150">Unit Price</th>
+          <th width="60"></th>
+        </tr>
+      </thead>
+      <tbody id="otherItemsTable">
+        <!-- rows added by JS -->
+      </tbody>
+    </table>
+
+    <button class="btn btn-sm btn-outline-secondary mb-3" onclick="addOtherItemRow()">
+      ➕ Add Item
+    </button>
+
+    <br>
+
+    <button class="btn btn-sm btn-primary" onclick="generateBill()">
+      Generate Bill
+    </button>
+
   </div>
 </div>
 
+<!-- ================= BILL LIST ================= -->
 <div class="card shadow-sm">
   <div class="card-header bg-light">
     <b>📄 Bills</b>
@@ -251,20 +282,61 @@
 </div>
 
 </div>
+
+
+
+
+</div>
 </div>
 
 <script>
 const patientId = "{{ patient.id }}";
 
+/* ---------- OTHER ITEMS UI ---------- */
+function addOtherItemRow() {
+  const tbody = document.getElementById("otherItemsTable");
+  const row = document.createElement("tr");
+
+  row.innerHTML = `
+    <td><input class="form-control item-title" placeholder="Service name"></td>
+    <td><input type="number" class="form-control item-qty" value="1"></td>
+    <td><input type="number" class="form-control item-price" placeholder="Amount"></td>
+    <td>
+      <button class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">✖</button>
+    </td>
+  `;
+  tbody.appendChild(row);
+}
+
+/* ---------- GENERATE BILL ---------- */
 function generateBill() {
+  const otherItems = [];
+
+  document.querySelectorAll("#otherItemsTable tr").forEach(row => {
+    const title = row.querySelector(".item-title").value.trim();
+    const qty = Number(row.querySelector(".item-qty").value);
+    const price = Number(row.querySelector(".item-price").value);
+
+    if (title && qty > 0 && price > 0) {
+      otherItems.push({
+        title: title,
+        quantity: qty,
+        unit_price: price
+      });
+    }
+  });
+
+  const payload = {
+    patient_id: patientId,
+    discount: Number(document.getElementById("discount").value) || 0,
+    extra_charges: Number(document.getElementById("extra_charges").value) || 0,
+    other_items: otherItems   // ✅ EXACT API FIELD
+  };
+
   fetch("/billing/admin/billing/generate", {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({
-      patient_id: patientId,
-      discount: parseFloat(document.getElementById("discount").value) || 0,
-      extra_charges: parseFloat(document.getElementById("extra_charges").value) || 0
-    })
+    body: JSON.stringify(payload)
   })
   .then(r => r.json())
   .then(d => {
@@ -273,16 +345,22 @@ function generateBill() {
   });
 }
 
+/* ---------- LOAD BILLS ---------- */
 function loadBills() {
-  fetch(`/billing/admin/patient/${patientId}/bills`, { headers: headers() })
+  fetch(`/billing/admin/patient/${patientId}/bills`, {
+    headers: headers()
+  })
   .then(r => r.json())
   .then(data => {
     const tbody = document.getElementById("billTable");
     tbody.innerHTML = "";
+
     if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center">No bills</td></tr>`;
+      tbody.innerHTML =
+        `<tr><td colspan="5" class="text-center">No bills</td></tr>`;
       return;
     }
+
     data.forEach(b => {
       tbody.innerHTML += `
         <tr>
@@ -291,15 +369,19 @@ function loadBills() {
           <td>${b.status}</td>
           <td><a href="/${b.pdf}" target="_blank">📄</a></td>
           <td>
-            ${b.status === "UNPAID"
-              ? `<button class="btn btn-sm btn-success" onclick="markPaid('${b.bill_id}')">Mark Paid</button>`
-              : "-"}
+            ${
+              b.status === "UNPAID"
+              ? `<button class="btn btn-sm btn-success"
+                   onclick="markPaid('${b.bill_id}')">Mark Paid</button>`
+              : "-"
+            }
           </td>
         </tr>`;
     });
   });
 }
 
+/* ---------- MARK PAID ---------- */
 function markPaid(id) {
   fetch(`/billing/admin/billing/mark-paid?bill_id=${id}`, {
     method: "POST",
@@ -312,7 +394,11 @@ function markPaid(id) {
   });
 }
 
-document.querySelector('a[href="#tab-billing"]').addEventListener("click", loadBills);
+/* Load bills when Billing tab opens */
+document
+  .querySelector('a[href="#tab-billing"]')
+  .addEventListener("click", loadBills);
 </script>
+
 
 {% endblock %}
