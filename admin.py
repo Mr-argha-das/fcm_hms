@@ -780,3 +780,16 @@ def medicine_master_page(
         "admin/medicine/index.html",
         {"request": request}
     )
+
+
+
+@router.get("/staff/manage", response_class=HTMLResponse)
+def staff_manage_page(request: Request):
+    staff = User.objects(role="STAFF").order_by("-created_at")
+    return templates.TemplateResponse(
+        "admin/staff_manage.html",
+        {
+            "request": request,
+            "staff": staff
+        }
+    )

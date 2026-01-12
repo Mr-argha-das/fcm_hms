@@ -19,6 +19,7 @@ from routes.medicine.routes import router as medicine_admin_router
 from admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
+from routes.staff.routes import router as staff_router
 from startup import create_default_admin
 app = FastAPI(title="Hospital Management System")
 
@@ -58,6 +59,7 @@ app.include_router(admin_complaint_router)
 app.include_router(notification_router)
 app.include_router(admin_router)
 app.include_router(medicine_admin_router)
+app.include_router(staff_router)
 @app.on_event("startup")
 def startup_event():
     create_default_admin()

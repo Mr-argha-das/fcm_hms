@@ -132,24 +132,7 @@ def get_patient(patient_id: str):
         "notes": notes,
         "vitals": vitals
     }
-# @router.post("/{patient_id}/assign-nurse")
-# def assign_nurse(patient_id: str, payload: dict):
-#     patient = PatientProfile.objects(id=patient_id).first()
-#     nurse = NurseProfile.objects(id=payload["nurse_id"]).first()
 
-#     if not patient or not nurse:
-#         raise HTTPException(404, "Invalid patient or nurse")
-
-#     NurseDuty(
-#         nurse=nurse,
-#         patient=patient,
-#         duty_type=payload["duty_type"],
-#         shift=payload["shift"],
-#         duty_start=datetime.fromisoformat(payload["duty_start"]),
-#         duty_end=datetime.fromisoformat(payload["duty_end"])
-#     ).save()
-
-#     return {"success": True}
 
 @router.get("/{patient_id}/care")
 def get_patient_care(patient_id: str):
@@ -410,9 +393,9 @@ def serialize_patient(patient):
 
 
 
-@router.get("/{patient_id}/view")
-def view_patient_details(patient_id: str):
-    patient = PatientProfile.objects(id=patient_id).first()
+@router.get("/profile/view")
+def view_patient_details(user=Depends(get_current_user)):
+    patient = PatientProfile.objects(user=user).first()
     if not patient:
         raise HTTPException(404, "Patient not found")
 

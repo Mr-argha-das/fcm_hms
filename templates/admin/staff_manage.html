@@ -1,0 +1,183 @@
+{% extends "admin/base.html" %}
+{% block title %}Staff Management{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+
+  <!-- ================= HEADER ================= -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">👥 Staff Management</h5>
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createStaffModal">
+      ➕ Add Staff
+    </button>
+  </div>
+
+  <!-- ================= STAFF TABLE ================= -->
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>Father Name</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if staff %}
+        {% for s in staff %}
+        <tr>
+          <td>{{ s.name or "-" }}</td>
+          <td>{{ s.phone }}</td>
+          <td>{{ s.email or "-" }}</td>
+          <td>{{ s.father_name or "-" }}</td>
+          <td>
+            {% if s.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>{{ s.created_at.strftime("%d %b %Y") }}</td>
+
+          <td class="text-center">
+            <button
+              class="btn btn-sm btn-outline-warning"
+              onclick="openEditStaff(
+                '{{ s.id }}',
+                '{{ s.name or '' }}',
+                '{{ s.father_name or '' }}',
+                '{{ s.email or '' }}',
+                '{{ s.other_number or '' }}'
+              )"
+            >
+              ✏️
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted">
+            No staff found
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ================================================= -->
+<!-- ================= CREATE STAFF MODAL ============= -->
+<!-- ================================================= -->
+<div class="modal fade" id="createStaffModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">➕ Create Staff</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input class="form-control mb-2" id="c_name" placeholder="Name">
+        <input class="form-control mb-2" id="c_father" placeholder="Father Name">
+        <input class="form-control mb-2" id="c_phone" placeholder="Phone *">
+        <input class="form-control mb-2" id="c_other" placeholder="Other Number">
+        <input class="form-control mb-2" id="c_email" placeholder="Email">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="createStaff()">Create</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================================================= -->
+<!-- ================= EDIT STAFF MODAL =============== -->
+<!-- ================================================= -->
+<div class="modal fade" id="editStaffModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">✏️ Update Staff</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="e_id">
+        <input class="form-control mb-2" id="e_name" placeholder="Name">
+        <input class="form-control mb-2" id="e_father" placeholder="Father Name">
+        <input class="form-control mb-2" id="e_email" placeholder="Email">
+        <input class="form-control mb-2" id="e_other" placeholder="Other Number">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-warning" onclick="updateStaff()">Update</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+function createStaff() {
+  fetch("/staff/create", {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      name: c_name.value,
+      father_name: c_father.value,
+      phone: c_phone.value,
+      other_number: c_other.value,
+      email: c_email.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.message);
+    location.reload();
+  });
+}
+
+function openEditStaff(id, name, father, email, other) {
+  e_id.value = id;
+  e_name.value = name;
+  e_father.value = father;
+  e_email.value = email;
+  e_other.value = other;
+
+  new bootstrap.Modal(document.getElementById("editStaffModal")).show();
+}
+
+function updateStaff() {
+  fetch("/staff/profile", {
+    method: "PUT",
+    headers: headers(),
+    body: JSON.stringify({
+      name: e_name.value,
+      father_name: e_father.value,
+      email: e_email.value,
+      other_number: e_other.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.message);
+    location.reload();
+  });
+}
+</script>
+
+{% endblock %}

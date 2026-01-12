@@ -3,7 +3,7 @@ from datetime import datetime , time
 from mongoengine import *
 class User(Document):
     role = StringField(
-        choices=["ADMIN", "NURSE", "DOCTOR", "PATIENT", "RELATIVE"],
+        choices=["ADMIN", "NURSE", "DOCTOR", "PATIENT", "RELATIVE", "STAFF"],
         required=True
     )
     name = StringField(required=False)
@@ -211,10 +211,9 @@ class PatientInvoice(Document):
     created_at = DateTimeField(default=datetime.utcnow)
 class Complaint(Document):
     raised_by = ReferenceField(User)
-    patient = ReferenceField(PatientProfile)
 
     message = StringField()
-    status = StringField(choices=["OPEN", "IN_PROGRESS", "RESOLVED"])
+    status = StringField(choices=["OPEN", "IN_PROGRESS", "RESOLVED"], default="OPEN")
 class SOSAlert(Document):
     triggered_by = ReferenceField(User)
     patient = ReferenceField(PatientProfile)

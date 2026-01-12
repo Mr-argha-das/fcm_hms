@@ -19,9 +19,8 @@
   <a
     href="/admin/nurses/self"
     class="{% if request.url.path == '/admin/nurses/self' %}active{% endif %}"
-   
   >
-   🧾 Self Registered
+    🧾 Self Registered
   </a>
 
   <a
@@ -38,11 +37,20 @@
     🧑‍🦽 Patients
   </a>
 
+  <!-- ✅ STAFF MANAGEMENT (NEW) -->
+  <a
+    href="/admin/staff/manage"
+    class="{% if request.url.path.startswith('/admin/staff/manage') %}active{% endif %}"
+  >
+    👷 Staff
+  </a>
+
   <a
     href="/admin/medicine"
-    class="{% if request.url.path == '/admin/medicines' %}active{% endif %}"
+    class="{% if request.url.path == '/admin/medicine' %}active{% endif %}"
   >
     💊 Medicines
+  </a>
 
   <a
     href="/admin/sos"
@@ -66,6 +74,8 @@
   </a>
 
   <div class="mt-auto">
-    <a href="/admin/login" onclick="logout()" class="logout"> 🚪 Logout </a>
+    <a href="/admin/login" onclick="logout()" class="logout">
+      🚪 Logout
+    </a>
   </div>
 </div>
