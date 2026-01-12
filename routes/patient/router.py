@@ -1,5 +1,7 @@
 import json
 from urllib import request
+
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from core.dependencies import get_current_user
 from models import (
@@ -396,6 +398,26 @@ def serialize_patient(patient):
 @router.get("/profile/view")
 def view_patient_details(user=Depends(get_current_user)):
     patient = PatientProfile.objects(user=user).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    duties = NurseDuty.objects(patient=patient, is_active=True)
+    notes = PatientDailyNote.objects(patient=patient)
+    vitals = PatientVitals.objects(patient=patient)
+    medications = PatientMedication.objects(patient=patient)
+
+    return {
+        "patient": serialize_patient(patient),
+
+        "duties": [serialize_duty(d) for d in duties],
+        "notes": [serialize_note(n) for n in notes],
+        "vitals": [serialize_vital(v) for v in vitals],
+        "medications": [serialize_medication(m) for m in medications],
+    }
+
+@router.get("{isd}/view")
+def view_patient_details(isd:str):
+    patient = PatientProfile.objects(id=ObjectId(isd)).first()
     if not patient:
         raise HTTPException(404, "Patient not found")
 
