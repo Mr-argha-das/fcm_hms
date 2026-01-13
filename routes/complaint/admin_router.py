@@ -14,7 +14,7 @@ def complaint_serializer(complaint: Complaint):
             "phone": complaint.raised_by.phone,
             "role": complaint.raised_by.role
         },
-        "message": complaint.message,
+        "message":  f"Raised by {complaint.raised_by.name} : { complaint.message}",
         "status": complaint.status
     }
 @router.get("/all")
