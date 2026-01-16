@@ -223,7 +223,7 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 
 def generate_bill_pdf(bill, gst_percent: float = 0):
     os.makedirs("media/bills", exist_ok=True)
-
+# changes
     suffix = "gst" if gst_percent > 0 else "nogst"
     path = f"media/bills/bill_{bill.id}_{suffix}.pdf"
 
