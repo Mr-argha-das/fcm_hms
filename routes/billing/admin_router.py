@@ -464,7 +464,7 @@ def download_bill_pdf(
 @router.get("/admin/patient/{patient_id}/bills")
 def get_patient_bills(
     patient_id: str,
-    admin=Depends(admin_required)
+    # admin=Depends(admin_required)
 ):
     bills = PatientBill.objects(patient=patient_id).order_by("-id")
 
