@@ -252,7 +252,6 @@
     <button class="btn btn-sm btn-primary" onclick="generateBill()">
       Generate Bill
     </button>
-
   </div>
 </div>
 
@@ -262,6 +261,16 @@
     <b>📄 Bills</b>
   </div>
   <div class="card-body">
+      <!-- 👇 ADD HERE -->
+    <div class="d-flex justify-content-end mb-2">
+      <input
+        id="gst_download_percent"
+        type="number"
+        class="form-control form-control-sm"
+        value="18"
+        style="width:120px"
+      />
+    </div>
     <table class="table table-sm table-bordered">
       <thead class="table-light">
         <tr>
@@ -289,6 +298,12 @@
 </div>
 </div>
 
+<!-- <script>
+document.getElementById("gst_enabled").addEventListener("change", function () {
+  document.getElementById("gst_percent").disabled = !this.checked;
+});
+</script> -->
+
 <script>
 const patientId = "{{ patient.id }}";
 
@@ -309,6 +324,7 @@ function addOtherItemRow() {
 }
 
 /* ---------- GENERATE BILL ---------- */
+
 function generateBill() {
   const otherItems = [];
 
@@ -319,7 +335,7 @@ function generateBill() {
 
     if (title && qty > 0 && price > 0) {
       otherItems.push({
-        title: title,
+        title,
         quantity: qty,
         unit_price: price
       });
@@ -330,7 +346,7 @@ function generateBill() {
     patient_id: patientId,
     discount: Number(document.getElementById("discount").value) || 0,
     extra_charges: Number(document.getElementById("extra_charges").value) || 0,
-    other_items: otherItems   // ✅ EXACT API FIELD
+    other_items: otherItems
   };
 
   fetch("/billing/admin/billing/generate", {
@@ -346,6 +362,56 @@ function generateBill() {
 }
 
 /* ---------- LOAD BILLS ---------- */
+// function loadBills() {
+//   fetch(`/billing/admin/patient/${patientId}/bills`, {
+//     headers: headers()
+//   })
+//   .then(r => r.json())
+//   .then(data => {
+//     const tbody = document.getElementById("billTable");
+//     tbody.innerHTML = "";
+
+//     if (!data.length) {
+//       tbody.innerHTML =
+//         `<tr><td colspan="5" class="text-center">No bills</td></tr>`;
+//       return;
+//     }
+
+//     data.forEach(b => {
+//      tbody.innerHTML += `
+// <tr>
+//   <td>${new Date(b.date).toLocaleDateString()}</td>
+//   <td>₹ ${b.amount}</td>
+//   <td>${b.status}</td>
+
+//   <td>
+//     <a href="/billing/admin/billing/${b.bill_id}/download"
+//        target="_blank"
+//        class="btn btn-sm btn-outline-secondary">
+//        Non-GST
+//     </a>
+
+//     <a href="/billing/admin/billing/${b.bill_id}/download?gst_percent=18"
+//        target="_blank"
+//        class="btn btn-sm btn-outline-success ms-1">
+//        GST
+//     </a>
+//   </td>
+
+//   <td>
+//     ${
+//       b.status === "UNPAID"
+//       ? `<button class="btn btn-sm btn-success"
+//            onclick="markPaid('${b.bill_id}')">Mark Paid</button>`
+//       : "-"
+//     }
+//   </td>
+// </tr>
+// `;
+//     });
+//   });
+// }
+
 function loadBills() {
   fetch(`/billing/admin/patient/${patientId}/bills`, {
     headers: headers()
@@ -361,22 +427,40 @@ function loadBills() {
       return;
     }
 
+    const gstPercent =
+      document.getElementById("gst_download_percent")?.value || 18;
+
     data.forEach(b => {
       tbody.innerHTML += `
-        <tr>
-          <td>${new Date(b.date).toLocaleDateString()}</td>
-          <td>₹ ${b.amount}</td>
-          <td>${b.status}</td>
-          <td><a href="/${b.pdf}" target="_blank">📄</a></td>
-          <td>
-            ${
-              b.status === "UNPAID"
-              ? `<button class="btn btn-sm btn-success"
-                   onclick="markPaid('${b.bill_id}')">Mark Paid</button>`
-              : "-"
-            }
-          </td>
-        </tr>`;
+<tr>
+  <td>${new Date(b.date).toLocaleDateString()}</td>
+  <td>₹ ${b.amount}</td>
+  <td>${b.status}</td>
+
+  <td>
+    <a href="/billing/admin/billing/${b.bill_id}/download"
+       target="_blank"
+       class="btn btn-sm btn-outline-secondary">
+       Non-GST
+    </a>
+
+    <a href="/billing/admin/billing/${b.bill_id}/download?gst_percent=${gstPercent}"
+       target="_blank"
+       class="btn btn-sm btn-outline-success ms-1">
+       GST
+    </a>
+  </td>
+
+  <td>
+    ${
+      b.status === "UNPAID"
+      ? `<button class="btn btn-sm btn-success"
+           onclick="markPaid('${b.bill_id}')">Mark Paid</button>`
+      : "-"
+    }
+  </td>
+</tr>
+`;
     });
   });
 }
@@ -398,6 +482,11 @@ function markPaid(id) {
 document
   .querySelector('a[href="#tab-billing"]')
   .addEventListener("click", loadBills);
+
+// Re-load bills when GST % changes
+document
+  .getElementById("gst_download_percent")
+  ?.addEventListener("input", loadBills);
 </script>
 
 

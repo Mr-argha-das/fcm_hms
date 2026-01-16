@@ -1,5 +1,6 @@
 
 from datetime import datetime , time
+from xml.dom.minidom import Document
 from mongoengine import *
 class User(Document):
     role = StringField(
@@ -284,32 +285,73 @@ class Medicine(Document):
     is_active = BooleanField(default=True)
     created_at = DateTimeField(default=datetime.utcnow)
 
-class BillItem(EmbeddedDocument):
-    title = StringField(required=True)
-    quantity = IntField(default=1)
-    unit_price = FloatField(required=True)
-    total_price = FloatField(required=True)
 
+# class PatientBill(Document):
+#     patient = ReferenceField(PatientProfile, required=True)
+
+#     items = EmbeddedDocumentListField(BillItem)
+
+#     sub_total = FloatField()
+#     discount = FloatField(default=0)
+#     extra_charges = FloatField(default=0)
+#     grand_total = FloatField()
+
+#     bill_date = DateTimeField(default=datetime.utcnow)
+#     bill_month = StringField()   # YYYY-MM
+
+#     pdf_file = StringField()
+#     status = StringField(
+#         choices=["UNPAID", "PAID"],
+#         default="UNPAID"
+#     )
+
+#     created_by = ReferenceField(User)   # ADMIN
+#     created_at = DateTimeField(default=datetime.utcnow)
+
+
+class BillItem(EmbeddedDocument):
+    title = StringField()
+    quantity = IntField()
+    unit_price = FloatField()
+    total_price = FloatField()
+    dosage = StringField()   # ✅ ADD
+
+
+# class PatientBill(Document):
+#     patient = ReferenceField(PatientProfile)
+#     items = ListField(EmbeddedDocumentField(BillItem))
+
+#     sub_total = FloatField()
+#     discount = FloatField(default=0)
+#     extra_charges = FloatField(default=0)
+
+#     gst_percent = FloatField(default=0)   # e.g. 18
+#     gst_amount = FloatField(default=0)
+
+#     grand_total = FloatField()
+
+#     bill_type = StringField(choices=["GST", "NON_GST"], default="NON_GST")
+
+#     pdf_file = StringField()
+#     bill_month = StringField()
+#     created_by = ReferenceField(User)
 
 class PatientBill(Document):
-    patient = ReferenceField(PatientProfile, required=True)
+    patient = ReferenceField("PatientProfile", required=True)
 
-    items = EmbeddedDocumentListField(BillItem)
+    # 🔥 ITEMS
+    items = ListField(DictField())   # title, qty, unit_price, total
 
-    sub_total = FloatField()
+    sub_total = FloatField(default=0)
     discount = FloatField(default=0)
     extra_charges = FloatField(default=0)
-    grand_total = FloatField()
 
-    bill_date = DateTimeField(default=datetime.utcnow)
-    bill_month = StringField()   # YYYY-MM
+    grand_total = FloatField(required=True)   # final without GST
 
-    pdf_file = StringField()
-    status = StringField(
-        choices=["UNPAID", "PAID"],
-        default="UNPAID"
-    )
+    status = StringField(default="UNPAID")
+    pdf = StringField()
 
-    created_by = ReferenceField(User)   # ADMIN
+    created_by = ReferenceField("User")
+    bill_month = StringField()
+
     created_at = DateTimeField(default=datetime.utcnow)
-
