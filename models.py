@@ -340,8 +340,7 @@ class PatientBill(Document):
     patient = ReferenceField("PatientProfile", required=True)
 
     # 🔥 ITEMS
-    items = ListField(DictField())   # title, qty, unit_price, total
-
+    items = EmbeddedDocumentListField(BillItem)
     sub_total = FloatField(default=0)
     discount = FloatField(default=0)
     extra_charges = FloatField(default=0)

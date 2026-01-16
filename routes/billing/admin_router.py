@@ -199,7 +199,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import FileResponse
 from core.dependencies import admin_required, get_current_user
-from models import PatientMedication, PatientProfile, PatientBill
+from models import BillItem, PatientMedication, PatientProfile, PatientBill
 from datetime import datetime
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Image
@@ -299,14 +299,22 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
     # ================= ITEMS TABLE =================
     table_data = [["#", "Item", "Qty", "Amount (Rs)"]]
 
+    # for idx, item in enumerate(bill.items, 1):
+    #     table_data.append([
+    #         idx,
+    #         item["title"],
+    #         item["quantity"],
+    #         # f"{item['unit_price']:.2f}",
+    #         f"{item.total_price:.2f}",
+    #     ])
+
     for idx, item in enumerate(bill.items, 1):
-        table_data.append([
-            idx,
-            item["title"],
-            item["quantity"],
-            # f"{item['unit_price']:.2f}",
-            f"{item['total']:.2f}",
-        ])
+      table_data.append([
+        idx,
+        item.title,
+        item.quantity,
+        f"{item.total_price:.2f}",
+    ])
 
     items_table = Table(
         table_data,
@@ -386,22 +394,28 @@ async def generate_bill(
 
     for m in medicines:
      if m.price:
-        items.append({
-            "title": f"Medicine: {m.medicine_name} ({m.dosage})",
-            "quantity": 1,
-            "unit_price": m.price,
-            "total": m.price
-        })
+        items.append(
+            BillItem(
+                title=f"Medicine: {m.medicine_name}",
+                quantity=1,
+                unit_price=m.price,
+                total_price=m.price,
+                dosage=m.dosage
+            )
+        )
         sub_total += m.price
+
 
     for i in data.get("other_items", []):
         total = i["quantity"] * i["unit_price"]
-        items.append({
-            "title": i["title"],
-            "quantity": i["quantity"],
-            "unit_price": i["unit_price"],
-            "total": total
-        })
+        items.append(
+         BillItem(
+          title=i["title"],
+          quantity=i["quantity"],
+          unit_price=i["unit_price"],
+          total_price=total
+        )
+)
         sub_total += total
 
     discount = data.get("discount", 0)
