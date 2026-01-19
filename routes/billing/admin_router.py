@@ -196,6 +196,7 @@
 #         "deleted_count": count
 #     }
 
+from core.paths import BASE_DIR
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import FileResponse
 from core.dependencies import admin_required, get_current_user
@@ -222,10 +223,14 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 
 
 def generate_bill_pdf(bill, gst_percent: float = 0):
-    os.makedirs("media/bills", exist_ok=True)
-# changes
+    media_bills_dir = os.path.join(BASE_DIR, "media", "bills")
+    os.makedirs(media_bills_dir, exist_ok=True)
+
     suffix = "gst" if gst_percent > 0 else "nogst"
-    path = f"media/bills/bill_{bill.id}_{suffix}.pdf"
+    path = os.path.join(
+        media_bills_dir,
+        f"bill_{bill.id}_{suffix}.pdf"
+    )
 
     doc = SimpleDocTemplate(
         path,
@@ -244,11 +249,38 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
     date_str = bill_date.strftime("%d-%m-%Y") if bill_date else "-"
 
     # ================= HEADER IMAGE =================
-    logo_path = "media/logos/wecare_header.png"
+    logo_path = os.path.join(BASE_DIR, "media", "logos", "wecare_header.png")
     if os.path.exists(logo_path):
         header_img = Image(logo_path, width=3.9 * inch, height=1.4 * inch)
         header_img.hAlign = "CENTER"
         elements.append(header_img)
+#     os.makedirs("media/bills", exist_ok=True)
+# # changes
+#     suffix = "gst" if gst_percent > 0 else "nogst"
+#     path = f"media/bills/bill_{bill.id}_{suffix}.pdf"
+
+#     doc = SimpleDocTemplate(
+#         path,
+#         pagesize=A4,
+#         rightMargin=30,
+#         leftMargin=30,
+#         topMargin=30,
+#         bottomMargin=30
+#     )
+
+#     styles = getSampleStyleSheet()
+#     elements = []
+
+#     # ================= DATE =================
+#     bill_date = getattr(bill, "created_at", None)
+#     date_str = bill_date.strftime("%d-%m-%Y") if bill_date else "-"
+
+#     # ================= HEADER IMAGE =================
+#     logo_path = "media/logos/wecare_header.png"
+#     if os.path.exists(logo_path):
+#         header_img = Image(logo_path, width=3.9 * inch, height=1.4 * inch)
+#         header_img.hAlign = "CENTER"
+#         elements.append(header_img)
 
     elements.append(Paragraph("<br/>", styles["Normal"]))
 
@@ -445,6 +477,43 @@ async def generate_bill(
 # =====================================================
 # DOWNLOAD BILL (GST / NON-GST)
 # =====================================================
+
+# @router.get("/admin/billing/{bill_id}/download", response_model=None)
+# def download_bill_pdf(
+#     bill_id: str,
+#     gst_percent: float = Query(0, ge=0, le=100),
+#     request: Request = None
+# ):
+#     bill = PatientBill.objects(id=bill_id).first()
+#     if not bill:
+#         raise HTTPException(status_code=404, detail="Bill not found")
+
+#     base_dir = request.app.state.BASE_DIR
+
+#     pdf_path = generate_bill_pdf(
+#         bill=bill,
+#         gst_percent=gst_percent,
+#         base_dir=base_dir
+#     )
+
+#     if not os.path.exists(pdf_path):
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"PDF not found at {pdf_path}"
+#         )
+
+#     filename = (
+#         f"Bill_{bill_id}_GST_{gst_percent}.pdf"
+#         if gst_percent > 0
+#         else f"Bill_{bill_id}_No_GST.pdf"
+#     )
+
+#     return FileResponse(
+#         pdf_path,
+#         media_type="application/pdf",
+#         filename=filename
+#     )
+
 @router.get("/admin/billing/{bill_id}/download", response_model=None)
 def download_bill_pdf(
     bill_id: str,
@@ -458,6 +527,12 @@ def download_bill_pdf(
         bill=bill,
         gst_percent=gst_percent
     )
+
+    if not os.path.exists(pdf_path):
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF not found at {pdf_path}"
+        )
 
     filename = (
         f"Bill_{bill_id}_GST_{gst_percent}.pdf"
