@@ -32,6 +32,10 @@ block content %}
         <input class="form-control" id="phone" required />
       </div>
       <div class="col-md-6 mb-3">
+        <label>Alt Phone *</label>
+        <input class="form-control" id="other_number" required />
+      </div>
+      <div class="col-md-6 mb-3">
         <label>Email</label>
         <input type="email" class="form-control" id="email" />
       </div>
@@ -63,7 +67,7 @@ block content %}
         type="file"
         multiple
         class="form-control"
-        onchange="uploadMultipleFiles(this,'qualification_docs','documents')"
+        onchange="uploadMultipleFiles(this, 'qualification_docs', 'documents')"
       />
     </div>
 
@@ -73,7 +77,7 @@ block content %}
         type="file"
         multiple
         class="form-control"
-        onchange="uploadMultipleFiles(this,'experience_docs','documents')"
+        onchange="uploadMultipleFiles(this, 'experience_docs', 'documents')"
       />
     </div>
 
@@ -83,7 +87,7 @@ block content %}
         type="file"
         class="form-control"
         accept="image/*"
-        onchange="uploadSingleImage(this,'profile_photo','images')"
+        onchange="uploadSingleImage(this, 'profile_photo', 'images')"
       />
     </div>
 
@@ -93,7 +97,7 @@ block content %}
         type="file"
         class="form-control"
         accept="image/*"
-        onchange="uploadSingleImage(this,'digital_signature','signatures')"
+        onchange="uploadSingleImage(this, 'digital_signature', 'signatures')"
       />
     </div>
 
@@ -190,6 +194,7 @@ block content %}
 
     /* ================= INPUT BINDS ================= */
     const phone = document.getElementById("phone");
+    const other_number = document.getElementById("other_number");
     const name = document.getElementById("name");
     const father_name = document.getElementById("father_name");
     const email = document.getElementById("email");
@@ -216,7 +221,7 @@ block content %}
 
     function showStep() {
       ["step1", "step2", "step3"].forEach((id) =>
-        document.getElementById(id).classList.add("d-none")
+        document.getElementById(id).classList.add("d-none"),
       );
       document.getElementById("step" + step).classList.remove("d-none");
       stepLabel.innerText = `Step ${step} of 3`;
@@ -289,6 +294,7 @@ block content %}
       const payload = {
         phone: phone.value.trim(),
         name: name.value.trim(),
+        other_number: other_number.value.trim(),
         nurse_type: nurse_type.value,
         shift_type: shift_type.value,
         duty_hours: Number(duty_hours.value),
@@ -324,7 +330,7 @@ block content %}
 
       const res = await fetch(CREATE_API, {
         method: "POST",
-        headers: headers(), // 🔐 centralized headers
+        headers: headers(),
         body: JSON.stringify(payload),
       });
 
@@ -332,7 +338,7 @@ block content %}
 
       if (res.ok) {
         alert("Nurse created successfully");
-        window.location.href = "/admin/nurses";
+        // window.location.href = "/admin/nurses";
       } else {
         console.error(data);
         alert(data.detail || "API Error");

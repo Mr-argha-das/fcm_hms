@@ -469,6 +469,7 @@ def nurse_detail_page(
     # ================= COMPLETE NURSE DUMP =================
     print("\n--- USER DATA ---")
     print("Phone:", user.phone)
+    print("Other Number:", user.other_number)
     print("Email:", user.email)
     print("Role:", user.role)
 

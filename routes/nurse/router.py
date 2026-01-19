@@ -1,5 +1,6 @@
 
 from collections import defaultdict
+from urllib import request
 from fastapi import APIRouter, Depends, HTTPException, Request,status
 from datetime import datetime, timedelta,date
 from mongoengine.errors import ValidationError, NotUniqueError
@@ -29,6 +30,7 @@ def ist_now():
 class NurseCreateRequest(BaseModel):
 
     phone: str = Field(..., example="9876543210")
+    other_number: str = Field(..., example="9876543210")
     name: str = Field(..., example="Sruti Das")
     father_name: Optional[str] = Field(None, example="Ram Das")
     email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
@@ -107,10 +109,11 @@ class NurseResponse(BaseModel):
     verification_status: str
 
 router = APIRouter(prefix="/nurse", tags=["Nurse"])
-class NurseSelfSignupRequest(BaseModel):
 
+class NurseSelfSignupRequest(BaseModel):
     # -------- USER --------
     phone: str = Field(..., example="9876543210")
+    other_number: str = Field(..., example="9876543210")
     name: str = Field(..., example="Sruti Das")
     father_name: Optional[str] = Field(None, example="Ram Das")
     email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
@@ -131,6 +134,8 @@ class NurseSelfSignupRequest(BaseModel):
     digital_signature: Optional[str] = None
 
     joining_date: Optional[date] = None
+
+
 @router.post("/self-signup", response_model=NurseResponse)
 def nurse_self_signup(payload: NurseSelfSignupRequest):
 
@@ -142,6 +147,7 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
     user = User(
         role="NURSE",
         phone=payload.phone,
+        other_number=payload.other_number,
         email=payload.email,
         name=payload.name,
         father_name=payload.father_name,
@@ -172,24 +178,33 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
 
 
 @router.post("/create", response_model=NurseResponse)
-def create_nurse(payload: NurseCreateRequest):
+async def create_nurse(payload: NurseCreateRequest , request: Request):   
+    print(payload)     
+    raw_body = await request.body()
+    print("🔵 RAW REQUEST BODY:", raw_body)
     try:
-        print("Creating nurse payload:", payload.dict())
+        # 🔍 RAW BODY (as sent by client)
+
+        # 🔍 Parsed payload (after Pydantic validation)
+        # print("🟢 PARSED PAYLOAD:", payload.dict())
 
         # 🔹 Duplicate phone check
         if User.objects(phone=payload.phone).first():
             raise HTTPException(status_code=400, detail="Phone number already registered")
+        
 
         # 🔹 Create User
         user = User(
             role="NURSE",
             phone=payload.phone,
+            other_number=payload.other_number,
             email=payload.email,
             name=payload.name,
             father_name=payload.father_name,
             is_active=True,
             otp_verified=True
         ).save()
+
 
         # 🔹 Create Nurse Profile
         nurse = NurseProfile(
