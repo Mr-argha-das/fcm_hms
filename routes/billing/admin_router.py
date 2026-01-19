@@ -514,6 +514,39 @@ async def generate_bill(
 #         filename=filename
 #     )
 
+# @router.get("/admin/billing/{bill_id}/download", response_model=None)
+# def download_bill_pdf(
+#     bill_id: str,
+#     gst_percent: float = Query(0, ge=0, le=100),
+# ):
+#     bill = PatientBill.objects(id=bill_id).first()
+#     if not bill:
+#         raise HTTPException(status_code=404, detail="Bill not found")
+
+#     pdf_path = generate_bill_pdf(
+#         bill=bill,
+#         gst_percent=gst_percent
+#     )
+
+#     if not os.path.exists(pdf_path):
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"PDF not found at {pdf_path}"
+#         )
+
+#     filename = (
+#         f"Bill_{bill_id}_GST_{gst_percent}.pdf"
+#         if gst_percent > 0
+#         else f"Bill_{bill_id}_No_GST.pdf"
+#     )
+
+#     return FileResponse(
+#         pdf_path,
+#         media_type="application/pdf",
+#         filename=filename
+#     )
+
+
 @router.get("/admin/billing/{bill_id}/download", response_model=None)
 def download_bill_pdf(
     bill_id: str,
@@ -545,7 +578,6 @@ def download_bill_pdf(
         media_type="application/pdf",
         filename=filename
     )
-
 
 # =====================================================
 # GET PATIENT BILLS
