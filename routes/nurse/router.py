@@ -261,6 +261,61 @@ async def create_nurse(payload: NurseCreateRequest , request: Request):
             detail="Internal server error while creating nurse"
         )
 
+@router.delete("/delete/{nurse_id}")
+async def delete_nurse(nurse_id: str, request: Request):
+    try:
+        print("🟠 DELETE NURSE REQUEST")
+        print("🟠 Nurse ID:", nurse_id)
+
+        raw_body = await request.body()
+        print("🔵 RAW REQUEST BODY:", raw_body)
+
+        # 🔍 Find Nurse Profile
+        nurse = NurseProfile.objects(id=nurse_id).first()
+        if not nurse:
+            raise HTTPException(status_code=404, detail="Nurse not found")
+
+        print("🟢 Nurse Found:", str(nurse.id))
+
+        # 🔍 Find related user
+        user = nurse.user
+
+        # 🔍 Delete Nurse Consent (if exists)
+        consent = NurseConsent.objects(nurse=nurse).first()
+        if consent:
+            consent.delete()
+            print("🟢 NurseConsent deleted")
+
+        # 🔥 Delete Nurse Profile
+        nurse.delete()
+        print("🟢 NurseProfile deleted")
+
+        # 🔥 Delete User
+        if user:
+            user.delete()
+            print("🟢 User deleted")
+
+        return {
+            "message": "Nurse deleted successfully",
+            "nurse_id": nurse_id
+        }
+
+    except ValidationError as e:
+        print("❌ ValidationError:", e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        print("🔥 Unhandled Exception:", e)
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while deleting nurse"
+        )
+
+
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
     return NurseProfile.objects(user=user).first()

@@ -106,7 +106,8 @@ block content %}
 
 <!-- ================= GLOBAL API ================= -->
 <script>
-  const API = "https://wecarehhcs.in";
+  // const API = API;
+  // const API = "https://wecarehhcs.in";
 
   function headers() {
     return {
@@ -150,7 +151,7 @@ block content %}
     }
 
     try {
-      const res = await fetch(`${API}/patient/create`, {
+      const res = await fetch(`/patient/create`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify(payload),

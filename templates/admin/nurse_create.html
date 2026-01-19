@@ -182,9 +182,9 @@ block content %}
     guard(); // 🔐 auto redirect if no token
 
     /* ================= API ENDPOINTS ================= */
-    const FILE_API = API + "/upload/file";
-    const CREATE_API = API + "/nurse/create";
-
+    const FILE_API = "/upload/file";
+    const CREATE_API = "/nurse/create";
+    //   New Update
     /* ================= FORM & BUTTONS ================= */
     const nurseForm = document.getElementById("nurseForm");
     const stepLabel = document.getElementById("stepLabel");
@@ -338,7 +338,7 @@ block content %}
 
       if (res.ok) {
         alert("Nurse created successfully");
-        // window.location.href = "/admin/nurses";
+        window.location.href = "/admin/nurses";
       } else {
         console.error(data);
         alert(data.detail || "API Error");

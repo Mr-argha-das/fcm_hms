@@ -1,10 +1,7 @@
-{% extends "admin/base.html" %}
-{% block title %}Nurses{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Nurses{% endblock %} {% block
+content %}
 
 <div class="card">
-
   <!-- HEADER -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">Nurses</h5>
@@ -13,7 +10,10 @@
       <!-- <a href="/admin/consent" class="btn btn-sm btn-outline-secondary">
         📄 Nurse Consent
       </a> -->
-      <button class="btn btn-sm btn-primary" onclick="window.location.href='/admin/create/nurse'">
+      <button
+        class="btn btn-sm btn-primary"
+        onclick="window.location.href = '/admin/create/nurse'"
+      >
         ➕ Add Nurse
       </button>
     </div>
@@ -33,28 +33,36 @@
     </thead>
 
     <tbody>
-      {% if nurses %}
-      {% for nurse in nurses %}
+      {% if nurses %} {% for nurse in nurses %}
       <tr>
-
         <!-- NAME / IDENTITY -->
         <td>
           <div class="d-flex align-items-center gap-2">
             {% if nurse.profile_photo %}
-            <img src="/{{ nurse.profile_photo }}" style="width:36px;height:36px;border-radius:50%">
+            <!-- <span> {{ nurse.profile_photo }} </span> -->
+            <img
+              src="/{{ nurse.profile_photo }}"
+              style="width: 36px; height: 36px; border-radius: 50%"
+            />
             {% else %}
-            <div style="width:36px;height:36px;border-radius:50%;
-                            background:#e5e7eb;
-                            display:flex;align-items:center;justify-content:center;
-                            font-size:14px;">
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+              "
+            >
               👩‍⚕️
             </div>
             {% endif %}
 
             <div>
-              <div class="fw-semibold">
-                {{ nurse.user.phone }}
-              </div>
+              <div class="fw-semibold">{{ nurse.user.phone }}</div>
               <small class="text-muted">{{ nurse.user.name }}</small>
             </div>
           </div>
@@ -62,9 +70,7 @@
 
         <!-- TYPE -->
         <td>
-          <span class="badge bg-info text-dark">
-            {{ nurse.nurse_type }}
-          </span>
+          <span class="badge bg-info text-dark"> {{ nurse.nurse_type }} </span>
         </td>
 
         <!-- VERIFICATION -->
@@ -100,15 +106,26 @@
 
         <!-- ACTIONS -->
         <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary" title="View Details"
-            onclick="window.location.href='/admin/nurses/{{ nurse.id }}'">
+          <button
+            class="btn btn-sm btn-outline-primary"
+            title="View Details"
+            onclick="window.location.href='/admin/nurses/{{ nurse.id }}'"
+          >
             👁️
           </button>
 
-          <a href="/admin/nurses/{{ nurse.id }}/edit" class="btn btn-sm btn-outline-warning">
-            ✏️ 
+          <a
+            href="/admin/nurses/{{ nurse.id }}/edit"
+            class="btn btn-sm btn-outline-warning"
+          >
+            ✏️
           </a>
-
+          <a
+            class="btn btn-sm btn-outline-warning"
+            onclick="deleteNurse('{{ nurse.id }}')"
+          >
+            🗑️
+          </a>
 
           {% if nurse.user.is_active %}
           <button class="btn btn-sm btn-outline-danger" title="Deactivate">
@@ -120,19 +137,45 @@
           </button>
           {% endif %}
         </td>
-
       </tr>
-      {% endfor %}
-      {% else %}
+      {% endfor %} {% else %}
       <tr>
-        <td colspan="6" class="text-center text-muted">
-          No nurses found
-        </td>
+        <td colspan="6" class="text-center text-muted">No nurses found</td>
       </tr>
       {% endif %}
     </tbody>
   </table>
-
 </div>
 
+{% endblock %} {% block scripts %}
+<script>
+  async function deleteNurse(nurseId) {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this nurse?",
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const r = await fetch(`/nurse/delete/${nurseId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+
+      const d = await r.json();
+
+      if (r.ok) {
+        alert("Nurse deleted successfully");
+        location.reload();
+      } else {
+        alert(d.detail || "Failed to delete nurse");
+      }
+    } catch (err) {
+      alert("Server error while deleting nurse");
+    }
+  }
+</script>
 {% endblock %}

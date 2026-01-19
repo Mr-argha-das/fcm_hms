@@ -1,7 +1,5 @@
-{% extends "admin/base.html" %}
-{% block title %}Manage Nurse{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Manage Nurse{% endblock %} {%
+block content %}
 
 <div class="card mb-4">
   <h4>Manage Nurse</h4>
@@ -9,350 +7,419 @@
 </div>
 
 <form id="nurseForm">
+  <!-- ================= VERIFICATION ================= -->
+  <div class="card mb-4">
+    <h5>Verification</h5>
 
-<!-- ================= VERIFICATION ================= -->
-<div class="card mb-4">
-  <h5>Verification</h5>
+    <div class="form-check mb-2">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        name="aadhaar_verified"
+        {%
+        if
+        nurse.aadhaar_verified
+        %}checked{%
+        endif
+        %}
+      />
+      <label class="form-check-label">Aadhaar Verified</label>
+    </div>
 
-  <div class="form-check mb-2">
-    <input class="form-check-input"
-           type="checkbox"
-           name="aadhaar_verified"
-           {% if nurse.aadhaar_verified %}checked{% endif %}>
-    <label class="form-check-label">Aadhaar Verified</label>
-  </div>
-
-  <div class="mb-3">
-    <label>Police Verification</label>
-    <select class="form-select" name="police_verification_status">
-      {% for s in ["PENDING","CLEAR","FAILED"] %}
-        <option value="{{ s }}"
-          {% if nurse.police_verification_status == s %}selected{% endif %}>
+    <div class="mb-3">
+      <label>Police Verification</label>
+      <select class="form-select" name="police_verification_status">
+        {% for s in ["PENDING","CLEAR","FAILED"] %}
+        <option
+          value="{{ s }}"
+          {%
+          if
+          nurse.police_verification_status=""
+          ="s"
+          %}selected{%
+          endif
+          %}
+        >
           {{ s }}
         </option>
-      {% endfor %}
-    </select>
-  </div>
-</div>
-
-<!-- ================= PROFILE ================= -->
-<div class="card mb-4">
-  <h5>Profile</h5>
-
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <label>Nurse Type</label>
-      <select class="form-select" name="nurse_type">
-        {% for t in ["GNM","ANM","CARETAKER","PHYSIO","COMBO"] %}
-          <option value="{{ t }}"
-            {% if nurse.nurse_type == t %}selected{% endif %}>
-            {{ t }}
-          </option>
         {% endfor %}
       </select>
     </div>
-
-    <div class="col-md-4 mb-3">
-      <label>Joining Date</label>
-      <input type="date"
-             class="form-control"
-             name="joining_date"
-             value="{{ nurse.joining_date }}">
-    </div>
-
-    <div class="col-md-4 mb-3">
-      <label>Resignation Date</label>
-      <input type="date"
-             class="form-control"
-             name="resignation_date"
-             value="{{ nurse.resignation_date }}">
-    </div>
   </div>
 
-  <div class="form-check mt-2">
-    <input class="form-check-input"
-           type="checkbox"
-           name="is_active"
-           {% if nurse.user and nurse.user.is_active %}checked{% endif %}>
-    <label class="form-check-label">Active Nurse</label>
-  </div>
-</div>
+  <!-- ================= PROFILE ================= -->
+  <div class="card mb-4">
+    <h5>Profile</h5>
 
-<!-- ================= SALARY ================= -->
-<div class="card mb-4">
-  <h5>Salary & Payment</h5>
-
-  <div class="row">
-    <div class="col-md-3 mb-3">
-      <label>Salary Type</label>
-      <select class="form-select" name="salary_type">
-        {% for t in ["DAILY","MONTHLY"] %}
-          <option value="{{ t }}"
-            {% if consent and consent.salary_type == t %}selected{% endif %}>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label>Nurse Type</label>
+        <select class="form-select" name="nurse_type">
+          {% for t in ["GNM","ANM","CARETAKER","PHYSIO","COMBO"] %}
+          <option
+            value="{{ t }}"
+            {%
+            if
+            nurse.nurse_type=""
+            ="t"
+            %}selected{%
+            endif
+            %}
+          >
             {{ t }}
           </option>
-        {% endfor %}
-      </select>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label>Joining Date</label>
+        <input
+          type="date"
+          class="form-control"
+          name="joining_date"
+          value="{{ nurse.joining_date }}"
+        />
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label>Resignation Date</label>
+        <input
+          type="date"
+          class="form-control"
+          name="resignation_date"
+          value="{{ nurse.resignation_date }}"
+        />
+      </div>
     </div>
 
-    <div class="col-md-3 mb-3">
-      <label>Salary Amount</label>
-      <input type="number"
-             step="0.01"
-             class="form-control"
-             name="salary_amount"
-             value="{{ consent.salary_amount if consent else '' }}">
+    <div class="form-check mt-2">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        name="is_active"
+        {%
+        if
+        nurse.user
+        and
+        nurse.user.is_active
+        %}checked{%
+        endif
+        %}
+      />
+      <label class="form-check-label">Active Nurse</label>
     </div>
+  </div>
 
-    <div class="col-md-3 mb-3">
-      <label>Payment Mode</label>
-      <select class="form-select" name="payment_mode">
-        {% for p in ["CASH","BANK","UPI"] %}
-          <option value="{{ p }}"
-            {% if consent and consent.payment_mode == p %}selected{% endif %}>
+  <!-- ================= SALARY ================= -->
+  <div class="card mb-4">
+    <h5>Salary & Payment</h5>
+
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label>Salary Type</label>
+        <select class="form-select" name="salary_type">
+          {% for t in ["DAILY","MONTHLY"] %}
+          <option
+            value="{{ t }}"
+            {%
+            if
+            consent
+            and
+            consent.salary_type=""
+            ="t"
+            %}selected{%
+            endif
+            %}
+          >
+            {{ t }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label>Salary Amount</label>
+        <input
+          type="number"
+          step="0.01"
+          class="form-control"
+          name="salary_amount"
+          value="{{ consent.salary_amount if consent else '' }}"
+        />
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label>Payment Mode</label>
+        <select class="form-select" name="payment_mode">
+          {% for p in ["CASH","BANK","UPI"] %}
+          <option
+            value="{{ p }}"
+            {%
+            if
+            consent
+            and
+            consent.payment_mode=""
+            ="p"
+            %}selected{%
+            endif
+            %}
+          >
             {{ p }}
           </option>
-        {% endfor %}
-      </select>
-    </div>
+          {% endfor %}
+        </select>
+      </div>
 
-    <div class="col-md-3 mb-3">
-      <label>Salary Date</label>
-      <input type="number"
-             min="1"
-             max="31"
-             class="form-control"
-             name="salary_date"
-             value="{{ consent.salary_date if consent else '' }}">
-    </div>
-  </div>
-</div>
-<!-- ================= ASSIGN DUTY ================= -->
-<div class="card mb-4">
-  <h5>Assign Duty</h5>
-
-  <div class="row g-2">
-    <div class="col-md-4">
-      <label>Patient</label>
-      <select class="form-select" id="duty_patient">
-        <option value="">Select Patient</option>
-        {% for p in patients %}
-          <option value="{{ p.id }}">{{ p.user.name }} ({{ p.age }} yrs)</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="col-md-2">
-      <label>Duty Type</label>
-      <select class="form-select" id="duty_type">
-        <option value="10HR">10 Hours</option>
-        <option value="12HR">12 Hours</option>
-        <option value="24HR">24 Hours</option>
-        <option value="FLEX">FLEX</option>
-      </select>
-    </div>
-
-    <div class="col-md-2">
-      <label>Shift</label>
-      <select class="form-select" id="duty_shift">
-        <option value="DAY">Day</option>
-        <option value="NIGHT">Night</option>
-      </select>
-    </div>
-
-    <div class="col-md-2">
-      <label>Start Time</label>
-      <input type="datetime-local" class="form-control" id="duty_start">
-    </div>
-
-    <div class="col-md-2 align-self-end">
-      <button class="btn btn-primary w-100" id="assignDutyBtn">Assign Duty</button>
+      <div class="col-md-3 mb-3">
+        <label>Salary Date</label>
+        <input
+          type="number"
+          min="1"
+          max="31"
+          class="form-control"
+          name="salary_date"
+          value="{{ consent.salary_date if consent else '' }}"
+        />
+      </div>
     </div>
   </div>
+  <!-- ================= ASSIGN DUTY ================= -->
+  <div class="card mb-4">
+    <h5>Assign Duty</h5>
 
-  <hr class="mt-3">
+    <div class="row g-2">
+      <div class="col-md-4">
+        <label>Patient</label>
+        <select class="form-select" id="duty_patient">
+          <option value="">Select Patient</option>
+          {% for p in patients %}
+          <option value="{{ p.id }}">
+            {{ p.user.name }} ({{ p.age }} yrs)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
 
-  {% if duties %}
+      <div class="col-md-2">
+        <label>Duty Type</label>
+        <select class="form-select" id="duty_type">
+          <option value="10HR">10 Hours</option>
+          <option value="12HR">12 Hours</option>
+          <option value="24HR">24 Hours</option>
+          <option value="FLEX">FLEX</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label>Shift</label>
+        <select class="form-select" id="duty_shift">
+          <option value="DAY">Day</option>
+          <option value="NIGHT">Night</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label>Start Time</label>
+        <input type="datetime-local" class="form-control" id="duty_start" />
+      </div>
+
+      <div class="col-md-2 align-self-end">
+        <button class="btn btn-primary w-100" id="assignDutyBtn">
+          Assign Duty
+        </button>
+      </div>
+    </div>
+
+    <hr class="mt-3" />
+
+    {% if duties %}
     <h6>Active Duties</h6>
     {% for d in duties %}
-      <p>
-        {{ d.patient.user.name }} — {{ d.duty_type }} | {{ d.shift }} 
-        ({{ d.duty_start.strftime("%d %b %Y %H:%M") }} → {{ d.duty_end.strftime("%d %b %Y %H:%M") }})
-      </p>
-    {% endfor %}
-  {% endif %}
-</div>
-
-<!-- ================= LOG VISIT ================= -->
-<div class="card mb-4">
-  <h5>Log Nurse Visit</h5>
-
-  <div class="row g-2">
-    <div class="col-md-4">
-      <label>Patient</label>
-      <select class="form-select" id="visit_patient">
-        <option value="">Select Patient</option>
-        {% for p in patients %}
-          <option value="{{ p.id }}">{{ p.user.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="col-md-3">
-      <label>Visit Type</label>
-      <select class="form-select" id="visit_type">
-        <option value="ROUTINE">Routine</option>
-        <option value="MEDICATION">Medication</option>
-        <option value="EMERGENCY">Emergency</option>
-        <option value="FOLLOW_UP">Follow-up</option>
-      </select>
-    </div>
-
-    <div class="col-md-3">
-      <label>Ward / Room</label>
-      <input type="text" class="form-control" placeholder="Ward / Room" id="visit_ward">
-    </div>
-
-    <div class="col-md-2 align-self-end">
-      <button class="btn btn-success w-100" id="logVisitBtn">Log Visit</button>
-    </div>
+    <p>
+      {{ d.patient.user.name }} — {{ d.duty_type }} | {{ d.shift }} ({{
+      d.duty_start.strftime("%d %b %Y %H:%M") }} → {{ d.duty_end.strftime("%d %b
+      %Y %H:%M") }})
+    </p>
+    {% endfor %} {% endif %}
   </div>
 
-  <div class="mt-3">
-    {% if visits %}
+  <!-- ================= LOG VISIT ================= -->
+  <div class="card mb-4">
+    <h5>Log Nurse Visit</h5>
+
+    <div class="row g-2">
+      <div class="col-md-4">
+        <label>Patient</label>
+        <select class="form-select" id="visit_patient">
+          <option value="">Select Patient</option>
+          {% for p in patients %}
+          <option value="{{ p.id }}">{{ p.user.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label>Visit Type</label>
+        <select class="form-select" id="visit_type">
+          <option value="ROUTINE">Routine</option>
+          <option value="MEDICATION">Medication</option>
+          <option value="EMERGENCY">Emergency</option>
+          <option value="FOLLOW_UP">Follow-up</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label>Ward / Room</label>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Ward / Room"
+          id="visit_ward"
+        />
+      </div>
+
+      <div class="col-md-2 align-self-end">
+        <button class="btn btn-success w-100" id="logVisitBtn">
+          Log Visit
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      {% if visits %}
       <h6>Recent Visits</h6>
       {% for v in visits %}
-        <p class="small">
-          {{ v.patient.user.name }} — {{ v.visit_type }} | {{ v.ward }} 
-          @ {{ v.visit_time.strftime("%d %b %Y %H:%M") }}
-        </p>
-      {% endfor %}
-    {% endif %}
+      <p class="small">
+        {{ v.patient.user.name }} — {{ v.visit_type }} | {{ v.ward }} @ {{
+        v.visit_time.strftime("%d %b %Y %H:%M") }}
+      </p>
+      {% endfor %} {% endif %}
+    </div>
   </div>
-</div>
 
-
-<!-- Submit -->
-<button type="button" class="btn btn-success" id="submitBtn">💾 Save Changes</button>
-<a href="/admin/nurses/{{ nurse.id }}" class="btn btn-secondary">Cancel</a>
-
+  <!-- Submit -->
+  <button type="button" class="btn btn-success" id="submitBtn">
+    💾 Save Changes
+  </button>
+  <a href="/admin/nurses/{{ nurse.id }}" class="btn btn-secondary">Cancel</a>
 </form>
 
 <!-- ================= JS ================= -->
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", () => {
+    // const API = API;
+    // const API = "https://wecarehhcs.in";
 
-  const API = "https://wecarehhcs.in";
-
-  function headers() {
-    return {
-      Authorization: "Bearer " + localStorage.getItem("token"),
-    };
-  }
-
-  function guard() {
-    if (!localStorage.getItem("token")) {
-      window.location.href = "/admin/login";
+    function headers() {
+      return {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      };
     }
-  }
 
-  guard();
+    function guard() {
+      if (!localStorage.getItem("token")) {
+        window.location.href = "/admin/login";
+      }
+    }
 
-  const form = document.getElementById("nurseForm");
-  const btn = document.getElementById("submitBtn");
+    guard();
 
-  btn.addEventListener("click", async () => {
+    const form = document.getElementById("nurseForm");
+    const btn = document.getElementById("submitBtn");
 
-    const formData = new FormData(form);
+    btn.addEventListener("click", async () => {
+      const formData = new FormData(form);
 
-    // ✅ Checkbox fix
-    formData.set("aadhaar_verified", form.aadhaar_verified.checked ? "true" : "false");
-    formData.set("is_active", form.is_active.checked ? "true" : "false");
+      // ✅ Checkbox fix
+      formData.set(
+        "aadhaar_verified",
+        form.aadhaar_verified.checked ? "true" : "false",
+      );
+      formData.set("is_active", form.is_active.checked ? "true" : "false");
 
-    try {
-      const res = await fetch(`${API}/admin/nurse/{{ nurse.id }}/update`, {
-        method: "POST",
-        headers: headers(),
-        body: formData
-      });
+      try {
+        const res = await fetch(`/admin/nurse/{{ nurse.id }}/update`, {
+          method: "POST",
+          headers: headers(),
+          body: formData,
+        });
 
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.detail || "❌ Update failed");
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.detail || "❌ Update failed");
+          return;
+        }
+
+        alert("✅ Nurse updated successfully");
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("❌ Server error");
+      }
+    });
+  });
+  // ================= ASSIGN DUTY =================
+  document
+    .getElementById("assignDutyBtn")
+    .addEventListener("click", async () => {
+      const patient_id = document.getElementById("duty_patient").value;
+      const duty_type = document.getElementById("duty_type").value;
+      const shift = document.getElementById("duty_shift").value;
+      const duty_start = document.getElementById("duty_start").value;
+
+      if (!patient_id || !duty_start) {
+        alert("Select patient and start time");
         return;
       }
 
-      alert("✅ Nurse updated successfully");
+      const startDate = new Date(duty_start);
+      const endDate = new Date(startDate);
+
+      // Example: 10HR/12HR/24HR
+      const hoursMap = { "10HR": 10, "12HR": 12, "24HR": 24, FLEX: 8 };
+      endDate.setHours(startDate.getHours() + hoursMap[duty_type]);
+
+      await fetch(`/nurse/nurse/{{ nurse.id }}/assign-duty`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          patient_id,
+          duty_type,
+          shift,
+          duty_start: startDate.toISOString(),
+          duty_end: endDate.toISOString(),
+        }),
+      });
+
+      alert("Duty assigned successfully!");
       window.location.reload();
+    });
 
-    } catch (err) {
-      console.error(err);
-      alert("❌ Server error");
+  // ================= LOG VISIT =================
+  document.getElementById("logVisitBtn").addEventListener("click", async () => {
+    const patient_id = document.getElementById("visit_patient").value;
+    const visit_type = document.getElementById("visit_type").value;
+    const ward = document.getElementById("visit_ward").value;
+
+    if (!patient_id || !ward) {
+      alert("Select patient and enter ward/room");
+      return;
     }
+
+    await fetch(`/nurse/nurse/{{ nurse.id }}/log-visit`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        patient_id,
+        visit_type,
+        ward,
+      }),
+    });
+
+    alert("Visit logged successfully!");
+    window.location.reload();
   });
-
-});
-// ================= ASSIGN DUTY =================
-document.getElementById("assignDutyBtn").addEventListener("click", async () => {
-  const patient_id = document.getElementById("duty_patient").value;
-  const duty_type = document.getElementById("duty_type").value;
-  const shift = document.getElementById("duty_shift").value;
-  const duty_start = document.getElementById("duty_start").value;
-
-  if (!patient_id || !duty_start) {
-    alert("Select patient and start time");
-    return;
-  }
-
-  const startDate = new Date(duty_start);
-  const endDate = new Date(startDate);
-  
-  // Example: 10HR/12HR/24HR
-  const hoursMap = { "10HR": 10, "12HR": 12, "24HR": 24, "FLEX": 8 };
-  endDate.setHours(startDate.getHours() + hoursMap[duty_type]);
-
-  await fetch(`${API}/nurse/nurse/{{ nurse.id }}/assign-duty`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({
-      patient_id,
-      duty_type,
-      shift,
-      duty_start: startDate.toISOString(),
-      duty_end: endDate.toISOString()
-    })
-  });
-
-  alert("Duty assigned successfully!");
-  window.location.reload();
-});
-
-// ================= LOG VISIT =================
-document.getElementById("logVisitBtn").addEventListener("click", async () => {
-  const patient_id = document.getElementById("visit_patient").value;
-  const visit_type = document.getElementById("visit_type").value;
-  const ward = document.getElementById("visit_ward").value;
-
-  if (!patient_id || !ward) {
-    alert("Select patient and enter ward/room");
-    return;
-  }
-
-  await fetch(`${API}/nurse/nurse/{{ nurse.id }}/log-visit`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({
-      patient_id,
-      visit_type,
-      ward
-    })
-  });
-
-  alert("Visit logged successfully!");
-  window.location.reload();
-});
-
 </script>
-
 
 {% endblock %}

@@ -28,9 +28,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "*",
+      "http://localhost:8000",
       "https://wecarehhcs.in",
       "http://192.0.0.2:8000",
-      "http://localhost:8000",
       "http://0.0.0.0:8000",
       "http://10.61.43.98:8000"
 
@@ -39,6 +39,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
