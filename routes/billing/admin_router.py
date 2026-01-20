@@ -546,7 +546,7 @@ async def generate_bill(
 #         filename=filename
 #     )
 
-
+# Neww
 @router.get("/admin/billing/{bill_id}/download", response_model=None)
 def download_bill_pdf(
     bill_id: str,
