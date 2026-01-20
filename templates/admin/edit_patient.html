@@ -71,6 +71,15 @@ block content %}
       </select>
     </div>
 
+    <div class="col-md-6 mb-3">
+      <label>Ward</label>
+      <input type="text" class="form-control" id="ward" />
+    </div>
+    <div class="col-md-6 mb-3">
+      <label>Room</label>
+      <input type="text" class="form-control" id="room" />
+    </div>
+
     <div class="col-md-2">
       <button class="btn btn-primary w-100" id="assignBtn">Assign</button>
     </div>
@@ -102,12 +111,14 @@ block content %}
     end.setHours(end.getHours() + 12); // Example: duty_end 12 hours later
     const dutyEnd = end.toISOString();
 
-    await fetch(`${API}/patient/${patientId}/assign-nurse`, {
+    await fetch(`/patient/${patientId}/assign-nurse`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({
         nurse_id: nurseId,
         duty_type: dutyType,
+        ward: ward,
+        room: room,
         shift: shift,
         duty_start: now,
         duty_end: dutyEnd,
@@ -122,7 +133,7 @@ block content %}
     const nurseId = document.getElementById("nurse").value;
     const noteText = document.getElementById("note").value;
 
-    await fetch(`${API}/patient/${patientId}/daily-note`, {
+    await fetch(`/patient/${patientId}/daily-note`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ nurse_id: nurseId, note: noteText }),
@@ -140,7 +151,7 @@ block content %}
       const spo2 = document.getElementById("spo2").value;
       const temp = document.getElementById("temp").value;
 
-      await fetch(`${API}/patient/${patientId}/vitals`, {
+      await fetch(`/patient/${patientId}/vitals`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({ bp, pulse, spo2, temperature: temp }),
@@ -170,7 +181,7 @@ block content %}
         return;
       }
 
-      await fetch(`${API}/patient/${patientId}/medication`, {
+      await fetch(`/patient/${patientId}/medication`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
@@ -202,7 +213,7 @@ block content %}
         return;
       }
 
-      await fetch(`${API}/patient/${patientId}/relative-access`, {
+      await fetch(`/patient/${patientId}/relative-access`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({ relative_user_id, access_type, permissions }),
@@ -216,7 +227,7 @@ block content %}
     if (!confirm("Are you sure you want to remove this relative's access?"))
       return;
 
-    await fetch(`${API}/patient/${patientId}/relative-access/${accessId}`, {
+    await fetch(`/patient/${patientId}/relative-access/${accessId}`, {
       method: "DELETE",
       headers: headers(),
     });

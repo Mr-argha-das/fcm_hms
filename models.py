@@ -57,7 +57,8 @@ class NurseDuty(Document):
 
     duty_type = StringField(choices=["10HR", "12HR", "24HR", "FLEX"])
     shift = StringField(choices=["DAY", "NIGHT"])
-
+    ward = StringField(required=True)
+    room =  StringField(required=True)
     duty_start = DateTimeField()
     duty_end = DateTimeField()
 
@@ -66,6 +67,7 @@ class NurseDuty(Document):
     gps_location = PointField()
 
     is_active = BooleanField(default=True)
+    
 class NurseAttendance(Document):
     nurse = ReferenceField(NurseProfile)
     date = DateField()

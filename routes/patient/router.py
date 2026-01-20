@@ -161,22 +161,33 @@ def get_patient_care(patient_id: str):
         "notes": notes,
         "vitals": vitals,
     }
+
 @router.post("/{patient_id}/assign-nurse")
 def assign_nurse_duty(patient_id: str, payload: dict):
     patient = PatientProfile.objects(id=patient_id).first()
     nurse = NurseProfile.objects(id=payload.get("nurse_id")).first()
 
-    if not patient or not nurse:
-        raise HTTPException(status_code=404, detail="Invalid patient or nurse")
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
 
-    # 🔥 deactivate previous duties
-    NurseDuty.objects(patient=patient, is_active=True).update(
-        set__is_active=False
-    )
+    if not nurse:
+        raise HTTPException(status_code=404, detail="Nurse not found")
+
+    # 🔥 deactivate previous duties for this patient
+    NurseDuty.objects(
+        patient=patient,
+        is_active=True
+    ).update(set__is_active=False)
+
+    # ✅ SAFE STRING CAST (VERY IMPORTANT)
+    ward = payload.get("ward")
+    room = payload.get("room")
 
     NurseDuty(
         patient=patient,
         nurse=nurse,
+        ward=str(ward) if ward is not None else "",
+        room=str(room) if room is not None else "",
         duty_type=payload.get("duty_type"),
         shift=payload.get("shift"),
         duty_start=datetime.fromisoformat(payload.get("duty_start")),
@@ -184,7 +195,11 @@ def assign_nurse_duty(patient_id: str, payload: dict):
         is_active=True,
     ).save()
 
-    return {"success": True, "message": "Nurse assigned successfully"}
+    return {
+        "success": True,
+        "message": "Nurse assigned successfully"
+    }
+
 @router.post("/{patient_id}/daily-note")
 def add_daily_note(patient_id: str, payload: dict):
     patient = PatientProfile.objects(id=patient_id).first()
