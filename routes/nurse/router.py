@@ -28,7 +28,6 @@ def ist_now():
     return datetime.now(IST)
 
 class NurseCreateRequest(BaseModel):
-
     phone: str = Field(..., example="9876543210")
     other_number: str = Field(..., example="9876543210")
     name: str = Field(..., example="Sruti Das")
@@ -261,68 +260,54 @@ async def create_nurse(payload: NurseCreateRequest , request: Request):
             detail="Internal server error while creating nurse"
         )
 
+
+
 @router.delete("/delete/{nurse_id}")
-async def delete_nurse(nurse_id: str, request: Request):
+def delete_nurse(
+    nurse_id: str,
+):
     try:
-        print("🟠 DELETE NURSE REQUEST")
-        print("🟠 Nurse ID:", nurse_id)
-
-        raw_body = await request.body()
-        print("🔵 RAW REQUEST BODY:", raw_body)
-
-        # 🔍 Find Nurse Profile
         nurse = NurseProfile.objects(id=nurse_id).first()
         if not nurse:
             raise HTTPException(status_code=404, detail="Nurse not found")
 
-        print("🟢 Nurse Found:", str(nurse.id))
-
-        # 🔍 Find related user
         user = nurse.user
 
-        # 🔍 Delete Nurse Consent (if exists)
-        consent = NurseConsent.objects(nurse=nurse).first()
-        if consent:
-            consent.delete()
-            print("🟢 NurseConsent deleted")
+        # 🔥 DELETE RELATED DATA (ORDER MATTERS)
+        NurseConsent.objects(nurse=nurse).delete()
+        NurseDuty.objects(nurse=nurse).delete()
+        NurseAttendance.objects(nurse=nurse).delete()
+        NurseVisit.objects(nurse=nurse).delete()
 
-        # 🔥 Delete Nurse Profile
+        # 🔥 DELETE NURSE PROFILE
         nurse.delete()
-        print("🟢 NurseProfile deleted")
 
-        # 🔥 Delete User
+        # 🔥 DELETE USER ACCOUNT
         if user:
             user.delete()
-            print("🟢 User deleted")
 
         return {
-            "message": "Nurse deleted successfully",
-            "nurse_id": nurse_id
+            "success": True,
+            "message": "Nurse deleted successfully"
         }
 
-    except ValidationError as e:
-        print("❌ ValidationError:", e)
-        raise HTTPException(status_code=400, detail=str(e))
-
-    except HTTPException as e:
-        raise e
-
     except Exception as e:
-        print("🔥 Unhandled Exception:", e)
-        traceback.print_exc()
+        print("❌ Delete nurse error:", e)
         raise HTTPException(
             status_code=500,
-            detail="Internal server error while deleting nurse"
+            detail="Failed to delete nurse"
         )
 
 
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
     return NurseProfile.objects(user=user).first()
+
 @router.get("/duty/current")
 def current_duty(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
     return NurseDuty.objects(nurse=nurse, is_active=True).first()
+
 @router.post("/duty/check-in")
 def duty_check_in(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
@@ -624,6 +609,8 @@ def get_patient_dashboard(patient_id: str, user=Depends(get_current_user)):
         "gender": patient.gender,
         "medical_history": patient.medical_history,
     }
+
+
 class VitalsPayload(BaseModel):
     bp: str
     pulse: int

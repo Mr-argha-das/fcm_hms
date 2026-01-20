@@ -37,21 +37,29 @@ block content %}
       >
         📊 Attendance & Salary
       </a>
+      <!-- <div class="mt-2 flex justify-content-between">
+        <h5 class="text-sm">ward : {{ user.ward }}</h5>
+        <h5 class="text-sm">room : {{ user.room }}</h5>
+      </div> -->
     </div>
   </div>
 </div>
 
 <!-- ================= KPI SUMMARY ================= -->
 <div class="row g-4 mb-4">
-  <div class="col-md-3">
-    <div class="card kpi">
+  <div class="col-md-3 flex">
+    <div
+      class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full"
+    >
       <small>Attendance ({{ month }})</small>
       <h3>{{ total_present }} Days</h3>
     </div>
   </div>
 
-  <div class="col-md-3">
-    <div class="card kpi">
+  <div class="col-md-3 flex">
+    <div
+      class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full"
+    >
       <small>Salary</small>
       <h3>₹ {{ salary.net_salary if salary else "N/A" }}</h3>
       {% if salary and salary.is_paid %}
@@ -62,8 +70,10 @@ block content %}
     </div>
   </div>
 
-  <div class="col-md-3">
-    <div class="card kpi">
+  <div class="col-md-3 flex">
+    <div
+      class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full"
+    >
       <small>Active Duty</small>
       <h3>{{ duty.duty_type if duty else "N/A" }}</h3>
       {% if duty %}
@@ -73,7 +83,7 @@ block content %}
   </div>
 
   <div class="col-md-3">
-    <div class="card kpi">
+    <div class="card kpi p-3 text-center">
       <small>Consent Status</small>
       <h3>{{ consent.status if consent else "N/A" }}</h3>
       {% if consent %}

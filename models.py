@@ -26,7 +26,7 @@ class NurseProfile(Document):
     nurse_type = StringField(
         choices=["GNM", "ANM", "CARETAKER", "PHYSIO", "COMBO", "OTHER"]
     )
-    
+
     aadhaar_number = StringField()
     aadhaar_verified = BooleanField(default=False)
 
@@ -86,6 +86,7 @@ class NurseSalary(Document):
     payslip_pdf = StringField()
 
     created_at = DateTimeField(default=datetime.utcnow)
+
 class NurseConsent(Document):
     nurse = ReferenceField(NurseProfile, required=True)
 
@@ -132,6 +133,7 @@ class NurseConsent(Document):
     revoked_at = DateTimeField()
 
     created_at = DateTimeField(default=datetime.utcnow)
+
 class DoctorProfile(Document):
     user = ReferenceField(User, required=True)
     specialization = StringField()

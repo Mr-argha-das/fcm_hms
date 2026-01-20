@@ -28,13 +28,13 @@ endblock %} {% block content %}
 <!-- ================= KPI SUMMARY ================= -->
 <div class="row g-4 mb-4">
   <div class="col-md-4">
-    <div class="card kpi">
+    <div class="card kpi p-3">
       <small>Attendance ({{ month }})</small>
       <h3>{{ attendance|length }} Days</h3>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card kpi">
+    <div class="card kpi p-3">
       <small>Salary</small>
       <h3>₹ {{ salary.net_salary if salary else "N/A" }}</h3>
       {% if salary %} {% if salary.is_paid %}
@@ -45,7 +45,7 @@ endblock %} {% block content %}
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card kpi">
+    <div class="card kpi p-3">
       <small>Consent Status</small>
       <h3>{{ consent.status if consent else "N/A" }}</h3>
       {% if consent %}
