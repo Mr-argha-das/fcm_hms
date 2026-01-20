@@ -418,7 +418,7 @@ async def generate_bill(
     data = await request.json()
 
     patient = PatientProfile.objects.get(id=data["patient_id"])
-
+    
     items = []
     sub_total = 0
     # ================= MEDICINES =================
@@ -586,7 +586,7 @@ def download_bill_pdf(
 def get_patient_bills(
     patient_id: str,
     # admin=Depends(admin_required)
-):
+):  
     bills = PatientBill.objects(patient=patient_id).order_by("-id")
 
     response = []
