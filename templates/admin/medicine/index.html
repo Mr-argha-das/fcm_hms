@@ -1,22 +1,19 @@
-{% extends "admin/base.html" %}
-{% block title %}Medicine Master{% endblock %}
-
+{% extends "admin/base.html" %} {% block title %}Medicine Master{% endblock %}
 {% block content %}
 <script>
   guard();
 </script>
 
-<div class="card mb-4">
-
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">💊 Medicine Master</h5>
+  <div class="d-flex justify-content-between align-items-center p-3">
+    <h5 class="mb-0 text-md">💊 Medicine Master</h5>
   </div>
 
   <!-- CREATE MEDICINE -->
-  <div class="card mb-4">
-    <div class="card-body">
-      <h6>Add New Medicine</h6>
+  <div class="p-3">
+    <div class="flex flex-col">
+      <h6 class="mb-1 text-sm">Add New Medicine</h6>
 
       <div class="row g-2">
         <div class="col-md-3">
@@ -26,7 +23,7 @@
             placeholder="Medicine Name"
             required
             minlength="2"
-          >
+          />
         </div>
 
         <div class="col-md-3">
@@ -35,7 +32,7 @@
             class="form-control"
             placeholder="Company Name"
             required
-          >
+          />
         </div>
 
         <div class="col-md-2">
@@ -44,7 +41,7 @@
             class="form-control"
             placeholder="Dosage (500mg)"
             required
-          >
+          />
         </div>
 
         <div class="col-md-2">
@@ -53,7 +50,7 @@
             class="form-control"
             placeholder="Form (Tablet / Syrup)"
             required
-          >
+          />
         </div>
 
         <div class="col-md-2">
@@ -65,13 +62,17 @@
             min="1"
             step="0.01"
             required
-          >
+          />
         </div>
       </div>
-
-      <button class="btn btn-sm btn-primary mt-3" onclick="createMedicine()">
-        ➕ Add Medicine
-      </button>
+      <div class="flex justify-start">
+        <button
+          class="bg-green-500 text-white px-3 py-1.5 mt-2.5 !rounded-xl hover:bg-green-600 transition-colors"
+          onclick="createMedicine()"
+        >
+          ➕ Add Medicine
+        </button>
+      </div>
     </div>
   </div>
 
@@ -90,102 +91,99 @@
 
     <tbody id="medicineTable">
       <tr>
-        <td colspan="6" class="text-center text-muted">
-          Loading medicines...
-        </td>
+        <td colspan="6" class="text-center text-muted">Loading medicines...</td>
       </tr>
     </tbody>
   </table>
-
 </div>
 
 <script>
-function createMedicine() {
-  const name = document.getElementById("name").value.trim();
-  const company = document.getElementById("company_name").value.trim();
-  const dosage = document.getElementById("dosage").value.trim();
-  const form = document.getElementById("dosage_form").value.trim();
-  const price = parseFloat(document.getElementById("price").value);
+  function createMedicine() {
+    const name = document.getElementById("name").value.trim();
+    const company = document.getElementById("company_name").value.trim();
+    const dosage = document.getElementById("dosage").value.trim();
+    const form = document.getElementById("dosage_form").value.trim();
+    const price = parseFloat(document.getElementById("price").value);
 
-  // 🔴 VALIDATION
-  if (!name || name.length < 2) {
-    alert("Medicine name must be at least 2 characters");
-    return;
-  }
-  if (!company) {
-    alert("Company name is required");
-    return;
-  }
-  if (!dosage) {
-    alert("Dosage is required");
-    return;
-  }
-  if (!form) {
-    alert("Dosage form is required");
-    return;
-  }
-  if (isNaN(price) || price <= 0) {
-    alert("Price must be greater than 0");
-    return;
-  }
-
-  const payload = {
-    name: name,
-    company_name: company,
-    dosage: dosage,
-    dosage_form: form,
-    price: price
-  };
-
-  fetch(`${API}/md/admin/medicine/create`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify(payload)
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.detail) {
-      alert(d.detail);
+    // 🔴 VALIDATION
+    if (!name || name.length < 2) {
+      alert("Medicine name must be at least 2 characters");
+      return;
+    }
+    if (!company) {
+      alert("Company name is required");
+      return;
+    }
+    if (!dosage) {
+      alert("Dosage is required");
+      return;
+    }
+    if (!form) {
+      alert("Dosage form is required");
+      return;
+    }
+    if (isNaN(price) || price <= 0) {
+      alert("Price must be greater than 0");
       return;
     }
 
-    alert(d.message || "Medicine added successfully");
+    const payload = {
+      name: name,
+      company_name: company,
+      dosage: dosage,
+      dosage_form: form,
+      price: price,
+    };
 
-    // Clear form
-    document.getElementById("name").value = "";
-    document.getElementById("company_name").value = "";
-    document.getElementById("dosage").value = "";
-    document.getElementById("dosage_form").value = "";
-    document.getElementById("price").value = "";
+    fetch(`${API}/md/admin/medicine/create`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(payload),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.detail) {
+          alert(d.detail);
+          return;
+        }
 
-    loadMedicines();
-  })
-  .catch(() => {
-    alert("Something went wrong while creating medicine");
-  });
-}
+        alert(d.message || "Medicine added successfully");
 
-function loadMedicines() {
-  fetch(`${API}/md/admin/medicine`, {
-    headers: headers()
-  })
-  .then(r => r.json())
-  .then(data => {
-    const tbody = document.getElementById("medicineTable");
-    tbody.innerHTML = "";
+        // Clear form
+        document.getElementById("name").value = "";
+        document.getElementById("company_name").value = "";
+        document.getElementById("dosage").value = "";
+        document.getElementById("dosage_form").value = "";
+        document.getElementById("price").value = "";
 
-    if (!data.length) {
-      tbody.innerHTML = `
+        loadMedicines();
+      })
+      .catch(() => {
+        alert("Something went wrong while creating medicine");
+      });
+  }
+
+  function loadMedicines() {
+    fetch(`${API}/md/admin/medicine`, {
+      headers: headers(),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const tbody = document.getElementById("medicineTable");
+        tbody.innerHTML = "";
+
+        if (!data.length) {
+          tbody.innerHTML = `
         <tr>
           <td colspan="6" class="text-center text-muted">
             No medicines found
           </td>
         </tr>`;
-      return;
-    }
+          return;
+        }
 
-    data.forEach(m => {
-      tbody.innerHTML += `
+        data.forEach((m) => {
+          tbody.innerHTML += `
         <tr>
           <td>${m.name}</td>
           <td>${m.company}</td>
@@ -201,37 +199,37 @@ function loadMedicines() {
             </button>
           </td>
         </tr>`;
-    });
-  })
-  .catch(() => {
-    document.getElementById("medicineTable").innerHTML = `
+        });
+      })
+      .catch(() => {
+        document.getElementById("medicineTable").innerHTML = `
       <tr>
         <td colspan="6" class="text-center text-danger">
           Failed to load medicines
         </td>
       </tr>`;
-  });
-}
+      });
+  }
 
-function deactivateMedicine(id) {
-  if (!confirm("Are you sure you want to deactivate this medicine?")) return;
+  function deactivateMedicine(id) {
+    if (!confirm("Are you sure you want to deactivate this medicine?")) return;
 
-  fetch(`${API}/md/admin/medicine/${id}`, {
-    method: "DELETE",
-    headers: headers()
-  })
-  .then(r => r.json())
-  .then(d => {
-    alert(d.message || "Medicine deactivated");
-    loadMedicines();
-  })
-  .catch(() => {
-    alert("Failed to deactivate medicine");
-  });
-}
+    fetch(`${API}/md/admin/medicine/${id}`, {
+      method: "DELETE",
+      headers: headers(),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        alert(d.message || "Medicine deactivated");
+        loadMedicines();
+      })
+      .catch(() => {
+        alert("Failed to deactivate medicine");
+      });
+  }
 
-// Initial load
-loadMedicines();
+  // Initial load
+  loadMedicines();
 </script>
 
 {% endblock %}

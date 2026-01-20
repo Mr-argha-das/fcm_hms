@@ -1,31 +1,31 @@
-{% extends "admin/base.html" %}
-{% block title %}Doctor Details{% endblock %}
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Doctor Details{% endblock %} {%
+block content %}
 
 <!-- Doctor Header -->
-<div class="card mb-4 d-flex flex-row justify-content-between align-items-center p-3">
+<div
+  class="card mb-4 d-flex flex-row justify-content-between align-items-center p-3"
+>
   <div>
-    <h4>{{ user.phone }}</h4>
+    <h4>{{ user.name }}</h4>
+    <h5 class="text-xs">{{ user.phone }}</h5>
     <p class="mb-1">{{ doctor.specialization }}</p>
 
     {% if doctor.registration_number %}
-      <span class="badge bg-info">{{ doctor.registration_number }}</span>
-    {% endif %}
-
-    {% if doctor.available %}
-      <span class="badge bg-success">Available</span>
+    <span class="badge bg-info">{{ doctor.registration_number }}</span>
+    {% endif %} {% if doctor.available %}
+    <span class="badge bg-success">Available</span>
     {% else %}
-      <span class="badge bg-secondary">Unavailable</span>
+    <span class="badge bg-secondary">Unavailable</span>
     {% endif %}
   </div>
 
-  <div class="d-flex gap-2">
-    <a href="/admin/doctors/{{ doctor.id }}/edit" class="btn btn-outline-warning">
+  <div class="flex flex-col gap-2">
+    <a href="/admin/doctors/{{ doctor.id }}/edit" class="btn btn-warning">
       ✏️ Edit Doctor
     </a>
     <a
       href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
-      class="btn btn-outline-warning"
+      class="btn btn-warning"
     >
       📊 Attendance & Salary
     </a>
@@ -51,20 +51,14 @@
   <div class="col-md-4">
     <div class="card kpi p-3">
       <small>Status</small>
-      <h3>
-        {% if doctor.available %}
-          Active
-        {% else %}
-          Inactive
-        {% endif %}
-      </h3>
+      <h3>{% if doctor.available %} Active {% else %} Inactive {% endif %}</h3>
     </div>
   </div>
 </div>
 
 <!-- PATIENT LIST -->
-<div class="card p-3">
-  <h5 class="mb-3">Assigned Patients</h5>
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="mb-3 p-3 text-left">Assigned Patients</h5>
 
   <table class="table table-hover">
     <thead>
@@ -85,25 +79,17 @@
         <td>{{ patient.age or "-" }}</td>
         <td>{{ patient.gender or "-" }}</td>
         <td>
-          {% if patient.service_start %}
-            {{ patient.service_start.strftime("%d %b %Y") }}
-          {% else %}
-            -
-          {% endif %}
+          {% if patient.service_start %} {{ patient.service_start.strftime("%d
+          %b %Y") }} {% else %} - {% endif %}
         </td>
         <td>
-          {% if patient.service_end %}
-            {{ patient.service_end.strftime("%d %b %Y") }}
-          {% else %}
-            Ongoing
-          {% endif %}
+          {% if patient.service_end %} {{ patient.service_end.strftime("%d %b
+          %Y") }} {% else %} Ongoing {% endif %}
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="6" class="text-muted text-center">
-          No patients assigned
-        </td>
+        <td colspan="6" class="text-muted text-center">No patients assigned</td>
       </tr>
       {% endfor %}
     </tbody>

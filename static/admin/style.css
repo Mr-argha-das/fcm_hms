@@ -1,20 +1,50 @@
+body {
+  font-family:
+    Segoe UI,
+    Arial;
+  background: #f4f6f9;
+  margin: 0;
+}
+a {
+  text-decoration: none;
+}
+.sidebar {
+  width: 240px;
+  min-height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: #1e1e2f;
+  color: #fff;
+  padding-top: 10px;
+}
+.sidebar h4 {
+  padding: 10px 20px;
+}
+.sidebar a {
+  display: block;
+  padding: 10px 20px;
+  color: #cfd2ff;
+}
+.sidebar a:hover {
+  background: #343aeb;
+  color: #fff;
+}
+.main {
+  margin-left: 240px;
+  padding: 20px;
+}
+.header {
+  background: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
 
-body{font-family:Segoe UI,Arial;background:#f4f6f9;margin:0}
-a{text-decoration:none}
-.sidebar{
-  width:240px;min-height:100vh;position:fixed;left:0;top:0;
-  background:#1e1e2f;color:#fff;padding-top:10px
+.card {
+  /* border-radius: 12px; */
 }
-.sidebar h4{padding:10px 20px}
-.sidebar a{
-  display:block;padding:10px 20px;color:#cfd2ff
+.table thead {
+  background: #343aeb;
+  color: #fff;
 }
-.sidebar a:hover{background:#343aeb;color:#fff}
-.main{
-  margin-left:240px;padding:20px
-}
-.header{
-  background:#fff;padding:15px;border-radius:10px;margin-bottom:20px
-}
-.card{border-radius:12px}
-.table thead{background:#343aeb;color:#fff}

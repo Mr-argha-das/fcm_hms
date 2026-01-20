@@ -1,27 +1,41 @@
-{% extends "admin/base.html" %}
+{% extends "admin/base.html" %} {% block title %}Complaints{% endblock %} {%
+block content %}
 
-{% block title %}Complaints{% endblock %}
-
-{% block content %}
-
-<div class="card">
-
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Complaints</h5>
+
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <h5 class="mb-0 text-md">Complaints</h5>
 
     <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        onclick="location.reload()"
+      >
         🔄 Refresh
       </button>
     </div>
   </div>
 
+  <!-- <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Complaints</h5>
+
+    <div class="d-flex gap-2">
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        onclick="location.reload()"
+      >
+        🔄 Refresh
+      </button>
+    </div>
+  </div> -->
+
   <!-- COMPLAINTS TABLE -->
   <table class="table table-hover align-middle">
     <thead class="table-light">
       <tr>
-        <th>User</th>
+        <th>Name</th>
+        <th>Phone</th>
         <th>Role</th>
         <th>Message</th>
         <th>Date</th>
@@ -31,45 +45,40 @@
     </thead>
 
     <tbody>
-      {% if complaints %}
-        {% for c in complaints %}
-        <tr>
+      {% if complaints %} {% for c in complaints %}
+      <tr>
+        <!-- USER -->
 
-          <!-- USER -->
-          <td>
-            {{ c.raised_by.phone if c.raised_by else "Unknown" }}
-          </td>
+        <td>{{ c.raised_by.name if c.raised_by else "Unknown" }}</td>
+        <td>{{ c.raised_by.phone if c.raised_by else "Unknown" }}</td>
+        <!-- ROLE -->
+        <td>
+          <span class="badge bg-info text-dark">
+            {{ c.raised_by.role if c.raised_by else "N/A" }}
+          </span>
+        </td>
 
-          <!-- ROLE -->
-          <td>
-            <span class="badge bg-info text-dark">
-              {{ c.raised_by.role if c.raised_by else "N/A" }}
-            </span>
-          </td>
+        <!-- MESSAGE -->
+        <td class="text-muted">
+          {{ c.message[:60] }}{% if c.message|length > 60 %}...{% endif %}
+        </td>
 
-          <!-- MESSAGE -->
-          <td class="text-muted">
-            {{ c.message[:60] }}{% if c.message|length > 60 %}...{% endif %}
-          </td>
+        <!-- DATE -->
+        <td>{{ c.id.generation_time.strftime("%d %b %Y") }}</td>
 
-          <!-- DATE -->
-          <td>
-            {{ c.id.generation_time.strftime("%d %b %Y") }}
-          </td>
+        <!-- STATUS -->
+        <td>
+          {% if c.status == "OPEN" %}
+          <span class="badge bg-warning text-dark">Open</span>
+          {% elif c.status == "IN_PROGRESS" %}
+          <span class="badge bg-info text-dark">In Progress</span>
+          {% else %}
+          <span class="badge bg-success">Resolved</span>
+          {% endif %}
+        </td>
 
-          <!-- STATUS -->
-          <td>
-            {% if c.status == "OPEN" %}
-              <span class="badge bg-warning text-dark">Open</span>
-            {% elif c.status == "IN_PROGRESS" %}
-              <span class="badge bg-info text-dark">In Progress</span>
-            {% else %}
-              <span class="badge bg-success">Resolved</span>
-            {% endif %}
-          </td>
-
-          <!-- ACTIONS -->
-          <!-- <td class="text-center">
+        <!-- ACTIONS -->
+        <!-- <td class="text-center">
             <button class="btn btn-sm btn-outline-primary" title="View">
               👁️
             </button>
@@ -84,19 +93,14 @@
               </button>
             {% endif %}
           </td> -->
-
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="6" class="text-center text-muted">
-            No complaints found
-          </td>
-        </tr>
+      </tr>
+      {% endfor %} {% else %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">No complaints found</td>
+      </tr>
       {% endif %}
     </tbody>
   </table>
-
 </div>
 
 {% endblock %}

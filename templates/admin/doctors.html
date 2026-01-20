@@ -1,17 +1,16 @@
-{% extends "admin/base.html" %}
-{% block title %}Doctors{% endblock %}
+{% extends "admin/base.html" %} {% block title %}Doctors{% endblock %} {% block
+content %}
 
-{% block content %}
-
-<div class="card">
-
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Doctors</h5>
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <h5 class="mb-0 text-md">Doctors</h5>
 
     <div class="d-flex gap-2">
-      
-      <button class="btn btn-sm btn-primary" onclick="window.location.href='/admin/create/doctor'">
+      <button
+        class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
+        onclick="window.location.href = '/admin/create/doctor'"
+      >
         ➕ Add Doctor
       </button>
     </div>
@@ -30,69 +29,66 @@
     </thead>
 
     <tbody>
-      {% if doctors %}
-        {% for doctor in doctors %}
-        <tr>
+      {% if doctors %} {% for doctor in doctors %}
+      <tr>
+        <!-- NAME -->
+        <td>{{ doctor.user.name }}</td>
 
-          <!-- NAME -->
-          <td>
-            {{ doctor.user.phone }}
-          </td>
+        <!-- SPECIALIZATION -->
+        <td>
+          <span class="badge bg-info text-dark">
+            {{ doctor.specialization or "N/A" }}
+          </span>
+        </td>
 
-          <!-- SPECIALIZATION -->
-          <td>
-            <span class="badge bg-info text-dark">
-              {{ doctor.specialization or "N/A" }}
-            </span>
-          </td>
+        <!-- EXPERIENCE -->
+        <td>{{ doctor.experience_years or 0 }} Years</td>
 
-          <!-- EXPERIENCE -->
-          <td>
-            {{ doctor.experience_years or 0 }} Years
-          </td>
+        <!-- STATUS -->
+        <td>
+          {% if doctor.available %}
+          <span class="badge bg-success">Active</span>
+          {% else %}
+          <span class="badge bg-secondary">Inactive</span>
+          {% endif %}
+        </td>
 
-          <!-- STATUS -->
-          <td>
-            {% if doctor.available %}
-              <span class="badge bg-success">Active</span>
-            {% else %}
-              <span class="badge bg-secondary">Inactive</span>
-            {% endif %}
-          </td>
+        <!-- ACTIONS -->
+        <td class="text-center">
+          <button
+            class="btn btn-sm btn-outline-primary"
+            title="View Details"
+            onclick="window.location.href='/admin/doctors/{{ doctor.id }}'"
+          >
+            👁️
+          </button>
 
-          <!-- ACTIONS -->
-          <td class="text-center">
-            <button class="btn btn-sm btn-outline-primary" title="View Details" onclick="window.location.href='/admin/doctors/{{ doctor.id }}'">
-              👁️
-            </button>
+          <button
+            class="btn btn-sm btn-outline-warning"
+            title="Edit"
+            onclick="window.location.href='/admin/doctors/{{ doctor.id }}/edit'"
+          >
+            ✏️
+          </button>
 
-            <button class="btn btn-sm btn-outline-warning" title="Edit" onclick="window.location.href='/admin/doctors/{{ doctor.id }}/edit'">
-              ✏️
-            </button>
-
-            {% if doctor.available %}
-              <button class="btn btn-sm btn-outline-danger" title="Deactivate">
-                🚫
-              </button>
-            {% else %}
-              <button class="btn btn-sm btn-outline-success" title="Activate">
-                ✅
-              </button>
-            {% endif %}
-          </td>
-
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="5" class="text-center text-muted">
-            No doctors found
-          </td>
-        </tr>
+          {% if doctor.available %}
+          <button class="btn btn-sm btn-outline-danger" title="Deactivate">
+            🚫
+          </button>
+          {% else %}
+          <button class="btn btn-sm btn-outline-success" title="Activate">
+            ✅
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %} {% else %}
+      <tr>
+        <td colspan="5" class="text-center text-muted">No doctors found</td>
+      </tr>
       {% endif %}
     </tbody>
   </table>
-
 </div>
 
 {% endblock %}

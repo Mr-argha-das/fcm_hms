@@ -2,7 +2,7 @@
 endblock %} {% block content %}
 
 <!-- ================= BASIC INFO ================= -->
-<div class="card mb-4">
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <div class="d-flex align-items-center">
     {% if staff.user.profile_photo %}
     <img
@@ -12,7 +12,8 @@ endblock %} {% block content %}
     />
     {% endif %}
     <div>
-      <h4>{{ staff.user.name or staff.user.phone }}</h4>
+      <h4>Name: {{ staff.user.name }}</h4>
+      <h5>Phone: <span class="text-xs"> {{ staff.user.phone }} </span></h5>
       <p class="mb-1">Specialization: {{ staff.specialization }}</p>
       <span class="badge bg-info"
         >Experience: {{ staff.experience_years }} yrs</span
@@ -56,14 +57,14 @@ endblock %} {% block content %}
 </div>
 
 <!-- ================= ATTENDANCE GRAPH ================= -->
-<div class="card mb-4">
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <h5>Attendance Graph – {{ month }}</h5>
   <canvas id="attendanceChart" height="120"></canvas>
 </div>
 
 <!-- ================= ATTENDANCE TABLE ================= -->
-<div class="card mb-4">
-  <h5>Attendance Records – {{ month }}</h5>
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="mb-3">Attendance Records – {{ month }}</h5>
   <table class="table table-bordered">
     <thead>
       <tr>

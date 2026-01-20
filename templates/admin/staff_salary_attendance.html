@@ -1,7 +1,5 @@
-{% extends "admin/base.html" %}
-{% block title %}Staff Attendance & Salary{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Staff Attendance & Salary{%
+endblock %} {% block content %}
 
 <h4 class="mb-3">📊 Staff Attendance & Salary</h4>
 
@@ -16,11 +14,12 @@
 
     <div class="col-md-4">
       <p><b>Joining Date:</b> {{ staff.joining_date or "-" }}</p>
-      <p><b>Status:</b>
+      <p>
+        <b>Status:</b>
         {% if staff.user.is_active %}
-          <span class="badge bg-success">Active</span>
+        <span class="badge bg-success">Active</span>
         {% else %}
-          <span class="badge bg-danger">Inactive</span>
+        <span class="badge bg-danger">Inactive</span>
         {% endif %}
       </p>
     </div>
@@ -37,13 +36,11 @@
   <div class="card-body row align-items-end">
     <div class="col-md-3">
       <label class="form-label">Select Month</label>
-      <input type="month" id="month" class="form-control" value="{{ month }}">
+      <input type="month" id="month" class="form-control" value="{{ month }}" />
     </div>
 
     <div class="col-md-2">
-      <button class="btn btn-primary w-100" id="loadBtn">
-        Load Report
-      </button>
+      <button class="btn btn-primary w-100" id="loadBtn">Load Report</button>
     </div>
   </div>
 </div>
@@ -110,9 +107,9 @@
           <td>{{ a.hours or "-" }}</td>
           <td>
             {% if a.check_in %}
-              <span class="badge bg-success">Present</span>
+            <span class="badge bg-success">Present</span>
             {% else %}
-              <span class="badge bg-danger">Absent</span>
+            <span class="badge bg-danger">Absent</span>
             {% endif %}
           </td>
         </tr>
@@ -126,7 +123,6 @@
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-light"><b>💰 Salary Calculation</b></div>
   <div class="card-body row">
-
     <div class="col-md-3">
       <p><b>Basic Salary:</b></p>
       <h5>₹{{ salary.basic }}</h5>
@@ -146,26 +142,23 @@
       <p><b>Net Salary:</b></p>
       <h4 class="text-success">₹{{ salary.net }}</h4>
     </div>
-
   </div>
 </div>
 
 <!-- ================= ACTIONS ================= -->
 <div class="d-flex gap-2 mb-4">
-  <button class="btn btn-primary">
-    📄 Generate Payslip
-  </button>
+  <button class="btn btn-primary">📄 Generate Payslip</button>
 
   {% if salary.payslip_pdf %}
-  <a href="{{ salary.payslip_pdf }}" class="btn btn-outline-secondary" target="_blank">
+  <a
+    href="{{ salary.payslip_pdf }}"
+    class="btn btn-outline-secondary"
+    target="_blank"
+  >
     ⬇ Download Payslip
   </a>
-  {% endif %}
-
-  {% if not salary.is_paid %}
-  <button class="btn btn-success">
-    ✅ Mark as Paid
-  </button>
+  {% endif %} {% if not salary.is_paid %}
+  <button class="btn btn-success">✅ Mark as Paid</button>
   {% else %}
   <span class="badge bg-success align-self-center">Paid</span>
   {% endif %}

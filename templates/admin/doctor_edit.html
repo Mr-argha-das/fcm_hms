@@ -1,45 +1,58 @@
-{% extends "admin/base.html" %}
-{% block title %}Edit Doctor{% endblock %}
+{% extends "admin/base.html" %} {% block title %}Edit Doctor{% endblock %} {%
+block content %}
 
-{% block content %}
-
-<div class="card mb-4">
-  <h4>Edit Doctor</h4>
-  <p class="text-muted">Admin can update doctor profile</p>
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="text-md">Edit Doctor</h5>
+  <p class="text-muted text-sm">Admin can update doctor profile</p>
 </div>
 
-<form method="post"
-      action="/admin/doctor/doctors/{{ doctor.id }}/update"
-      class="card p-4">
-
+<form
+  method="post"
+  action="/admin/doctor/doctors/{{ doctor.id }}/update"
+  class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4"
+>
   <div class="row">
     <div class="col-md-6 mb-3">
+      <label>Name</label>
+      <input class="form-control" value="{{ user.name }}" disabled />
+    </div>
+
+    <div class="col-md-6 mb-3">
       <label>Phone</label>
-      <input class="form-control" value="{{ user.phone }}" disabled>
+      <input class="form-control" value="{{ user.phone }}" disabled />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Email</label>
-      <input class="form-control" value="{{ user.email }}" disabled>
+      <input class="form-control" value="{{ user.email }}" disabled />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Specialization</label>
-      <input class="form-control" name="specialization"
-             value="{{ doctor.specialization }}">
+      <input
+        class="form-control"
+        name="specialization"
+        value="{{ doctor.specialization }}"
+      />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Registration Number</label>
-      <input class="form-control" name="registration_number"
-             value="{{ doctor.registration_number }}">
+      <input
+        class="form-control"
+        name="registration_number"
+        value="{{ doctor.registration_number }}"
+      />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Experience (Years)</label>
-      <input type="number" class="form-control"
-             name="experience_years"
-             value="{{ doctor.experience_years }}">
+      <input
+        type="number"
+        class="form-control"
+        name="experience_years"
+        value="{{ doctor.experience_years }}"
+      />
     </div>
 
     <div class="col-md-6 mb-3">
@@ -56,9 +69,7 @@
   </div>
 
   <button class="btn btn-success">💾 Save Changes</button>
-  <a href="/admin/doctors"
-     class="btn btn-secondary">Cancel</a>
-
+  <a href="/admin/doctors" class="btn btn-secondary">Cancel</a>
 </form>
 
 {% endblock %}

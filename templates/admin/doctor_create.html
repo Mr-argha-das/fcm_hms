@@ -1,40 +1,52 @@
-{% extends "admin/base.html" %}
-{% block title %}Create Doctor{% endblock %}
+{% extends "admin/base.html" %} {% block title %}Create Doctor{% endblock %} {%
+block content %}
 
-{% block content %}
-
-<div class="card mb-4">
-  <h4>Create Doctor</h4>
-  <p class="text-muted">Add new doctor to the system</p>
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <!-- HEADER -->
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <div>
+      <h5 class="mb-0 text-md">Create Doctor</h5>
+      <small class="text-muted"> Add new doctor to the system </small>
+    </div>
+  </div>
 </div>
 
-<form id="doctorForm" class="card p-4">
-
+<form
+  id="doctorForm"
+  class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4"
+>
   <div class="row">
     <div class="col-md-6 mb-3">
+      <label>Name</label>
+      <input class="form-control" id="name" />
+    </div>
+    <div class="col-md-6 mb-3">
       <label>Phone *</label>
-      <input class="form-control" id="phone" required>
+      <input class="form-control" id="phone" required />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Email</label>
-      <input class="form-control" id="email">
+      <input class="form-control" id="email" />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Specialization</label>
-      <input class="form-control" id="specialization"
-             placeholder="Cardiologist, Neurologist">
+      <input
+        class="form-control"
+        id="specialization"
+        placeholder="Cardiologist, Neurologist"
+      />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Registration Number</label>
-      <input class="form-control" id="registration_number">
+      <input class="form-control" id="registration_number" />
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Experience (Years)</label>
-      <input type="number" class="form-control" id="experience_years">
+      <input type="number" class="form-control" id="experience_years" />
     </div>
 
     <div class="col-md-6 mb-3">
@@ -50,35 +62,80 @@
     <button class="btn btn-success">Create Doctor</button>
     <a href="/admin/doctors" class="btn btn-secondary">Cancel</a>
   </div>
-
 </form>
 
 <script>
-document.getElementById("doctorForm").onsubmit = async e => {
-  e.preventDefault();
+  document.getElementById("doctorForm").onsubmit = async (e) => {
+    e.preventDefault();
 
-  const formData = new FormData();
-  formData.append("phone", phone.value);
-  formData.append("email", email.value || "");
-  formData.append("specialization", specialization.value || "");
-  formData.append("registration_number", registration_number.value || "");
-  formData.append("experience_years", experience_years.value || "");
-  formData.append("available", available.value === "true");
+    const formData = new FormData();
 
-  const res = await fetch("/admin/doctor/create-new", {
-    method: "POST",
-    body: formData
-  });
+    formData.append("name", document.getElementById("name").value);
 
-  const data = await res.json();
+    formData.append("phone", document.getElementById("phone").value);
 
-  if (!res.ok) {
-    alert(data.detail || "Error");
-    return;
-  }
+    formData.append("email", document.getElementById("email").value || "");
 
-  window.location.href = "/admin/doctors";
-};
+    formData.append(
+      "specialization",
+      document.getElementById("specialization").value || "",
+    );
+
+    formData.append(
+      "registration_number",
+      document.getElementById("registration_number").value || "",
+    );
+
+    formData.append(
+      "experience_years",
+      document.getElementById("experience_years").value || "",
+    );
+
+    formData.append("available", document.getElementById("available").value);
+
+    const res = await fetch("/admin/doctor/create-new", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.detail || "Error");
+      return;
+    }
+
+    window.location.href = "/admin/doctors";
+  };
 </script>
+
+<!-- <script>
+  document.getElementById("doctorForm").onsubmit = async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append("phone", phone.value);
+    formData.append("name", name.value);
+    formData.append("email", email.value || "");
+    formData.append("specialization", specialization.value || "");
+    formData.append("registration_number", registration_number.value || "");
+    formData.append("experience_years", experience_years.value || "");
+    formData.append("available", available.value === "true");
+
+    const res = await fetch("/admin/doctor/create-new", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.detail || "Error");
+      return;
+    }
+
+    window.location.href = "/admin/doctors";
+  };
+</script> -->
 
 {% endblock %}

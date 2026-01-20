@@ -1,4 +1,4 @@
-<div class="sidebar">
+<!-- <div class="sidebar">
   <h3 class="brand">🏥 WellNest</h3>
 
   <a
@@ -15,7 +15,6 @@
     👩‍⚕️ Nurses
   </a>
 
-  <!-- ✅ SELF REGISTERED NURSES -->
   <a
     href="/admin/nurses/self"
     class="{% if request.url.path == '/admin/nurses/self' %}active{% endif %}"
@@ -37,7 +36,6 @@
     🧑‍🦽 Patients
   </a>
 
-  <!-- ✅ STAFF MANAGEMENT (NEW) -->
   <a
     href="/admin/staff/manage"
     class="{% if request.url.path.startswith('/admin/staff/manage') %}active{% endif %}"
@@ -74,8 +72,148 @@
   </a>
 
   <div class="mt-auto">
-    <a href="/admin/login" onclick="logout()" class="logout">
-      🚪 Logout
-    </a>
+    <a href="/admin/login" onclick="logout()" class="logout"> 🚪 Logout </a>
   </div>
-</div>
+</div> -->
+
+<aside
+  class="w-72 fixed bg-gradient-to-b from-sky-100 to-white top-0 left-0 bottom-0 overflow-y-auto min-h-screen bg-sidebar flex flex-col p-3 py-6"
+>
+  <!-- Logo -->
+  <div class="flex items-center pl-6 pt-2.5 gap-2 mb-6">
+    <!-- <span class="text-2xl">+</span> -->
+    <!-- <h1 class="text-lg font-semibold text-gray-700">
+      We Cares <span class="font-bold">Admin</span>
+    </h1> -->
+
+    <!-- <img src="../../media/logos/wecare_header.png" class="h-12" /> -->
+
+    <h1 class="text-xl font-bold text-gray-700 text-center">Admin Dashboard</h1>
+  </div>
+
+  <!-- Menu -->
+  <nav class="space-y-1 text-sm font-medium">
+    <!-- Dashboard -->
+    <a
+      href="/admin/dashboard"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/dashboard' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">📊 <span>Dashboard</span></div>
+      <span class="text-gray-300">›</span>
+    </a>
+
+    <!-- Nurses -->
+    <a
+      href="/admin/nurses"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/nurses' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">👩‍⚕️ Nurses</div>
+      <span>›</span>
+    </a>
+
+    <!-- Self Registered Nurses -->
+    <a
+      href="/admin/nurses/self"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/nurses/self' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🧾 Self Registered</div>
+      <span>›</span>
+    </a>
+
+    <!-- Doctors -->
+    <a
+      href="/admin/doctors"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/doctors' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">👨‍⚕️ Doctors</div>
+      <span>›</span>
+    </a>
+
+    <!-- Patients -->
+    <a
+      href="/admin/patients"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/patients' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🧑‍🦽 Patients</div>
+      <span>›</span>
+    </a>
+
+    <!-- Staff -->
+    <a
+      href="/admin/staff/manage"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path.startswith('/admin/staff/manage') %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">👷 Staff</div>
+      <span>›</span>
+    </a>
+
+    <!-- Medicines -->
+    <a
+      href="/admin/medicine"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/medicine' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">💊 Medicines</div>
+      <span>›</span>
+    </a>
+
+    <!-- SOS -->
+    <a
+      href="/admin/sos"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/sos' %} bg-red-50 text-red-500 shadow-sm {% else %} text-gray-500 hover:bg-red-50 hover:text-red-500 {% endif %}"
+    >
+      <div class="flex items-center gap-3">🚨 SOS</div>
+      <span>›</span>
+    </a>
+
+    <!-- Complaints -->
+    <a
+      href="/admin/complaints"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/complaints' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">📝 Complaints</div>
+      <span>›</span>
+    </a>
+
+    <!-- Notifications -->
+    <a
+      href="/admin/notifications"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/notifications' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-white hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🔔 Notifications</div>
+      <span>›</span>
+    </a>
+  </nav>
+
+  <div class="mt-10">
+    <!-- Footer -->
+    <div>
+      <a
+        href="/admin/login"
+        onclick="logout()"
+        class="flex cursor-pointer text-center scale-95 hover:scale-[97%] !bg-red-500 items-center justify-between px-4 py-3 rounded-xl text-primary shadow-sm text-white"
+      >
+        🚪 Logout
+      </a>
+    </div>
+
+    <div class="text-[11px] text-center text-gray-400 mt-2">
+      <!-- Rhythm Admin Dashboard<br /> -->
+      © 2026 All Rights Reserved
+    </div>
+  </div>
+
+  <!-- Appointment Card -->
+  <!-- <div
+    class="mt-auto bg-gradient-to-b from-sky-100 to-white rounded-2xl p-4 text-center"
+  >
+    <img
+      src="https://cdn-icons-png.flaticon.com/512/387/387561.png"
+      class="w-28 mx-auto mb-3"
+    />
+    <h3 class="text-sm font-semibold text-gray-700">Make an Appointments</h3>
+    <p class="text-xs text-gray-400 mb-3">Best Health Care here</p>
+    <button class="bg-primary text-white text-xs px-4 py-2 rounded-lg">
+      Book Now
+    </button>
+  </div> -->
+</aside>

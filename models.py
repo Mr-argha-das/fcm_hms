@@ -2,6 +2,7 @@
 from datetime import datetime , time
 from xml.dom.minidom import Document
 from mongoengine import *
+
 class User(Document):
     role = StringField(
         choices=["ADMIN", "NURSE", "DOCTOR", "PATIENT", "RELATIVE", "STAFF"],
@@ -22,11 +23,10 @@ class User(Document):
 
 class NurseProfile(Document):
     user = ReferenceField(User, required=True)
-
     nurse_type = StringField(
-        choices=["GNM", "ANM", "CARETAKER", "PHYSIO", "COMBO"]
+        choices=["GNM", "ANM", "CARETAKER", "PHYSIO", "COMBO", "OTHER"]
     )
-
+    
     aadhaar_number = StringField()
     aadhaar_verified = BooleanField(default=False)
 
@@ -72,6 +72,7 @@ class NurseAttendance(Document):
     check_in = DateTimeField()
     check_out = DateTimeField()
     method = StringField(choices=["FACE", "MANUAL", "BIOMETRIC"])
+
 class NurseSalary(Document):
     nurse = ReferenceField(NurseProfile)
 
@@ -133,7 +134,6 @@ class NurseConsent(Document):
     created_at = DateTimeField(default=datetime.utcnow)
 class DoctorProfile(Document):
     user = ReferenceField(User, required=True)
-
     specialization = StringField()
     registration_number = StringField()
     experience_years = IntField()
@@ -151,6 +151,7 @@ class DoctorVisit(Document):
     prescription_file = StringField()
 
     created_at = DateTimeField(default=datetime.utcnow)
+
 class PatientProfile(Document):
 
     user = ReferenceField(User, required=True)
@@ -222,11 +223,21 @@ class SOSAlert(Document):
     location = PointField()
     status = StringField(choices=["ACTIVE", "RESOLVED"], default="ACTIVE")
     created_at = DateTimeField(default=datetime.utcnow)
-class Notification(Document):
-    user = ReferenceField(User)
+# class Notification(Document):
+#     user = ReferenceField(User)
 
-    title = StringField()
-    message = StringField()
+#     title = StringField()
+#     message = StringField()
+#     is_read = BooleanField(default=False)
+
+#     created_at = DateTimeField(default=datetime.utcnow)
+
+
+class Notification(Document):
+    user = ReferenceField("User", reverse_delete_rule=NULLIFY)
+
+    title = StringField(required=True)
+    message = StringField(required=True)
     is_read = BooleanField(default=False)
 
     created_at = DateTimeField(default=datetime.utcnow)
@@ -240,7 +251,7 @@ class NurseVisit(Document):
     room_no = StringField()
 
     visit_type = StringField(
-        choices=["ROUTINE", "MEDICATION", "EMERGENCY", "FOLLOW_UP"]
+        choices=["ROUTINE", "MEDICATION", "EMERGENCY", "FOLLOW_UP", "OTHER"],
     )
 
     notes = StringField()

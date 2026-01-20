@@ -13,6 +13,7 @@ def approve_doctor(doctor_id: str, admin=Depends(admin_required)):
     doctor.available = True
     doctor.save()
     return {"message": "Doctor approved & activated"}
+
 @router.post("/assign-patient")
 def assign_patient(
     doctor_id: str,
@@ -30,6 +31,7 @@ def assign_patient(
 
 @router.post("/create-new")
 def create_doctor(
+    name :  str | None = Form(None), 
     phone: str = Form(...),
     email: str | None = Form(None),
     specialization: str | None = Form(None),
@@ -37,7 +39,7 @@ def create_doctor(
     experience_years: int | None = Form(None),
     available: bool = Form(True)
 ):
-    print("AVAILABLE:", available, type(available))
+    print("AVAILABLE:", name )
 
     # 🔍 Check existing user
     if User.objects(phone=phone).first():
@@ -46,6 +48,7 @@ def create_doctor(
     # 👤 Create User
     user = User(
         role="DOCTOR",
+        name=name,
         phone=phone,
         email=email,
         is_active=True,

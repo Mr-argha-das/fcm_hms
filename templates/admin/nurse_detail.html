@@ -2,7 +2,7 @@
 block content %}
 
 <!-- ================= BASIC INFO ================= -->
-<div class="card mb-4">
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <div class="d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center">
       {% if nurse.profile_photo %}
@@ -14,8 +14,9 @@ block content %}
       {% endif %}
 
       <div>
-        <h4>{{ user.phone }}</h4>
-        <!-- <h4>{{ user.other_number }}</h4> -->
+        <h4>{{ user.name }}</h4>
+        <h5 class="text-xs">Mobile : {{ user.phone }}</h5>
+        <h6 class="text-xs">Alt Mobile : {{ user.other_number }}</h6>
         <p class="mb-1">
           {{ nurse.nurse_type }} Nurse {% if nurse.aadhaar_verified %}
           <span class="badge bg-success ms-2">Aadhaar Verified</span>
@@ -83,14 +84,14 @@ block content %}
 </div>
 
 <!-- ================= ATTENDANCE GRAPH ================= -->
-<div class="card mb-4">
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <h5>Attendance Graph – {{ month }}</h5>
   <canvas id="attendanceChart" height="120"></canvas>
 </div>
 
 <!-- ================= ATTENDANCE TABLE ================= -->
-<div class="card mb-4">
-  <h5>Attendance Records – {{ month }}</h5>
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="p-3">Attendance Records – {{ month }}</h5>
   <table class="table">
     <thead>
       <tr>
@@ -120,8 +121,8 @@ block content %}
 </div>
 
 <!-- ================= RECENT VISITS ================= -->
-<div class="card mb-4">
-  <h5>Recent Nurse Visits</h5>
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="">Recent Nurse Visits</h5>
   <ul class="activity">
     {% for v in visits %}x
     <li>
@@ -135,16 +136,21 @@ block content %}
 </div>
 
 <!-- ================= DOCUMENTS ================= -->
-<div class="card mb-4">
-  <h5>Documents</h5>
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="p-3">Documents</h5>
 
-  <div class="row">
-    <div class="col-md-6">
-      <strong>Qualification Documents</strong>
+  <div class="ro flex flexcol gap-3 px-3 pb-3">
+    <div class="col-md6">
+      <!-- <strong>Qualification Documents</strong> -->
       <ul>
         {% for doc in nurse.qualification_docs %}
         <li>
-          <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
+          <a
+            href="/{{ doc }}"
+            target="_blank"
+            class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-primary text-white"
+            >Qualification Documents</a
+          >
         </li>
         {% else %}
         <li class="text-muted">No documents</li>
@@ -152,12 +158,17 @@ block content %}
       </ul>
     </div>
 
-    <div class="col-md-6">
-      <strong>Experience Documents</strong>
+    <div class="col-md6">
+      <!-- <strong>Experience Documents</strong> -->
       <ul>
         {% for doc in nurse.experience_docs %}
         <li>
-          <a href="/{{ doc }}" target="_blank">{{ doc }}</a>
+          <a
+            href="/{{ doc }}"
+            target="_blank"
+            class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-green-600 text-white"
+            >Experience Documents</a
+          >
         </li>
         {% else %}
         <li class="text-muted">No documents</li>

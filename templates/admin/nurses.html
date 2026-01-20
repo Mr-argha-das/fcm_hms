@@ -1,17 +1,16 @@
 {% extends "admin/base.html" %} {% block title %}Nurses{% endblock %} {% block
 content %}
 
-<div class="card">
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Nurses</h5>
-
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <h5 class="mb-0 text-md">Nurses</h5>
     <div class="d-flex gap-2">
       <!-- <a href="/admin/consent" class="btn btn-sm btn-outline-secondary">
         📄 Nurse Consent
       </a> -->
       <button
-        class="btn btn-sm btn-primary"
+        class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
         onclick="window.location.href = '/admin/create/nurse'"
       >
         ➕ Add Nurse
@@ -28,7 +27,7 @@ content %}
         <th>Verification</th>
         <th>Police</th>
         <th>Status</th>
-        <th class="text-center">Actions</th>
+        <th class="text-center !min-w-[200px">Actions</th>
       </tr>
     </thead>
 
@@ -61,7 +60,7 @@ content %}
             </div>
             {% endif %}
 
-            <div>
+            <div class="flex flex-col">
               <div class="fw-semibold">{{ nurse.user.phone }}</div>
               <small class="text-muted">{{ nurse.user.name }}</small>
             </div>
@@ -106,6 +105,7 @@ content %}
 
         <!-- ACTIONS -->
         <td class="text-center">
+          <!-- <div class="flex"> -->
           <button
             class="btn btn-sm btn-outline-primary"
             title="View Details"
@@ -120,12 +120,12 @@ content %}
           >
             ✏️
           </a>
-          <a
+          <!-- <a
             class="btn btn-sm btn-outline-warning"
             onclick="deleteNurse('{{ nurse.id }}')"
           >
             🗑️
-          </a>
+          </a> -->
 
           {% if nurse.user.is_active %}
           <button class="btn btn-sm btn-outline-danger" title="Deactivate">
@@ -136,6 +136,7 @@ content %}
             ✅
           </button>
           {% endif %}
+          <!-- </div> -->
         </td>
       </tr>
       {% endfor %} {% else %}

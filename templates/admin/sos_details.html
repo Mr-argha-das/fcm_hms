@@ -1,87 +1,121 @@
-{% extends "admin/base.html" %}
-{% block title %}SOS Alert Full Details{% endblock %}
+{% extends "admin/base.html" %} {% block title %}SOS Alert Full Details{%
+endblock %} {% block content %}
+<script>
+  guard();
+</script>
 
-{% block content %}
-<script>guard();</script>
+<div class="bg-card p-3 rounded-2xl shadow-soft4 sos mb-4">
+  <h4 class="mb-2 text-md font-semibold">🚨 SOS ALERT – COMPLETE DETAILS</h4>
+  <hr class="mt-2" />
 
-<div class="card sos mb-4">
-  <h4>🚨 SOS ALERT – COMPLETE DETAILS</h4>
-  <hr />
+  <!-- ================= SOS BASIC ================= -->
+  <h5 class="mt-2 text-md font-medium underline">🔴 SOS Information:</h5>
 
-  <!-- SOS BASIC -->
-  <h5>🔴 SOS Information</h5>
-  <p><b>Status:</b>
-    <span class="badge {% if sos.status == 'ACTIVE' %}bg-danger{% else %}bg-success{% endif %}">
+  <p>
+    <b>Status:</b>
+    <span
+      class="badge {% if sos.status == 'ACTIVE' %}bg-danger{% else %}bg-success{% endif %}"
+    >
       {{ sos.status }}
     </span>
   </p>
-  <p><b>Message:</b> {{ sos.message }}</p>
-  <p><b>Triggered At:</b> {{ sos.created_at.strftime("%d %b %Y %H:%M") }}</p>
 
-
-  <hr />
-
-  <!-- TRIGGERED USER -->
-  <h5>👤 Triggered By (User)</h5>
-  <p><b>Name:</b> {{ sos.triggered_by.name }}</p>
-  <p><b>Role:</b> {{ sos.triggered_by.role }}</p>
-  <p><b>Phone:</b> {{ sos.triggered_by.phone }}</p>
-  <p><b>Email:</b> {{ sos.triggered_by.email }}</p>
-
-  <hr />
-
-  <!-- PATIENT -->
-  <h5>🧑‍🦽 Patient Details</h5>
-  <p><b>Name:</b> {{ patient.user.name }}</p>
-  <p><b>Age:</b> {{ patient.age }}</p>
-  <p><b>Gender:</b> {{ patient.gender }}</p>
-  <p><b>Phone:</b> {{ patient.user.phone }}</p>
-  <p><b>Medical History:</b> {{ patient.medical_history }}</p>
-  <p><b>Address:</b> {{ patient.address }}</p>
-  <p><b>Service Period:</b>
-    {{ patient.service_start }} → {{ patient.service_end }}
+  <p><b>Message:</b> {{ sos.message or "-" }}</p>
+  <p>
+    <b>Triggered At:</b>
+    {{ sos.created_at.strftime("%d %b %Y %H:%M") if sos.created_at else "-" }}
   </p>
 
-  <hr />
+  <hr class="mt-2" />
 
-  <!-- DOCTOR -->
-  {% if doctor %}
-  <h5>👨‍⚕️ Assigned Doctor</h5>
+  <!-- ================= TRIGGERED USER ================= -->
+  <h5 class="mt-2 text-md font-medium underline">👤 Triggered By (User):</h5>
+
+  {% if sos.triggered_by %}
+  <p><b>Name:</b> {{ sos.triggered_by.name or "-" }}</p>
+  <p><b>Role:</b> {{ sos.triggered_by.role or "-" }}</p>
+  <p><b>Phone:</b> {{ sos.triggered_by.phone or "-" }}</p>
+  <p><b>Email:</b> {{ sos.triggered_by.email or "-" }}</p>
+  {% else %}
+  <p class="text-muted">Triggered user not available</p>
+  {% endif %}
+
+  <hr class="mt-2" />
+
+  <!-- ================= PATIENT ================= -->
+  <h5 class="mt-2 text-md font-medium underline">🧑‍🦽 Patient Details:</h5>
+
+  {% if patient %}
+  <p><b>Name:</b> {{ patient.user.name if patient.user else "-" }}</p>
+  <p><b>Age:</b> {{ patient.age }}</p>
+  <p><b>Gender:</b> {{ patient.gender }}</p>
+  <p><b>Phone:</b> {{ patient.user.phone if patient.user else "-" }}</p>
+  <p><b>Medical History:</b> {{ patient.medical_history or "-" }}</p>
+  <p><b>Address:</b> {{ patient.address or "-" }}</p>
+  <p>
+    <b>Service Period:</b>
+    {{ patient.service_start or "-" }} → {{ patient.service_end if
+    patient.service_end else "Ongoing" }}
+  </p>
+  {% else %}
+  <p class="text-muted">Patient details not available</p>
+  {% endif %}
+
+  <hr class="mt-2" />
+
+  <!-- ================= DOCTOR ================= -->
+  <h5 class="mt-2 text-md font-medium underline">👨‍⚕️ Assigned Doctor:</h5>
+
+  {% if doctor and doctor.user %}
   <p><b>Name:</b> {{ doctor.user.name }}</p>
-  <p><b>Specialization:</b> {{ doctor.specialization }}</p>
-  <p><b>Registration No:</b> {{ doctor.registration_number }}</p>
-  <p><b>Experience:</b> {{ doctor.experience_years }} years</p>
-  <p><b>Available:</b> {{ doctor.available }}</p>
+  <p><b>Specialization:</b> {{ doctor.specialization or "-" }}</p>
+  <p><b>Registration No:</b> {{ doctor.registration_number or "-" }}</p>
+  <p><b>Experience:</b> {{ doctor.experience_years or 0 }} years</p>
+  <p><b>Available:</b> {{ "Yes" if doctor.available else "No" }}</p>
   {% else %}
   <p class="text-muted">No doctor assigned</p>
   {% endif %}
 
-  <hr />
+  <hr class="mt-2" />
 
-  <!-- NURSE -->
+  <!-- ================= NURSE ================= -->
+  <h5 class="mt-2 text-md font-medium underline">👩‍⚕️ On-Duty Nurse:</h5>
+
   {% if nurse %}
-  <h5>👩‍⚕️ On-Duty Nurse</h5>
-  <p><b>Name:</b> {{ nurse_user.name }}</p>
-  <p><b>Phone:</b> {{ nurse_user.phone }}</p>
-  <p><b>Nurse Type:</b> {{ nurse.nurse_type }}</p>
-  <p><b>Aadhaar:</b> {{ nurse.aadhaar_number }}</p>
-  <p><b>Verification:</b> {{ nurse.verification_status }}</p>
-  <p><b>Police Verification:</b> {{ nurse.police_verification_status }}</p>
+  <p><b>Name:</b> {{ nurse_user.name if nurse_user else "-" }}</p>
+  <p><b>Phone:</b> {{ nurse_user.phone if nurse_user else "-" }}</p>
+  <p><b>Nurse Type:</b> {{ nurse.nurse_type or "-" }}</p>
+  <p><b>Aadhaar:</b> {{ nurse.aadhaar_number or "-" }}</p>
+  <p><b>Verification:</b> {{ nurse.verification_status or "-" }}</p>
+  <p>
+    <b>Police Verification:</b> {{ nurse.police_verification_status or "-" }}
+  </p>
   {% else %}
   <p class="text-muted">No nurse currently assigned</p>
   {% endif %}
 
-  <hr />
+  <hr class="mt-2" />
 
-  <!-- DUTY -->
+  <!-- ================= DUTY ================= -->
   {% if duty %}
-  <h5>⏰ Active Duty</h5>
+  <h5 class="mt-2 text-md font-medium underline">⏰ Active Duty:</h5>
   <p><b>Duty Type:</b> {{ duty.duty_type }}</p>
   <p><b>Shift:</b> {{ duty.shift }}</p>
-  <p><b>Duty Start:</b> {{ duty.duty_start }}</p>
-  <p><b>Duty End:</b> {{ duty.duty_end }}</p>
+  <p>
+    <b>Duty Start:</b> {{ duty.duty_start.strftime("%d %b %Y %H:%M") if
+    duty.duty_start else "-" }}
+  </p>
+  <p>
+    <b>Duty End:</b> {{ duty.duty_end.strftime("%d %b %Y %H:%M") if
+    duty.duty_end else "-" }}
+  </p>
+  {% else %}
+  <p class="text-muted">No active duty found</p>
   {% endif %}
 
+  <hr class="mt-2" />
+
+  <!-- ================= ACTION ================= -->
   {% if sos.status == "ACTIVE" %}
   <button class="btn btn-danger mt-3" onclick="resolveSOS('{{ sos.id }}')">
     ✅ Mark as Resolved
@@ -90,19 +124,20 @@
 </div>
 
 <script>
-function resolveSOS(sosId) {
-  if (!confirm("Resolve this SOS?")) return;
+  function resolveSOS(sosId) {
+    if (!confirm("Resolve this SOS?")) return;
 
-  fetch(`${API}/sos/admin/resolve-admin?sos_id=` + sosId, {
-    method: "POST",
-    headers: headers()
-  })
-  .then(r => r.json())
-  .then(d => {
-    alert(d.message);
-    location.reload();
-  })
-}
+    fetch(`${API}/sos/admin/resolve-admin?sos_id=` + sosId, {
+      method: "POST",
+      headers: headers(),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        alert(d.message || "SOS resolved");
+        location.reload();
+      })
+      .catch(() => alert("Failed to resolve SOS"));
+  }
 </script>
 
 {% endblock %}

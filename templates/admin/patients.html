@@ -1,105 +1,119 @@
 {% extends "admin/base.html" %} {% block title %}Patients{% endblock %} {% block
 content %}
 
-<div class="card">
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <!-- <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">Patients</h5>
 
     <div class="d-flex gap-2">
-
       <button
         class="btn btn-sm btn-primary"
-        onclick="location.href='/admin/create/patient'"
+        onclick="location.href = '/admin/create/patient'"
+      >
+        ➕ Add Patient
+      </button>
+    </div>
+  </div> -->
+
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <h5 class="mb-0 text-md">Patients</h5>
+
+    <div class="d-flex gap-2">
+      <button
+        class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
+        onclick="location.href = '/admin/create/patient'"
       >
         ➕ Add Patient
       </button>
     </div>
   </div>
 
-  <!-- TABLE -->
-  <table class="table table-hover align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>Name</th>
-        <th>Age</th>
-        <th>Gender</th>
-        <th>Age</th>
-        <th>Mobile</th>
-        <th>Doctor</th>
-        <th>Address / Ward</th>
-        <th>Status</th>
-        <th class="text-center">Actions</th>
-      </tr>
-    </thead>
+  <div class="overflow-scroll">
+    <!-- TABLE -->
+    <table class="table table-hover overflow-auto align-middle">
+      <thead class="table-light">
+        <tr>
+          <th class="min-w-40">Name</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Age</th>
+          <th>Mobile</th>
+          <th class="min-w-40">Doctor</th>
+          <th class="min-w-96">Address / Ward</th>
+          <th>Status</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
 
-    <tbody>
-      {% if patients %} {% for patient in patients %}
-      <tr>
-        <!-- NAME -->
-        <td>{{ patient.user.name }}</td>
+      <tbody>
+        {% if patients %} {% for patient in patients %}
+        <tr>
+          <!-- NAME -->
+          <td>{{ patient.user.name }}</td>
 
-        <!-- AGE -->
-        <td>{{ patient.age or "-" }}</td>
+          <!-- AGE -->
+          <td>{{ patient.age or "-" }}</td>
 
-        <!-- GENDER -->
-        <td>{{ patient.gender or "-" }}</td>
-        <!-- AGE -->
-        <td>{{ patient.age or "-" }}</td>
+          <!-- GENDER -->
+          <td>{{ patient.gender or "-" }}</td>
+          <!-- AGE -->
+          <td>{{ patient.age or "-" }}</td>
 
-        <!-- MOBILE -->
-        <td>{{ patient.user.phone }}</td>
-        <td>
-          {% if patient.assigned_doctor %} Dr. {{
-          patient.assigned_doctor.user.name }} {% else %}
-          <span class="text-muted">Not Assigned</span>
-          {% endif %}
-          <!-- ROOM / WARD -->
-        </td>
+          <!-- MOBILE -->
+          <td>{{ patient.user.phone }}</td>
+          <td>
+            {% if patient.assigned_doctor %} Dr. {{
+            patient.assigned_doctor.user.name }} {% else %}
+            <span class="text-muted">Not Assigned</span>
+            {% endif %}
+            <!-- ROOM / WARD -->
+          </td>
 
-        <td>{{ patient.address}}</td>
+          <td>{{ patient.address}}</td>
 
-        <!-- STATUS -->
-        <td>
-          {% if patient.service_end %}
-          <span class="badge bg-success">Recovered</span>
-          {% elif patient.assigned_doctor %}
-          <span class="badge bg-info text-dark">Under Observation</span>
-          {% else %}
-          <span class="badge bg-warning text-dark">Admitted</span>
-          {% endif %}
-        </td>
+          <!-- STATUS -->
+          <td>
+            {% if patient.service_end %}
+            <span class="badge bg-success">Recovered</span>
+            {% elif patient.assigned_doctor %}
+            <span class="badge bg-info text-dark">Under Observation</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">Admitted</span>
+            {% endif %}
+          </td>
 
-        <!-- ACTIONS -->
-        <td class="text-center">
-          <a
-            href="/admin/patient/{{ patient.id }}/view"
-            class="btn btn-sm btn-outline-secondary"
-          >
-            👁️
-          </a>
+          <!-- ACTIONS -->
+          <td class="text-center flex gap-2">
+            <a
+              href="/admin/patient/{{ patient.id }}/view"
+              class="btn btn-sm btn-outline-secondary"
+            >
+              👁️
+            </a>
 
-          <a
-            href="/admin/patient/{{ patient.id }}/care"
-            class="btn btn-sm btn-primary"
-          >
-            ✏️
-          </a>
+            <a
+              href="/admin/patient/{{ patient.id }}/care"
+              class="btn btn-sm btn-outline-warning"
+            >
+              ✏️
+            </a>
 
-          {% if not patient.service_end %}
-          <button class="btn btn-sm btn-outline-danger" title="Discharge">
-            🏥
-          </button>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %} {% else %}
-      <tr>
-        <td colspan="6" class="text-center text-muted">No patients found</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
+            {% if not patient.service_end %}
+            <button class="btn btn-sm btn-outline-danger" title="Discharge">
+              🏥
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %} {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">No patients found</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% endblock %}

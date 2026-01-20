@@ -1,115 +1,137 @@
-{% extends "admin/base.html" %}
-{% block title %}Dashboard{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %} Dashboard {% endblock %} {%
+block content %}
 
 <!-- KPI CARDS -->
-<div class="row g-4 mb-4">
-  <div class="col-md-3">
-    <div class="card kpi">
-      <div><small>Total Patients</small><h3>{{ total_patients }}</h3></div>
-      <span class="icon">🧑‍🦽</span>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+  <div
+    class="bg-card bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  >
+    <div>
+      <p class="text-sm text-muted">Total Patients</p>
+      <h3 class="text-2xl font-bold">{{ total_patients }}</h3>
     </div>
+    <div class="text-3xl">🧑‍🦽</div>
   </div>
 
-  <div class="col-md-3">
-    <div class="card kpi">
-      <div><small>Active Nurses</small><h3>{{ active_nurses }}</h3></div>
-      <span class="icon">👩‍⚕️</span>
+  <div
+    class="bg-card !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  >
+    <div>
+      <p class="text-sm text-muted">Active Nurses</p>
+      <h3 class="text-2xl font-bold">{{ active_nurses }}</h3>
     </div>
+    <div class="text-3xl">👩‍⚕️</div>
   </div>
 
-  <div class="col-md-3">
-    <div class="card kpi">
-      <div><small>Doctors</small><h3>{{ total_doctors }}</h3></div>
-      <span class="icon">👨‍⚕️</span>
+  <div
+    class="bg-card !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  >
+    <div>
+      <p class="text-sm text-muted">Doctors</p>
+      <h3 class="text-2xl font-bold">{{ total_doctors }}</h3>
     </div>
+    <div class="text-3xl">👨‍⚕️</div>
   </div>
 
-  <div class="col-md-3">
-    <div class="card kpi">
-      <div><small>Monthly Revenue</small><h3>₹ {{ monthly_revenue }}</h3></div>
-      <span class="icon">💰</span>
+  <div
+    class="bg-card !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  >
+    <div>
+      <p class="text-sm text-muted">Monthly Revenue</p>
+      <h3 class="text-2xl font-bold">₹ {{ monthly_revenue }}</h3>
     </div>
+    <div class="text-3xl">💰</div>
   </div>
 </div>
 
-<div class="row g-4">
-
+<!-- MAIN GRID -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
   <!-- LEFT -->
-  <div class="col-md-8">
-
+  <div class="xl:col-span-2 space-y-6">
     <!-- CHART -->
-    <div class="card mb-4">
-      <h5>Patient Overview</h5>
-      <p class="text-muted">Admissions in last 7 days</p>
+    <div class="bg-card rounded-2xl shadow-soft p-6">
+      <h5 class="font-semibold mb-1">Patient Overview</h5>
+      <p class="text-sm text-muted mb-4">Admissions in last 7 days</p>
       <canvas id="patientChart" height="220"></canvas>
     </div>
 
     <!-- RECENT ACTIVITY -->
-    <div class="card">
-      <h5>Recent Activity</h5>
-      <ul class="activity">
+    <div class="bg-card rounded-2xl shadow-soft p-6">
+      <h5 class="font-semibold mb-4">Recent Activity</h5>
+      <ul class="space-y-2 text-sm text-gray-700">
         {% for item in recent_activity %}
-          <li>{{ item }}</li>
+        <li class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-primary rounded-full"></span>
+          {{ item }}
+        </li>
         {% endfor %}
       </ul>
     </div>
   </div>
 
   <!-- RIGHT -->
-  <div class="col-md-4">
-
+  <div class="space-y-6">
     <!-- SOS -->
-    <div class="card sos mb-4">
-      <h5>🚨 SOS Alerts</h5>
+    <div
+      class="bg-card !bg-gradient-to-b from-red-100 to-red-500 rounded-2xl shadow-soft p-4"
+    >
+      <h5 class="font-semibold text-danger mb-4">🚨 SOS Alerts</h5>
+
       {% for sos in sos_alerts %}
-        <div class="sos-item">
-          <strong>SOS Triggered</strong>
-          <div>Patient ID: {{ sos.patient.id if sos.patient else "Unknown" }}</div>
-          <div>{{ sos.created_at.strftime("%d %b %H:%M") }}</div>
+      <div
+        class="border border-gray-50 text-white rounded-xl p-2.5 mb-3 text-sm"
+      >
+        <strong>SOS Triggered</strong>
+        <div class="text-white">
+          Patient ID: {{ sos.patient.id if sos.patient else "Unknown" }}
         </div>
+        <div class="text-xs text-white">
+          {{ sos.created_at.strftime("%d %b %H:%M") }}
+        </div>
+      </div>
       {% endfor %}
     </div>
 
     <!-- TODAY SCHEDULE -->
-    <div class="card">
-      <h5>Today Schedule</h5>
-      <ul class="schedule">
-        {% if today_schedule %}
-          {% for item in today_schedule %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        {% else %}
-          <li class="text-muted">No schedule for today</li>
+    <div class="bg-card rounded-2xl shadow-soft p-6">
+      <h5 class="font-semibold mb-4">Today Schedule</h5>
+      <ul class="space-y-2 text-sm">
+        {% if today_schedule %} {% for item in today_schedule %}
+        <li class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-primary rounded-full"></span>
+          {{ item }}
+        </li>
+        {% endfor %} {% else %}
+        <li class="text-muted">No schedule for today</li>
         {% endif %}
       </ul>
     </div>
-
   </div>
 </div>
 
 <!-- CHART JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('patientChart');
+  const ctx = document.getElementById('patientChart');
 
-new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: {{ chart_labels | safe }},
-    datasets: [{
-      label: 'Admissions',
-      data: {{ chart_values | safe }},
-      borderWidth: 3,
-      tension: 0.4
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { display: false } }
-  }
-});
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ chart_labels | safe }},
+      datasets: [{
+        label: 'Admissions',
+        data: {{ chart_values | safe }},
+        borderWidth: 3,
+        tension: 0.4,
+        borderColor: '#38bdf8',
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } }
+    }
+  });
 </script>
 
 {% endblock %}

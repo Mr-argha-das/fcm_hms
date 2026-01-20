@@ -1,22 +1,25 @@
-{% extends "admin/base.html" %}
-{% block title %}Nurse Attendance & Salary{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Nurse Attendance & Salary{%
+endblock %} {% block content %}
 
 <!-- ================= HEADER & BASIC INFO ================= -->
-<div class="card mb-4">
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <div class="d-flex align-items-center">
     {% if staff.profile_photo %}
-      <img src="/{{ staff.profile_photo }}"
-           style="width:90px;height:90px;border-radius:50%" class="me-3">
+    <img
+      src="/{{ staff.profile_photo }}"
+      style="width: 90px; height: 90px; border-radius: 50%"
+      class="me-3"
+    />
     {% endif %}
     <div>
       <h4>{{ staff.user.name or staff.user.phone }}</h4>
       <p class="mb-1">{{ staff.nurse_type }} Nurse</p>
       <span class="badge bg-info">{{ staff.verification_status }}</span>
-      <span class="badge bg-warning">{{ staff.police_verification_status }}</span>
+      <span class="badge bg-warning"
+        >{{ staff.police_verification_status }}</span
+      >
       {% if staff.aadhaar_verified %}
-        <span class="badge bg-success ms-2">Aadhaar Verified</span>
+      <span class="badge bg-success ms-2">Aadhaar Verified</span>
       {% endif %}
     </div>
   </div>
@@ -34,13 +37,11 @@
     <div class="card kpi">
       <small>Salary</small>
       <h3>₹ {{ salary.net_salary if salary else "N/A" }}</h3>
-      {% if salary %}
-        {% if salary.is_paid %}
-          <small class="text-success">Paid</small>
-        {% else %}
-          <small class="text-danger">Unpaid</small>
-        {% endif %}
-      {% endif %}
+      {% if salary %} {% if salary.is_paid %}
+      <small class="text-success">Paid</small>
+      {% else %}
+      <small class="text-danger">Unpaid</small>
+      {% endif %} {% endif %}
     </div>
   </div>
   <div class="col-md-4">
@@ -48,21 +49,21 @@
       <small>Consent Status</small>
       <h3>{{ consent.status if consent else "N/A" }}</h3>
       {% if consent %}
-        <small>Version {{ consent.version }}</small>
+      <small>Version {{ consent.version }}</small>
       {% endif %}
     </div>
   </div>
 </div>
 
 <!-- ================= ATTENDANCE GRAPH ================= -->
-<div class="card mb-4">
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <h5>Attendance Graph – {{ month }}</h5>
   <canvas id="attendanceChart" height="120"></canvas>
 </div>
 
 <!-- ================= ATTENDANCE TABLE ================= -->
-<div class="card mb-4">
-  <h5>Attendance Records – {{ month }}</h5>
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="p-3">Attendance Records – {{ month }}</h5>
   <table class="table table-bordered">
     <thead>
       <tr>
@@ -82,7 +83,9 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="4" class="text-center text-muted">No attendance for this month</td>
+        <td colspan="4" class="text-center text-muted">
+          No attendance for this month
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -92,7 +95,7 @@
 <!-- ================= MARK SALARY PAID ================= -->
 {% if salary and not salary.is_paid %}
 <form method="post" action="/admin/nurse/{{ staff.user.id }}/mark-paid">
-  <input type="hidden" name="month" value="{{ month }}">
+  <input type="hidden" name="month" value="{{ month }}" />
   <button type="submit" class="btn btn-success mb-4">Mark Salary Paid</button>
 </form>
 {% endif %}
@@ -100,25 +103,25 @@
 <!-- ================= CHART JS ================= -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-new Chart(document.getElementById("attendanceChart"), {
-  type: "bar",
-  data: {
-    labels: {{ chart_labels|safe }},
-    datasets: [{
-      label: "Attendance",
-      data: {{ chart_values|safe }},
-      backgroundColor: "rgba(75, 192, 192, 0.6)",
-      borderColor: "rgba(75, 192, 192, 1)",
-      borderWidth: 1
-    }]
-  },
-  options: {
-    plugins:{ legend:{ display:false }},
-    scales:{
-      y:{ beginAtZero:true, ticks:{ stepSize:1 } }
+  new Chart(document.getElementById("attendanceChart"), {
+    type: "bar",
+    data: {
+      labels: {{ chart_labels|safe }},
+      datasets: [{
+        label: "Attendance",
+        data: {{ chart_values|safe }},
+        backgroundColor: "rgba(75, 192, 192, 0.6)",
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      plugins:{ legend:{ display:false }},
+      scales:{
+        y:{ beginAtZero:true, ticks:{ stepSize:1 } }
+      }
     }
-  }
-});
+  });
 </script>
 
 {% endblock %}

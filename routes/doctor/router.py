@@ -34,9 +34,12 @@ def create_profile(
     ).save()
 
     return {"message": "Doctor profile created", "id": str(doc.id)}
+
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
     return DoctorProfile.objects(user=user).first()
+
+
 @router.post("/availability")
 def toggle_availability(
     available: bool,
@@ -50,6 +53,7 @@ def toggle_availability(
     doctor.save()
 
     return {"message": f"Availability set to {available}"}
+
 @router.get("/patients")
 def my_patients(user=Depends(get_current_user)):
     doctor = DoctorProfile.objects(user=user).first()

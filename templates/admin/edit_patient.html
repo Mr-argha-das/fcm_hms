@@ -4,19 +4,20 @@ block content %}
 <h4 class="mb-3">🧑‍⚕️ Patient Care Management</h4>
 
 <!-- ================= PATIENT INFO ================= -->
-<div class="card shadow-sm mb-4">
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <div class="card-body">
     <div class="row">
       <div class="col-md-4">
         <p><b>Name:</b> {{ patient.user.name }}</p>
         <p><b>Phone:</b> {{ patient.user.phone }}</p>
+        <p><b>Other number:</b> {{ patient.user.other_number }}</p>
         <p><b>Email:</b> {{ patient.user.email }}</p>
         <p><b>Address:</b> {{ patient.address }}</p>
-        <p><b>Age:</b> {{ patient.age }}</p>
-        <p><b>Other number:</b> {{ patient.user.other_number }}</p>
       </div>
 
       <div class="col-md-4">
+        <p><b>Age:</b> {{ patient.age }}</p>
+
         <p><b>Gender:</b> {{ patient.gender }}</p>
         <p><b>Service Start:</b> {{ patient.service_start }}</p>
         <p>
@@ -40,9 +41,11 @@ block content %}
 </div>
 
 <!-- ================= ASSIGN NURSE ================= -->
-<div class="card shadow-sm mb-4">
-  <div class="card-header bg-light"><b>👩‍⚕️ Assign Nurse</b></div>
-  <div class="card-body row g-3">
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <div class="card-header p-3 bg-light !rounded-t-2xl">
+    <b>👩‍⚕️ Assign Nurse</b>
+  </div>
+  <div class="card-body row g-3 p-3">
     <div class="col-md-4">
       <select id="nurse" class="form-select">
         {% for n in nurses %}
@@ -158,11 +161,9 @@ block content %}
         .value.split(",")
         .map((t) => t.trim());
       const duration_days = parseInt(
-        document.getElementById("duration_days").value
+        document.getElementById("duration_days").value,
       );
-      const price = parseFloat(
-        document.getElementById("price")?.value || 0.0
-      );
+      const price = parseFloat(document.getElementById("price")?.value || 0.0);
 
       if (!medicine_name || !dosage || !duration_days || !price) {
         alert("Please fill all required fields");
@@ -172,7 +173,13 @@ block content %}
       await fetch(`${API}/patient/${patientId}/medication`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ medicine_name, dosage, timing, duration_days, price }),
+        body: JSON.stringify({
+          medicine_name,
+          dosage,
+          timing,
+          duration_days,
+          price,
+        }),
       });
 
       location.reload(); // reload page to see new medication
@@ -187,7 +194,7 @@ block content %}
       const relative_user_id = document.getElementById("relative_user").value;
       const access_type = document.getElementById("access_type").value;
       const permissions = Array.from(
-        document.getElementById("permissions").selectedOptions
+        document.getElementById("permissions").selectedOptions,
       ).map((opt) => opt.value);
 
       if (!relative_user_id) {

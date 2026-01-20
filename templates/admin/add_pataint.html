@@ -1,14 +1,14 @@
 {% extends "admin/base.html" %} {% block title %}Add Patient{% endblock %} {%
 block content %}
 
-<div class="card mb-4">
-  <h4>Add New Patient</h4>
-  <p class="text-muted">Register patient for home / hospital care</p>
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h4 class="text-md">Add New Patient</h4>
+  <p class="text-muted text-sm">Register patient for home / hospital care</p>
 </div>
 
-<div class="card p-4">
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- ================= BASIC DETAILS ================= -->
-  <h5 class="mb-3">Basic Details</h5>
+  <h5 class="mb-3 text-md font-semibold underline">Basic Details:</h5>
   <div class="row g-3 mb-4">
     <div class="col-md-4">
       <label class="form-label">Service Start Date</label>
@@ -42,7 +42,7 @@ block content %}
   </div>
 
   <!-- ================= PERSONAL DETAILS ================= -->
-  <h5 class="mb-3">Personal Details</h5>
+  <h5 class="mb-3 text-md font-semibold underline">Personal Details:</h5>
   <div class="row g-3 mb-4">
     <div class="col-md-3">
       <label class="form-label">Age</label>
@@ -77,7 +77,7 @@ block content %}
   </div>
 
   <!-- ================= SERVICE DETAILS ================= -->
-  <h5 class="mb-3">Service Details</h5>
+  <h5 class="mb-3 text-md font-semibold underline">Service Details:</h5>
   <div class="row g-3 mb-4">
     <div class="col-md-4">
       <label class="form-label">Assign Doctor</label>
@@ -96,7 +96,7 @@ block content %}
   <div class="text-end">
     <button
       type="button"
-      class="btn btn-primary px-4"
+      class="btn bg-green-600 text-white hover:bg-green-700 px-4"
       onclick="createPatient()"
     >
       Save Patient
