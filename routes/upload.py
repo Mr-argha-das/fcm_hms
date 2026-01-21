@@ -53,39 +53,40 @@ async def upload_file(
     folder: str = "documents"
 ):
     try:
-        # 1️⃣ Validate file
+        print("👉 Upload API hit")
+        print("Filename:", file.filename)
+        print("Folder:", folder)
+        print("UPLOAD_ROOT:", UPLOAD_ROOT)
+
+        # ✅ CORRECT upload directory
+        upload_dir = os.path.join(UPLOAD_ROOT, folder)
+        print("UPLOAD_DIR:", upload_dir)
+
+        os.makedirs(upload_dir, exist_ok=True)
+
         if not file.filename or "." not in file.filename:
             raise HTTPException(status_code=400, detail="Invalid file")
 
         ext = file.filename.rsplit(".", 1)[-1].lower()
         if ext not in ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File type .{ext} not allowed"
-            )
+            raise HTTPException(status_code=400, detail="Invalid file type")
 
-        # 2️⃣ Ensure ROOT uploads folder exists
-        os.makedirs(UPLOAD_ROOT, exist_ok=True)
-
-        # 3️⃣ Ensure sub-folder (documents) exists
-        upload_dir = os.path.join(UPLOAD_ROOT, folder)
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # 4️⃣ Save file
         unique_name = f"{uuid.uuid4()}.{ext}"
         file_path = os.path.join(upload_dir, unique_name)
 
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
+        print("FILE_PATH:", file_path)
 
-        # 5️⃣ Return public path
+        data = await file.read()
+        print("FILE SIZE:", len(data))
+
+        with open(file_path, "wb") as f:
+            f.write(data)
+
         return {
             "success": True,
             "path": f"/uploads/{folder}/{unique_name}"
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        print("UPLOAD ERROR:", e)
+        print("🔥 UPLOAD ERROR:", repr(e))
         raise HTTPException(status_code=500, detail="File upload failed")
