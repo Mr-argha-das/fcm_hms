@@ -1051,6 +1051,7 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
         "nurse": {
             "id": str(nurse.id),
             "phone": user.phone,
+            "name" : user.phone,
             "nurse_type": nurse.nurse_type,
             "aadhaar_verified": nurse.aadhaar_verified,
             "verification_status": nurse.verification_status,

@@ -1,5 +1,6 @@
 import os
-from fastapi import FastAPI
+from core.dependencies import get_current_user
+from fastapi import FastAPI , Depends
 from fastapi.staticfiles import StaticFiles
 from core.database import init_db
 from routes.auth.auth import router as auth_router
@@ -41,10 +42,15 @@ app.add_middleware(
 )
 
 os.makedirs("uploads", exist_ok=True)
+
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory="media"), name="media")
-app.include_router(upload_router)
+# app.include_router(upload_router)
+app.include_router(
+    upload_router,
+    dependencies=[Depends(get_current_user)]
+)
 app.include_router(auth_router)
 app.include_router(nurse_router)
 app.include_router(admin_nurse_router)
