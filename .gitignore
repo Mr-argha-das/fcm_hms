@@ -3,3 +3,7 @@
 # Generated Media (VERY IMPORTANT)
 # ===============================
 media/bills/
+
+env/
+
+uploads/documents/
