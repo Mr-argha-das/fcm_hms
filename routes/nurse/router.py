@@ -22,10 +22,21 @@ from datetime import date
 import traceback
 from zoneinfo import ZoneInfo
 import calendar 
+from core.utils.files import with_domain
+
 IST = ZoneInfo("Asia/Kolkata")
 
 def ist_now():
     return datetime.now(IST)
+
+# BASE_URL = "https://wecarehhcs.in"
+
+# def with_domain(path: str | None):
+#     if not path:
+#         return None
+#     if path.startswith("http"):
+#         return path
+#     return f"{BASE_URL}{path}"
 
 class NurseCreateRequest(BaseModel):
     phone: str = Field(..., example="9876543210")
@@ -388,6 +399,7 @@ def advance_request(amount: float, user=Depends(get_current_user)):
     salary.save()
 
     return {"message": "Advance granted"}
+
 @router.get("/duty/status")
 def duty_status(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
@@ -429,6 +441,7 @@ def nurse_create_visit(
         "message": "Visit recorded successfully",
         "visit_id": str(visit.id)
     }
+
 @router.get("/dashboard")
 def nurse_dashboard(current_user: User = Depends(get_current_user)):
 
@@ -503,6 +516,7 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
         "nurse": {
             "nurse_id": str(nurse.id),
             "name": current_user.email.split("@")[0].title(),
+            "profile" : with_domain(nurse.profile_photo),
             "nurse_type": nurse.nurse_type,
             "status": "ACTIVE" if attendance and attendance.check_in and not attendance.check_out else "INACTIVE",
             "worked_time": f"{worked_minutes // 60}h {worked_minutes % 60}m"
@@ -1058,9 +1072,12 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
             "police_verification_status": nurse.police_verification_status,
             "joining_date": str(nurse.joining_date),
             "resignation_date": str(nurse.resignation_date) if nurse.resignation_date else None,
-            "profile_photo": nurse.profile_photo,
-            "qualification_docs": nurse.qualification_docs,
-            "experience_docs": nurse.experience_docs,
+            # "profile_photo": nurse.profile_photo,
+            # "qualification_docs": nurse.qualification_docs,
+            # "experience_docs": nurse.experience_docs,
+            "profile_photo": with_domain(nurse.profile_photo),
+            "qualification_docs": [with_domain(p) for p in nurse.qualification_docs],
+            "experience_docs": [with_domain(p) for p in nurse.experience_docs],
         },
         "kpi": {
             "attendance": total_present,

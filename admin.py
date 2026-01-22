@@ -37,7 +37,6 @@ def self_registered_nurses(request: Request):
         .select_related()
        
     )
-
     return templates.TemplateResponse(
         "admin/nurses_self.html",
         {
@@ -45,6 +44,8 @@ def self_registered_nurses(request: Request):
             "nurses": nurses_qs
         }
     )
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
 
@@ -482,7 +483,7 @@ def nurse_detail_page(
     print("Resignation:", nurse.resignation_date)
     print("Qualification Docs:", nurse.qualification_docs)
     print("Experience Docs:", nurse.experience_docs)
-    print("Profile Photo:", nurse.profile_photo)
+    print("Profile Photo:",  nurse.profile_photo)
 
     print("========================================\n")
 

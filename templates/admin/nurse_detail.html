@@ -7,7 +7,7 @@ block content %}
     <div class="d-flex align-items-center">
       {% if nurse.profile_photo %}
       <img
-        src="/{{ nurse.profile_photo }}"
+        src="https://wecarehhcs.in{{ nurse.profile_photo }}"
         style="width: 90px; height: 90px; border-radius: 50%"
         class="me-3"
       />
@@ -156,7 +156,7 @@ block content %}
         {% for doc in nurse.qualification_docs %}
         <li>
           <a
-            href="/{{ doc }}"
+            href="https://wecarehhcs.in{{ doc }}"
             target="_blank"
             class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-primary text-white"
             >Qualification Documents</a
@@ -174,7 +174,7 @@ block content %}
         {% for doc in nurse.experience_docs %}
         <li>
           <a
-            href="/{{ doc }}"
+            href="https://wecarehhcs.in{{ doc }}"
             target="_blank"
             class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-green-600 text-white"
             >Experience Documents</a
