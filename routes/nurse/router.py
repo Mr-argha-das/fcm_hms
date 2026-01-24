@@ -484,7 +484,7 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
         today_visits.append({
             "visit_id": str(v.id),
             "patient_id": str(v.patient.id),
-            "patient_name": patient_user.email if patient_user else None,
+            "patient_name": patient_user.name if patient_user else None,
             "ward": v.ward,
             "room_no": v.room_no,
             "visit_type": v.visit_type,
@@ -1010,47 +1010,71 @@ def complete_visit(
 
     return {"message": "Visit marked completed"}
 
+import calendar as cal
 
 
 @router.get("/attendance")
 def nurse_month_attendance(
-    month: str = None,   # YYYY-MM
+    month: str | None = None,   # format: YYYY-MM
     user=Depends(get_current_user)
 ):
+    # -----------------------------
+    # 🔐 Role check
+    # -----------------------------
     if user.role != "NURSE":
-        raise HTTPException(403, "Access denied")
+        raise HTTPException(status_code=403, detail="Access denied")
 
     nurse = NurseProfile.objects(user=user).first()
     if not nurse:
-        raise HTTPException(404, "Nurse profile not found")
+        raise HTTPException(status_code=404, detail="Nurse profile not found")
 
     today = date.today()
 
-    if month:
-        year, mon = map(int, month.split("-"))
-        start_date = date(year, mon, 1)
-    else:
-        start_date = date(today.year, today.month, 1)
+    # -----------------------------
+    # 📅 Month handling
+    # -----------------------------
+    try:
+        if month:
+            year, mon = map(int, month.split("-"))
+            start_date = date(year, mon, 1)
+        else:
+            start_date = date(today.year, today.month, 1)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM")
 
     _, last_day = cal.monthrange(start_date.year, start_date.month)
 
-    # 🔥 IMPORTANT FIX: limit till today if current month
-    if start_date.year == today.year and start_date.month == today.month:
-        max_day = today.day
-    else:
-        max_day = last_day
+    # limit till today for current month
+    max_day = today.day if (
+        start_date.year == today.year and
+        start_date.month == today.month
+    ) else last_day
 
+    end_date = date(start_date.year, start_date.month, max_day)
+
+    # -----------------------------
+    # 📦 Fetch records
+    # -----------------------------
     records = NurseAttendance.objects(
         nurse=nurse,
         date__gte=start_date,
-        date__lte=date(start_date.year, start_date.month, max_day)
+        date__lte=end_date
     )
 
-    record_map = {r.date: r for r in records}
+    # 🔥 IMPORTANT: normalize date (fixes your bug)
+    record_map = {
+        (r.date.date() if hasattr(r.date, "date") else r.date): r
+        for r in records
+    }
 
     daily = []
-    present = absent = half = 0
+    present = 0
+    absent = 0
+    half = 0
 
+    # -----------------------------
+    # 🧠 Status calculation
+    # -----------------------------
     for d in range(1, max_day + 1):
         curr_date = date(start_date.year, start_date.month, d)
         rec = record_map.get(curr_date)
@@ -1060,13 +1084,17 @@ def nurse_month_attendance(
         if rec and rec.check_in:
             if rec.check_out:
                 hours = (rec.check_out - rec.check_in).total_seconds() / 3600
+
                 if hours >= 8:
                     status = "PRESENT"
                     present += 1
+
                 elif hours >= 4:
                     status = "HALF"
                     half += 1
+
                 else:
+                    status = "ABSENT"
                     absent += 1
             else:
                 status = "HALF"
@@ -1080,17 +1108,105 @@ def nurse_month_attendance(
             "status": status
         })
 
+    # -----------------------------
+    # ✅ Response
+    # -----------------------------
     return {
         "month": start_date.strftime("%Y-%m"),
         "summary": {
             "present": present,
+            "half": half,
             "absent": absent,
-            "half": half
+            "total_days": max_day
         },
         "attendance": daily
     }
+
+
+# @router.get("/attendance")
+# def nurse_month_attendance(
+#     month: str = None,   # YYYY-MM
+#     user=Depends(get_current_user)
+# ):
+#     if user.role != "NURSE":
+#         raise HTTPException(403, "Access denied")
+
+#     nurse = NurseProfile.objects(user=user).first()
+#     if not nurse:
+#         raise HTTPException(404, "Nurse profile not found")
+
+#     today = date.today()
+
+#     if month:
+#         year, mon = map(int, month.split("-"))
+#         start_date = date(year, mon, 1)
+#     else:
+#         start_date = date(today.year, today.month, 1)
+
+#     _, last_day = cal.monthrange(start_date.year, start_date.month)
+
+#     # 🔥 IMPORTANT FIX: limit till today if current month
+#     if start_date.year == today.year and start_date.month == today.month:
+#         max_day = today.day
+#     else:
+#         max_day = last_day
+
+#     records = NurseAttendance.objects(
+#         nurse=nurse,
+#         date__gte=start_date,
+#         date__lte=date(start_date.year, start_date.month, max_day)
+#     )
+
+#     record_map = {r.date: r for r in records}
+
+#     daily = []
+#     present = absent = half = 0
+
+#     for d in range(1, max_day + 1):
+#         curr_date = date(start_date.year, start_date.month, d)
+#         rec = record_map.get(curr_date)
+
+#         status = "ABSENT"
+
+#         if rec and rec.check_in:
+#             if rec.check_out:
+#                 hours = (rec.check_out - rec.check_in).total_seconds() / 3600
+#                 if hours >= 8:
+#                     status = "PRESENT"
+#                     present += 1
+#                 elif hours >= 4:
+#                     status = "HALF"
+#                     half += 1
+#                 else:
+#                     absent += 1
+#             else:
+#                 status = "HALF"
+#                 half += 1
+#         else:
+#             absent += 1
+
+#         daily.append({
+#             "day": d,
+#             "date": curr_date.isoformat(),
+#             "status": status
+#         })
+
+#     return {
+#         "month": start_date.strftime("%Y-%m"),
+#         "summary": {
+#             "present": present,
+#             "absent": absent,
+#             "half": half
+#         },
+#         "attendance": daily
+#     }
+
+
+
 class NurseConsentSignRequest(BaseModel):
     signature_image: str  
+
+
 
 @router.post("/consent/sign")
 def sign_consent(

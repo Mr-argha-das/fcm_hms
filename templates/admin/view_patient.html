@@ -141,39 +141,117 @@
 </div>
 
 <!-- ================= VITALS ================= -->
-<div class="bg-card  mb-3  border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-header p-2 px-3 !rounded-t-2xl   bg-light">
-    <b>❤️ Patient Vitals</b>
+<div class="bg-card mb-4 border border-gray-50/20 rounded-2xl shadow-soft4">
+
+  <!-- HEADER -->
+  <div class="p-3 rounded-t-2xl bg-light flex justify-between items-center">
+    <h6 class="mb-0 font-semibold">❤️ Patient Vitals</h6>
+    <span class="text-xs text-gray-500">
+      Total: {{ vitals|length }}
+    </span>
   </div>
-  <div class="card-body">
+
+  <div class="p-3">
+
     {% if vitals %}
-    <table class="table table-sm table-bordered text-center">
-      <thead class="table-light">
-        <tr>
-          <th>Recorded At</th>
-          <th>BP</th>
-          <th>Pulse</th>
-          <th>SpO2</th>
-          <th>Temp</th>
-          <th>Sugar</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for v in vitals %}
-        <tr>
-          <td>{{ v.recorded_at.strftime("%d %b %Y %H:%M") }}</td>
-          <td>{{ v.bp }}</td>
-          <td>{{ v.pulse }}</td>
-          <td>{{ v.spo2 }}</td>
-          <td>{{ v.temperature }}</td>
-          <td>{{ v.sugar if v.sugar else "-" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+    <div class="space-y-4">
+
+      {% for v in vitals %}
+
+      <!-- ================= SINGLE VITAL CARD ================= -->
+      <div class="border rounded-xl p-3 shadow-sm bg-white">
+
+        <!-- TIME -->
+        <div class="text-sm text-muted mb-3 fw-semibold">
+          {{ v.recorded_at.strftime("%d %b %Y • %H:%M") }}
+        </div>
+
+
+        <!-- ================= BASIC VITALS ================= -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+
+          <div class="p-2 rounded bg-gray-50 text-center">
+            <div class="text-xs text-gray-500">BP</div>
+            <div class="fw-bold">{{ v.bp or "-" }}</div>
+          </div>
+
+          <div class="p-2 rounded bg-gray-50 text-center">
+            <div class="text-xs text-gray-500">Pulse</div>
+            <div class="fw-bold text-success">{{ v.pulse or "-" }}</div>
+          </div>
+
+          <div class="p-2 rounded bg-gray-50 text-center">
+            <div class="text-xs text-gray-500">SpO₂</div>
+            <div class="fw-bold text-primary">{{ v.spo2 or "-" }}</div>
+          </div>
+
+          <div class="p-2 rounded bg-gray-50 text-center">
+            <div class="text-xs text-gray-500">Temp</div>
+            <div class="fw-bold">{{ v.temperature or "-" }}</div>
+          </div>
+
+          <div class="p-2 rounded bg-gray-50 text-center">
+            <div class="text-xs text-gray-500">O₂ Level</div>
+            <div class="fw-bold">{{ v.o2_level or "-" }}</div>
+          </div>
+
+          <div class="p-2 rounded bg-gray-50 text-center">
+            <div class="text-xs text-gray-500">RBS</div>
+            <div class="fw-bold">{{ v.rbs or "-" }}</div>
+          </div>
+
+        </div>
+
+
+        <!-- ================= SUPPORT / DEVICES ================= -->
+        <div class="mb-3">
+          <div class="text-xs text-gray-500 mb-1 fw-semibold">Support / Devices</div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+            <div>BiPAP: <b>{{ v.bipap_ventilator or "-" }}</b></div>
+            <div>IV Fluids: <b>{{ v.iv_fluids or "-" }}</b></div>
+            <div>Suction: <b>{{ v.suction or "-" }}</b></div>
+            <div>Feeding: <b>{{ v.feeding_tube or "-" }}</b></div>
+
+          </div>
+        </div>
+
+
+        <!-- ================= OUTPUTS ================= -->
+        <div class="mb-3">
+          <div class="text-xs text-gray-500 mb-1 fw-semibold">Outputs</div>
+
+          <div class="grid grid-cols-3 gap-3">
+
+            <div>Vomit: <b>{{ v.vomit_aspirate or "-" }}</b></div>
+            <div>Urine: <b>{{ v.urine or "-" }}</b></div>
+            <div>Stool: <b>{{ v.stool or "-" }}</b></div>
+
+          </div>
+        </div>
+
+
+        <!-- ================= NOTES ================= -->
+        {% if v.other %}
+        <div class="text-sm text-gray-600 border-top pt-2">
+          <b>Notes:</b> {{ v.other }}
+        </div>
+        {% endif %}
+
+      </div>
+      <!-- ================= END CARD ================= -->
+
+
+      {% endfor %}
+
+    </div>
+
     {% else %}
-    <p class="text-muted p-3">No vitals recorded.</p>
+      <p class="text-muted text-center py-4">No vitals recorded</p>
     {% endif %}
+
   </div>
 </div>
 

@@ -1,4 +1,5 @@
 import json
+from typing import Optional , List
 from urllib import request
 
 from bson import ObjectId
@@ -317,30 +318,64 @@ class PrescribeFromMasterPayload(BaseModel):
     medicine_id: str
     timing: list[str]
     duration_days: int
+    notes: Optional[List[str]] = []
 
 @router.post("/doctor/prescribe-from-master")
 def prescribe_from_master(
     payload: PrescribeFromMasterPayload,
     doctor=Depends(get_current_user)
 ):
+    # 🔹 Validate patient
     patient = PatientProfile.objects(id=payload.patient_id).first()
     if not patient:
-        raise HTTPException(404, "Patient not found")
+        raise HTTPException(status_code=404, detail="Patient not found")
 
+    # 🔹 Validate medicine
     med = Medicine.objects(id=payload.medicine_id, is_active=True).first()
     if not med:
-        raise HTTPException(404, "Medicine not found")
+        raise HTTPException(status_code=404, detail="Medicine not found")
 
-    PatientMedication(
+    # 🔹 Create prescription
+    prescription = PatientMedication(
         patient=patient,
         medicine_name=f"{med.name} ({med.company_name})",
         dosage=med.dosage,
         timing=payload.timing,
         duration_days=payload.duration_days,
-        price=med.price        # 🔥 AUTO PRICE
-    ).save()
+        price=med.price,
+        notes=payload.notes or []   # ✅ safe default
+    )
 
-    return {"message": "Medicine prescribed successfully"}
+    prescription.save()
+
+    return {
+        "message": "Medicine prescribed successfully",
+        "medication_id": str(prescription.id)  # useful for frontend
+    }
+
+# @router.post("/doctor/prescribe-from-master")
+# def prescribe_from_master(
+#     payload: PrescribeFromMasterPayload,
+#     doctor=Depends(get_current_user)
+# ):
+#     patient = PatientProfile.objects(id=payload.patient_id).first()
+#     if not patient:
+#         raise HTTPException(404, "Patient not found")
+
+#     med = Medicine.objects(id=payload.medicine_id, is_active=True).first()
+#     if not med:
+#         raise HTTPException(404, "Medicine not found")
+
+#     PatientMedication(
+#         patient=patient,
+#         medicine_name=f"{med.name} ({med.company_name})",
+#         dosage=med.dosage,
+#         timing=payload.timing,
+#         duration_days=payload.duration_days,
+#         price=med.price        # 🔥 AUTO PRICE
+#     ).save()
+
+#     return {"message": "Medicine prescribed successfully"}
 
 
 
@@ -379,13 +414,35 @@ def serialize_note(n):
 def serialize_vital(v):
     return {
         "time": v.recorded_at,
-        "bp": v.bp,
-        "pulse": v.pulse,
-        "spo2": v.spo2,
-        "temperature": v.temperature,
-        "sugar": v.sugar,
+
+        "bp": getattr(v, "bp", None),
+        "pulse": getattr(v, "pulse", None),
+        "spo2": getattr(v, "spo2", None),
+        "temperature": getattr(v, "temperature", None),
+        "o2_level": getattr(v, "o2_level", None),
+        "rbs": getattr(v, "rbs", None),
+
+        "bipap_ventilator": getattr(v, "bipap_ventilator", None),
+        "iv_fluids": getattr(v, "iv_fluids", None),
+        "suction": getattr(v, "suction", None),
+        "feeding_tube": getattr(v, "feeding_tube", None),
+
+        "vomit_aspirate": getattr(v, "vomit_aspirate", None),
+        "urine": getattr(v, "urine", None),
+        "stool": getattr(v, "stool", None),
+
+        "other": getattr(v, "other", None),
     }
 
+
+# def serialize_medication(m):
+#     return {
+#         "medicine": m.medicine_name,
+#         "dosage": m.dosage,
+#         "timing": m.timing,
+#         "duration": m.duration_days,
+#         "price": m.price,
+#     }
 
 def serialize_medication(m):
     return {
@@ -394,6 +451,9 @@ def serialize_medication(m):
         "timing": m.timing,
         "duration": m.duration_days,
         "price": m.price,
+
+        # ✅ ADD THIS
+        "notes": getattr(m, "notes", []),
     }
 
 def serialize_patient(patient):
@@ -410,25 +470,61 @@ def serialize_patient(patient):
 
 
 
+# @router.get("/profile/view")
+# def view_patient_detailsfgcg(user=Depends(get_current_user)):
+#     patient = PatientProfile.objects(user=user).first()
+#     if not patient:
+#         raise HTTPException(404, "Patient not found")
+
+#     duties = NurseDuty.objects(patient=patient, is_active=True)
+#     notes = PatientDailyNote.objects(patient=patient)
+#     vitals = PatientVitals.objects(patient=patient)
+#     medications = PatientMedication.objects(patient=patient)
+
+#     return {
+#         "patient": serialize_patient(patient),
+#         "duties": [serialize_duty(d) for d in duties],
+#         "notes": [serialize_note(n) for n in notes],
+#         "vitals": [serialize_vital(v) for v in vitals],
+#         "medications": [serialize_medication(m) for m in medications],
+#     }
+
 @router.get("/profile/view")
-def view_patient_detailsfgcg(user=Depends(get_current_user)):
+def view_patient_profile(user=Depends(get_current_user)):
+
+    # 🔒 Ensure patient only
+    if user.role != "PATIENT":
+        raise HTTPException(status_code=403, detail="Only patients can view this profile")
+
     patient = PatientProfile.objects(user=user).first()
     if not patient:
-        raise HTTPException(404, "Patient not found")
+        raise HTTPException(status_code=404, detail="Patient profile not found")
 
-    duties = NurseDuty.objects(patient=patient, is_active=True)
-    notes = PatientDailyNote.objects(patient=patient)
-    vitals = PatientVitals.objects(patient=patient)
-    medications = PatientMedication.objects(patient=patient)
+    duties = NurseDuty.objects(
+        patient=patient,
+        is_active=True
+    ).select_related()
+
+    notes = PatientDailyNote.objects(
+        patient=patient
+    ).order_by("-created_at")
+
+    vitals = PatientVitals.objects(
+        patient=patient
+    ).order_by("-recorded_at")
+
+    medications = PatientMedication.objects(
+        patient=patient
+    )
 
     return {
         "patient": serialize_patient(patient),
-
         "duties": [serialize_duty(d) for d in duties],
         "notes": [serialize_note(n) for n in notes],
         "vitals": [serialize_vital(v) for v in vitals],
         "medications": [serialize_medication(m) for m in medications],
     }
+
 
 @router.get("/{isd}/view")
 def view_patient_detailsbjjbj(isd:str):

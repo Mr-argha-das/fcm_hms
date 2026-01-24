@@ -212,6 +212,13 @@ class PatientVitals(Document):
     recorded_at = DateTimeField(default=datetime.utcnow)
 
 
+# class PatientMedication(Document):
+#     patient = ReferenceField(PatientProfile)
+#     medicine_name = StringField()
+#     dosage = StringField()
+#     timing = ListField(StringField())
+#     duration_days = IntField()
+#     price = FloatField(required=False)
 class PatientMedication(Document):
     patient = ReferenceField(PatientProfile)
 
@@ -220,7 +227,12 @@ class PatientMedication(Document):
     timing = ListField(StringField())
     duration_days = IntField()
     price = FloatField(required=False)
-    
+
+    # ✅ correct
+    notes = ListField(StringField(), default=list)
+
+
+
 class RelativeAccess(Document):
     patient = ReferenceField(PatientProfile)
     relative_user = ReferenceField(User)
