@@ -10,6 +10,32 @@
 
 <form id="nurseForm">
 
+<!-- <div class="overflow-auto">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Name</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if patients %}
+        {% for patient in patients %}
+        <tr>
+          <td>{{ patient.user.name }}</td>
+          <td>{{ patient.id }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td class="text-center text-muted">No patients found</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div> -->
+
+
   <!-- ================= VERIFICATION ================= -->
  <div class="bg-card px-3  pt-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
 
@@ -143,27 +169,94 @@
     </div>
   </div>
 
+
+
   <!-- ================= SUBMIT ================= -->
   <button type="button" class="btn btn-success" id="submitBtn">
     💾 Save Changes
   </button>
   <a href="/admin/nurses/{{ nurse.id }}" class="btn btn-secondary">Cancel</a>
-
 </form>
+
+
+<!-- ================= VISIT CREATE ================= -->
+<div class="bg-card px-3 py-3 mt-4 border border-gray-50/20 rounded-2xl shadow-soft4">
+
+  <h5 class="text-md font-semibold mb-3">➕ Create Visit For This Nurse</h5>
+
+  <div class="row g-3">
+
+    <!-- Patient -->
+    <div class="col-md-6">
+      <label class="form-label">Patient</label>
+      <select id="patient_id" class="form-select">
+        <option value="">Select Patient</option>
+        {% for patient in patients %}
+        <option value="{{ patient.id }}">
+          {{ patient.user.name }} ({{ patient.user.phone }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Visit Type -->
+    <div class="col-md-3">
+      <label class="form-label">Visit Type</label>
+      <select id="visit_type" class="form-select">
+        <option value="ROUTINE">ROUTINE</option>
+        <option value="MEDICATION">MEDICATION</option>
+        <option value="EMERGENCY">EMERGENCY</option>
+        <option value="FOLLOW_UP">FOLLOW_UP</option>
+        <option value="OTHER">OTHER</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Ward</label>
+      <input id="ward" class="form-control">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Room</label>
+      <input id="room_no" class="form-control">
+    </div>
+
+    <div class="col-md-12">
+      <label class="form-label">Notes</label>
+      <textarea id="notes" class="form-control"></textarea>
+    </div>
+
+  </div>
+
+  <div class="mt-3">
+    <button class="btn btn-primary" onclick="createVisit()">
+      💾 Create Visit
+    </button>
+  </div>
+</div>
+
 
 <!-- ================= JS ================= -->
 <script>
+
+
+/* ========= GLOBAL ========= */
+
+function headers() {
+  return {
+    "Authorization": "Bearer " + localStorage.getItem("token")
+  };
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
 
-  function headers() {
-    return {
-      Authorization: "Bearer " + localStorage.getItem("token"),
-    };
+ if (!localStorage.getItem("token")) {
+    window.location.href = "/admin/login";
+    return;
   }
 
-  if (!localStorage.getItem("token")) {
-    window.location.href = "/admin/login";
-  }
+
 
   const form = document.getElementById("nurseForm");
   const btn = document.getElementById("submitBtn");
@@ -188,10 +281,69 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    alert("✅ Nurse updated successfully");
-    window.location.reload();
+    console.log(res)
+
+    // alert("✅ Nurse updated successfully");
+    // window.location.reload();
   });
 });
+
+
+
 </script>
+
+
+<script>
+
+async function createVisit() {
+
+  const nurseId = "{{ nurse.id }}"; // 🔥 URL nurse auto
+  console.log("🔍 Nurse ID:", nurseId) ;
+  const payload = {
+    nurse_id: nurseId,
+    patient_id: document.getElementById("patient_id").value,
+    visit_type: document.getElementById("visit_type").value,
+    ward: document.getElementById("ward").value || null,
+    room_no: document.getElementById("room_no").value || null,
+    notes: document.getElementById("notes").value || null
+  };
+
+  console.log("📤 Visit Payload:", payload);
+
+   if (!payload.nurse_id || !payload.patient_id) {
+      // alert("Select nurse & patient");
+    alert("Select patient");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/nurse/visit/create-admin`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("token")
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    console.log("📥 Response:", res);
+
+    if (!res.ok) {
+      alert(data.detail || "Failed");
+      return;
+    }
+
+    alert("✅ Visit created successfully");
+    location.reload();
+
+  } catch (err) {
+    console.log(err);
+    alert("Server error");
+  }
+}
+</script>
+
 
 {% endblock %}

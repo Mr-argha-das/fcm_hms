@@ -102,6 +102,7 @@ def start_visit(
     ).save()
 
     return {"message": "Visit started", "visit_id": str(visit.id)}
+
 @router.post("/visit/complete")
 def complete_visit(
     visit_id: str,
@@ -120,6 +121,7 @@ def complete_visit(
     visit.save()
 
     return {"message": "Visit completed"}
+
 @router.get("/visit/history/{patient_id}")
 def visit_history(patient_id: str, user=Depends(get_current_user)):
     doctor = DoctorProfile.objects(user=user).first()

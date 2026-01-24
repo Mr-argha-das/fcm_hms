@@ -9,7 +9,7 @@ from mongoengine.errors import ValidationError, NotUniqueError
 
 from core.dependencies import get_current_user
 from models import (
-    NurseProfile, NurseDuty, NurseAttendance,
+    DoctorProfile, NurseProfile, NurseDuty, NurseAttendance,
     NurseSalary, NurseConsent, NurseVisit, PatientProfile, User, PatientVitals, PatientDailyNote, PatientMedication
 )
 
@@ -410,7 +410,6 @@ def duty_status(user=Depends(get_current_user)):
         }
         
 
-
 @router.post("/visit")
 def nurse_create_visit(
     payload: NurseVisitCreate,
@@ -532,6 +531,7 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
 
         "weekly_hours": weekly_hours
     }
+
 @router.get("/patients")
 def get_nurse_patients(user=Depends(get_current_user)):
 
@@ -625,18 +625,73 @@ def get_patient_dashboard(patient_id: str, user=Depends(get_current_user)):
     }
 
 
+# class VitalsPayload(BaseModel):
+#     bp: str
+#     pulse: int
+#     spo2: int
+#     temperature: float
+#     sugar: Optional[float] = None
+
+
+# @router.post("/patients/{patient_id}/vitals")
+# def create_vitals(
+#     patient_id: str,
+#     payload: VitalsPayload,
+#     user=Depends(get_current_user)
+# ):
+#     if user.role != "NURSE":
+#         raise HTTPException(403, "Access denied")
+
+#     patient = PatientProfile.objects(id=patient_id).first()
+#     if not patient:
+#         raise HTTPException(404, "Patient not found")
+
+#     PatientVitals(
+#         patient=patient,
+#         bp=payload.bp,
+#         pulse=payload.pulse,
+#         spo2=payload.spo2,
+#         temperature=payload.temperature,
+#         sugar=payload.sugar,
+#         recorded_at=datetime.utcnow()
+#     ).save()
+
+#     return {"message": "Vitals saved successfully"}
+
 class VitalsPayload(BaseModel):
+    # 🔹 BASIC
     bp: str
     pulse: int
     spo2: int
     temperature: float
-    sugar: Optional[float] = None
-@router.post("/patients/{patient_id}/vitals")
+    o2_level: Optional[int] = None
+    rbs: Optional[float] = None
+
+    # 🔹 SUPPORT
+    bipap_ventilator: Optional[str] = None
+    iv_fluids: Optional[str] = None
+    suction: Optional[str] = None
+    feeding_tube: Optional[str] = None
+
+    # 🔹 OUTPUT
+    vomit_aspirate: Optional[str] = None
+    urine: Optional[str] = None
+    stool: Optional[str] = None
+
+    # 🔹 NOTES
+    other: Optional[str] = None
+    
+class DailyNotePayload(BaseModel):
+    note: str
+
+
+@router.post("/patients/{patient_id}/vital-details")
 def create_vitals(
     patient_id: str,
     payload: VitalsPayload,
     user=Depends(get_current_user)
 ):
+    print("🔥 CREATE VITALS PAYLOAD:", payload.dict())
     if user.role != "NURSE":
         raise HTTPException(403, "Access denied")
 
@@ -644,20 +699,113 @@ def create_vitals(
     if not patient:
         raise HTTPException(404, "Patient not found")
 
-    PatientVitals(
+    vitals = PatientVitals(
         patient=patient,
+
+        # 🔹 BASIC
         bp=payload.bp,
         pulse=payload.pulse,
         spo2=payload.spo2,
         temperature=payload.temperature,
-        sugar=payload.sugar,
+        o2_level=payload.o2_level,
+        rbs=payload.rbs,
+
+        # 🔹 SUPPORT
+        bipap_ventilator=payload.bipap_ventilator,
+        iv_fluids=payload.iv_fluids,
+        suction=payload.suction,
+        feeding_tube=payload.feeding_tube,
+
+        # 🔹 OUTPUT
+        vomit_aspirate=payload.vomit_aspirate,
+        urine=payload.urine,
+        stool=payload.stool,
+
+        # 🔹 NOTES
+        other=payload.other,
+
         recorded_at=datetime.utcnow()
-    ).save()
+    )
 
-    return {"message": "Vitals saved successfully"}
+    vitals.save()
 
-class DailyNotePayload(BaseModel):
-    note: str
+    return {
+        "success": True,
+        "message": "Vitals saved successfully"
+    }
+
+# =====================================================
+# GET VITALS (History)
+# =====================================================
+
+@router.get("/patients/{patient_id}/vital-details")
+def get_vitals(
+    patient_id: str,
+    limit: int = 20,
+    user=Depends(get_current_user)
+):
+    print("📥 GET VITALS HIT:", patient_id, "limit:", limit)
+
+    # 🔒 Only nurse allowed
+    if user.role != "NURSE":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # 🔥 safe limit (avoid huge DB load)
+    limit = max(1, min(limit, 100))
+
+    # 🔍 patient check
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # 🔥 latest first
+    vitals_qs = (
+        PatientVitals.objects(patient=patient)
+        .order_by("-recorded_at")
+        .limit(limit)
+    )
+
+    vitals_list = []
+
+    for v in vitals_qs:
+        vitals_list.append({
+            "id": str(v.id),
+            
+            # 🔹 BASIC
+            "bp": v.bp,
+            "pulse": v.pulse,
+            "spo2": v.spo2,
+            "temperature": v.temperature,
+            "o2_level": v.o2_level,
+            "rbs": v.rbs,
+            
+            # 🔹 SUPPORT / DEVICES
+            "bipap_ventilator": v.bipap_ventilator,
+            "iv_fluids": v.iv_fluids,
+            "suction": v.suction,
+            "feeding_tube": v.feeding_tube,
+
+            # 🔹 OUTPUTS
+            "vomit_aspirate": v.vomit_aspirate,
+            "urine": v.urine,
+            "stool": v.stool,
+
+            # 🔹 NOTES
+            "other": v.other,
+
+            # 🔹 META
+            "recorded_at": v.recorded_at.isoformat() if v.recorded_at else None
+        })
+
+    print("✅ Returning vitals count:", len(vitals_list))
+
+    return {
+        "success": True,
+        "count": len(vitals_list),
+        "vitals": vitals_list
+    }
+
+
 @router.post("/patients/{patient_id}/notes")
 def add_daily_note(
     patient_id: str,
@@ -700,6 +848,7 @@ def get_notes(patient_id: str, user=Depends(get_current_user)):
         }
         for n in notes
     ]
+
 @router.get("/patients/{patient_id}/medications")
 def get_medications(patient_id: str, user=Depends(get_current_user)):
 
@@ -717,6 +866,8 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
         }
         for m in meds
     ]
+
+
 @router.get("/nurse/visits")
 def nurse_visits(
     request: Request,
@@ -742,7 +893,7 @@ def nurse_visits(
     ).order_by("-visit_time")
 
     visits = list(pending_visits) + list(completed_visits)
-
+    
     data = []
 
     for v in visits:
@@ -784,6 +935,58 @@ def nurse_visits(
     return data
 
 
+
+# Create Vist Admin Schema
+class NurseVisitCreateAdmin(BaseModel):
+    nurse_id: str
+    patient_id: str
+    duty_id: Optional[str] = None
+    ward: Optional[str] = None
+    room_no: Optional[str] = None
+    visit_type: str
+    notes: Optional[str] = None
+
+@router.post("/visit/create-admin")
+def create_visit_admin(
+    payload: NurseVisitCreateAdmin,
+    current_user: User = Depends(get_current_user)
+):
+    print("🔥 ADMIN VISIT CREATE HIT")
+    print("Payload:", payload.dict())
+    print("User:", current_user.role)
+
+    # ✅ Only admin allowed
+    if current_user.role != "ADMIN":
+        raise HTTPException(403, "Only admin allowed")
+
+    nurse = NurseProfile.objects(id=payload.nurse_id).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    patient = PatientProfile.objects(id=payload.patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    visit = NurseVisit(
+        nurse=nurse,
+        patient=patient,
+        duty=payload.duty_id,
+        ward=payload.ward,
+        room_no=payload.room_no,
+        visit_type=payload.visit_type,
+        notes=payload.notes,
+        created_by=current_user
+    )
+
+    visit.save()
+
+    return {
+        "success": True,
+        "message": "Visit created successfully",
+        "visit_id": str(visit.id)
+    }
+
+
 @router.post("/visits/{visit_id}/complete")
 def complete_visit(
     visit_id: str,
@@ -806,6 +1009,8 @@ def complete_visit(
     visit.save()
 
     return {"message": "Visit marked completed"}
+
+
 
 @router.get("/attendance")
 def nurse_month_attendance(
@@ -972,6 +1177,9 @@ def consent_status(user=Depends(get_current_user)):
         "police_verified": "CLEAR",
         "aadhaar_verified": True
     }
+
+
+
 
 # Add Medication for a patient
 @router.post("/nurse/{nurse_id}/assign-duty")

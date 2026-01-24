@@ -28,18 +28,15 @@ init_db()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "*",
-      "http://localhost:8000",
-      "https://wecarehhcs.in",
-      "http://192.0.0.2:8000",
-      "http://0.0.0.0:8000",
-      "http://10.61.43.98:8000"
-
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+        "https://wecarehhcs.in"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/documents", exist_ok=True)

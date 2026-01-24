@@ -26,6 +26,8 @@ class NurseVisitCreate(BaseModel):
     room_no: Optional[str] = None
     visit_type: str
     notes: Optional[str] = None
+
+    
 class NurseConsentRequest(BaseModel):
     shift_type: str                 # DAY / NIGHT / 24_HOURS
     duty_hours: int

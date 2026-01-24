@@ -158,7 +158,7 @@ block content %}
       });
 
       const data = await res.json();
-      console.log("✅ Response:", data);
+      console.log("✅ Response:", res);
 
       if (res.ok && data.success) {
         alert("Patient added successfully!");

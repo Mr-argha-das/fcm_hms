@@ -65,8 +65,8 @@ class NurseDuty(Document):
     check_in = DateTimeField()
     check_out = DateTimeField()
     gps_location = PointField()
-
     is_active = BooleanField(default=True)
+    
     
 class NurseAttendance(Document):
     nurse = ReferenceField(NurseProfile)
@@ -141,8 +141,8 @@ class DoctorProfile(Document):
     specialization = StringField()
     registration_number = StringField()
     experience_years = IntField()
-
     available = BooleanField(default=True)
+
 class DoctorVisit(Document):
     doctor = ReferenceField(DoctorProfile)
     patient = ReferenceField("PatientProfile")
@@ -157,33 +157,61 @@ class DoctorVisit(Document):
     created_at = DateTimeField(default=datetime.utcnow)
 
 class PatientProfile(Document):
-
     user = ReferenceField(User, required=True)
-
     age = IntField()
     gender = StringField()
     medical_history = StringField()
-
     assigned_doctor = ReferenceField(DoctorProfile)
     address = StringField()
     service_start = DateField()
     service_end = DateField()
+
 class PatientDailyNote(Document):
     patient = ReferenceField(PatientProfile)
     nurse = ReferenceField(NurseProfile)
 
     note = StringField()
     created_at = DateTimeField(default=datetime.utcnow)
-class PatientVitals(Document):
-    patient = ReferenceField(PatientProfile)
 
-    bp = StringField()
-    pulse = IntField()
-    spo2 = IntField()
-    temperature = FloatField()
-    sugar = FloatField()
+# class PatientVitals(Document):
+#     patient = ReferenceField(PatientProfile)
+
+#     bp = StringField()
+#     pulse = IntField()
+#     spo2 = IntField()
+#     temperature = FloatField()
+#     sugar = FloatField()
+
+#     recorded_at = DateTimeField(default=datetime.utcnow)
+
+class PatientVitals(Document):
+    patient = ReferenceField(PatientProfile, required=True)
+
+    # 🔹 BASIC VITALS
+    bp = StringField()                 # 120/80
+    pulse = IntField()                 # 72
+    spo2 = IntField()                  # 98
+    temperature = FloatField()         # 98.6
+    o2_level = IntField()              # O2 %
+    rbs = FloatField()                 # sugar / random blood sugar
+
+    # 🔹 SUPPORT / DEVICES
+    bipap_ventilator = StringField()   # ON / OFF / settings
+    iv_fluids = StringField()          # saline / drip details
+    suction = StringField()            # yes/no/notes
+    feeding_tube = StringField()       # RT/ORAL/PEG
+
+    # 🔹 OUTPUTS
+    vomit_aspirate = StringField()
+    urine = StringField()
+    stool = StringField()
+
+    # 🔹 NOTES
+    other = StringField()
 
     recorded_at = DateTimeField(default=datetime.utcnow)
+
+
 class PatientMedication(Document):
     patient = ReferenceField(PatientProfile)
 
@@ -192,6 +220,7 @@ class PatientMedication(Document):
     timing = ListField(StringField())
     duration_days = IntField()
     price = FloatField(required=False)
+    
 class RelativeAccess(Document):
     patient = ReferenceField(PatientProfile)
     relative_user = ReferenceField(User)
@@ -250,17 +279,14 @@ class NurseVisit(Document):
     nurse = ReferenceField(NurseProfile, required=True)
     patient = ReferenceField(PatientProfile, required=True)
     duty = ReferenceField(NurseDuty)
-
     ward = StringField()
     room_no = StringField()
-
     visit_type = StringField(
         choices=["ROUTINE", "MEDICATION", "EMERGENCY", "FOLLOW_UP", "OTHER"],
     )
-
+    
     notes = StringField()
     visit_time = DateTimeField(default=datetime.utcnow)
-
     created_by = ReferenceField(User)   # 🔥 IMPORTANT
     created_at = DateTimeField(default=datetime.utcnow)
 

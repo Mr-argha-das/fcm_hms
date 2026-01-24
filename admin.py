@@ -291,6 +291,39 @@ def patients(request: Request):
         }
     )
 
+
+
+# @router.get("/nurse/visit-page/{nurse_id}", response_class=HTMLResponse)
+# def nurse_visit_page(request: Request, nurse_id: str):
+
+#     patients = PatientProfile.objects.select_related()
+
+#     return templates.TemplateResponse(
+#         "admin/nurse_visit_create.html",
+#         {
+#             "request": request,
+#             "patients": patients
+#         }
+#     )
+
+
+@router.get("/visit-page", response_class=HTMLResponse)
+def visit_page(request: Request):
+
+    patients = PatientProfile.objects.select_related()
+    nurses = NurseProfile.objects.select_related()
+
+    return templates.TemplateResponse(
+        "admin/nurse_visit_create.html",
+        {
+            "request": request,
+            "patients": patients,
+            "nurses": nurses
+        }
+    )
+
+
+
 @router.get("/patient/vitals", response_class=HTMLResponse)
 def patient_vitals(request: Request):
     return templates.TemplateResponse(

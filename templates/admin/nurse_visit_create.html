@@ -1,0 +1,139 @@
+{% extends "admin/base.html" %} {% block title %}Create Nurse Visit{% endblock
+%} {% block content %}
+
+<div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
+  <h4>➕ Create Nurse Visit</h4>
+  <p class="text-muted">Assign visit to nurse</p>
+</div>
+
+<div class="bg-card p-4 border rounded-2xl shadow-soft4">
+  <div class="row g-3">
+    <!-- Nurse -->
+    <div class="col-md-6">
+      <label class="form-label">Nurse</label>
+      <select id="nurse_id" class="form-select" required>
+        <option value="">Select Nurse</option>
+        {% for nurse in nurses %}
+        <option value="{{ nurse.id }}">
+          {{ nurse.user.name }} ({{ nurse.user.phone }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Patient -->
+    <div class="col-md-6">
+      <label class="form-label">Patient</label>
+      <select id="patient_id" class="form-select" required>
+        <option value="">Select Patient</option>
+        {% for patient in patients %}
+        <option value="{{ patient.id }}">
+          {{ patient.user.name }} ({{ patient.user.phone }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Visit Type -->
+    <div class="col-md-4">
+      <label class="form-label">Visit Type</label>
+      <select id="visit_type" class="form-select">
+        <option value="ROUTINE">ROUTINE</option>
+        <option value="MEDICATION">MEDICATION</option>
+        <option value="EMERGENCY">EMERGENCY</option>
+        <option value="FOLLOW_UP">FOLLOW_UP</option>
+        <option value="OTHER">OTHER</option>
+      </select>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Ward</label>
+      <input id="ward" class="form-control" />
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Room</label>
+      <input id="room_no" class="form-control" />
+    </div>
+
+    <div class="col-md-12">
+      <label class="form-label">Notes</label>
+      <textarea id="notes" rows="3" class="form-control"></textarea>
+    </div>
+  </div>
+
+  <div class="text-end mt-4">
+    <button
+      id="createVisitBtn"
+      class="btn btn-primary px-4"
+      onclick="createVisit()"
+    >
+      💾 Create Visit
+    </button>
+  </div>
+</div>
+
+<script>
+  function headers() {
+    const token = localStorage.getItem("token");
+
+    console.log("🔑 TOKEN:", token);
+
+    return {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+    };
+  }
+
+  async function createVisit() {
+    const btn = document.getElementById("createVisitBtn");
+
+    const payload = {
+      nurse_id: document.getElementById("nurse_id").value,
+      patient_id: document.getElementById("patient_id").value,
+      visit_type: document.getElementById("visit_type").value,
+      ward: document.getElementById("ward").value || null,
+      room_no: document.getElementById("room_no").value || null,
+      notes: document.getElementById("notes").value || null,
+    };
+
+    console.log("📤 PAYLOAD:", payload);
+
+    if (!payload.nurse_id || !payload.patient_id) {
+      alert("Select nurse & patient");
+      return;
+    }
+
+    try {
+      btn.disabled = true;
+      btn.innerText = "Creating...";
+
+      const res = await fetch("/nurse/visit/create-admin", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(payload),
+      });
+
+      console.log("📡 STATUS:", res.status);
+
+      const data = await res.json();
+
+      console.log("📥 RESPONSE:", data);
+
+      if (!res.ok) {
+        alert(data.detail || "Failed");
+        return;
+      }
+
+      alert("✅ Visit created successfully!");
+      location.reload();
+    } catch (err) {
+      console.error("🔥 ERROR:", err);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "💾 Create Visit";
+    }
+  }
+</script>
+
+{% endblock %}
