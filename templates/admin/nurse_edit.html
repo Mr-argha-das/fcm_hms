@@ -221,10 +221,10 @@
       <input id="room_no" class="form-control">
     </div>
 
-    <div class="col-md-12">
+    <!-- <div class="col-md-12">
       <label class="form-label">Notes</label>
       <textarea id="notes" class="form-control"></textarea>
-    </div>
+    </div> -->
 
   </div>
 
@@ -305,7 +305,7 @@ async function createVisit() {
     visit_type: document.getElementById("visit_type").value,
     ward: document.getElementById("ward").value || null,
     room_no: document.getElementById("room_no").value || null,
-    notes: document.getElementById("notes").value || null
+    // notes: document.getElementById("notes").value || null
   };
 
   console.log("📤 Visit Payload:", payload);

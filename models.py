@@ -261,6 +261,7 @@ class Complaint(Document):
 
     message = StringField()
     status = StringField(choices=["OPEN", "IN_PROGRESS", "RESOLVED"], default="OPEN")
+
 class SOSAlert(Document):
     triggered_by = ReferenceField(User)
     patient = ReferenceField(PatientProfile)
@@ -367,7 +368,14 @@ class BillItem(EmbeddedDocument):
     quantity = IntField()
     unit_price = FloatField()
     total_price = FloatField()
-    dosage = StringField()   # ✅ ADD
+    dosage = StringField()
+
+    # 🔹 DATE RANGE
+    start_date = DateField(required=False)
+    till_date = DateField(required=False)
+
+    # 🔹 AUTO-CALCULATED
+    days = IntField(required=False)
 
 
 # class PatientBill(Document):

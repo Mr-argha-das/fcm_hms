@@ -46,18 +46,24 @@ def get_all_medicines():
     ]
 
 @router.delete("/admin/medicine/{medicine_id}")
-def deactivate_medicine(
+def delete_medicine(
     medicine_id: str,
     admin=Depends(admin_required)
 ):
     med = Medicine.objects(id=medicine_id).first()
+
     if not med:
-        raise HTTPException(404, "Medicine not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Medicine not found"
+        )
 
-    med.is_active = False
-    med.save()
-    return {"message": "Medicine deactivated"}
+    med.delete()   # ✅ permanent delete from MongoDB
 
+    return {
+        "message": "Medicine deleted permanently",
+        "id": medicine_id
+    }
 
 
 

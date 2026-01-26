@@ -88,8 +88,23 @@ def dashboard(request: Request):
     # ======================
     # SOS ALERTS
     # ======================
-    sos_alerts = SOSAlert.objects.order_by("-created_at").limit(5)
+    # sos_alerts = SOSAlert.objects.order_by("-created_at").limit(5)
+    # ======================
+# SOS ALERTS
+# ======================
+    raw_sos = SOSAlert.objects.order_by("-created_at").limit(5)
 
+    sos_alerts = []
+
+    for alert in raw_sos:
+     sos_alerts.append({
+        "triggered_by": alert.triggered_by.name if alert.triggered_by else "-",
+        "patient_name": alert.patient.user.name if alert.patient and alert.patient.user else "-",
+        "message": alert.message,
+        "location": alert.location["coordinates"] if alert.location else None,
+        "status": alert.status,
+        "created_at": alert.created_at.strftime("%d %b %H:%M")
+    })
     # ======================
     # TODAY DATE RANGE (IMPORTANT FIX)
     # ======================

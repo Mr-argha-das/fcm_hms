@@ -69,43 +69,48 @@ block content %}
     </div>
   </div>
 
-  <!-- RIGHT -->
-  <div class="space-y-6">
-    <!-- SOS -->
+  <!-- SOS -->
+  <div
+    class="bg-card !bg-gradient-to-b from-red-100 to-red-500 rounded-2xl shadow-soft p-4"
+  >
+    <h5 class="font-semibold text-danger mb-4">🚨 SOS Alerts</h5>
+
+    {% if sos_alerts %} {% for sos in sos_alerts %}
     <div
-      class="bg-card !bg-gradient-to-b from-red-100 to-red-500 rounded-2xl shadow-soft p-4"
+      class="border border-red-200 bg-white/20 backdrop-blur rounded-xl p-3 mb-3 text-sm text-white shadow-sm"
     >
-      <h5 class="font-semibold text-danger mb-4">🚨 SOS Alerts</h5>
+      <!-- TOP -->
+      <div class="flex justify-between items-center mb-1">
+        <strong class="text-white">SOS Triggered</strong>
 
-      {% for sos in sos_alerts %}
-      <div
-        class="border border-gray-50 text-white rounded-xl p-2.5 mb-3 text-sm"
-      >
-        <strong>SOS Triggered</strong>
-        <div class="text-white">
-          Patient ID: {{ sos.patient.id if sos.patient else "Unknown" }}
-        </div>
-        <div class="text-xs text-white">
-          {{ sos.created_at.strftime("%d %b %H:%M") }}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- TODAY SCHEDULE -->
-    <div class="bg-card rounded-2xl shadow-soft p-6">
-      <h5 class="font-semibold mb-4">Today Schedule</h5>
-      <ul class="space-y-2 text-sm">
-        {% if today_schedule %} {% for item in today_schedule %}
-        <li class="flex items-center gap-2">
-          <span class="w-2 h-2 bg-primary rounded-full"></span>
-          {{ item }}
-        </li>
-        {% endfor %} {% else %}
-        <li class="text-muted">No schedule for today</li>
+        {% if sos.status == "ACTIVE" %}
+        <span class="px-2 py-1 text-xs bg-red-700 rounded-full"> ACTIVE </span>
+        {% else %}
+        <span class="px-2 py-1 text-xs bg-green-600 rounded-full">
+          RESOLVED
+        </span>
         {% endif %}
-      </ul>
+      </div>
+
+      <!-- DETAILS -->
+      <div class="space-y-1 text-xs">
+        <div>👤 <b>{{ sos.triggered_by }}</b></div>
+
+        <div>🏥 Patient: <b>{{ sos.patient_name }}</b></div>
+
+        <div>💬 {{ sos.message }}</div>
+
+        <div>
+          📍 {% if sos.location %} {{ sos.location[1] }}, {{ sos.location[0] }}
+          {% else %} Unknown {% endif %}
+        </div>
+
+        <div class="opacity-80">⏰ {{ sos.created_at }}</div>
+      </div>
     </div>
+    {% endfor %} {% else %}
+    <p class="text-white/80 text-sm">No SOS alerts</p>
+    {% endif %}
   </div>
 </div>
 
