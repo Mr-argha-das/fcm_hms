@@ -5,5 +5,7 @@
 media/bills/
 
 env/
+venv/
+__pycache__/
 
 uploads/documents/
