@@ -64,6 +64,27 @@ block content %}
       <textarea id="medical_history" class="form-control"></textarea>
     </div>
 
+    <!-- ================= PATIENT DOCUMENTS ================= -->
+    <h5 class="mb-3 text-md font-semibold underline">Patient Documents:</h5>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">Upload Documents (PDF / Image)</label>
+        <input
+          id="documents"
+          type="file"
+          class="form-control"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png"
+        />
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Uploaded Files</label>
+        <ul id="uploadedDocs" class="text-sm text-muted"></ul>
+      </div>
+    </div>
+
     <!-- ================= ADDRESS ================= -->
     <div class="col-md-12">
       <label class="form-label">Address</label>
@@ -106,9 +127,7 @@ block content %}
 
 <!-- ================= GLOBAL API ================= -->
 <script>
-  // const API = API;
-  // const API = "https://wecarehhcs.in";
-
+  /* ================= AUTH & GUARD ================= */
   function headers() {
     return {
       "Content-Type": "application/json",
@@ -123,10 +142,69 @@ block content %}
   }
 
   guard();
-</script>
 
-<!-- ================= PAGE JS ================= -->
-<script>
+  /* ================= DOCUMENT UPLOAD ================= */
+  let uploadedDocuments = [];
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const docInput = document.getElementById("documents");
+    if (!docInput) return;
+
+    docInput.addEventListener("change", async function (e) {
+      const files = e.target.files;
+      if (!files.length) return;
+
+      for (let file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "patient_docs");
+
+        try {
+          const res = await fetch("/upload/file", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token"),
+            },
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            uploadedDocuments.push(data.path);
+
+            const li = document.createElement("li");
+            li.className = "flex justify-between items-center";
+
+            li.innerHTML = `
+              <span>${data.path.split("/").pop()}</span>
+              <button class="btn btn-sm btn-danger ms-2">✕</button>
+            `;
+
+            // ❌ remove document
+            li.querySelector("button").onclick = () => {
+              uploadedDocuments = uploadedDocuments.filter(
+                (p) => p !== data.path,
+              );
+              li.remove();
+            };
+
+            document.getElementById("uploadedDocs").appendChild(li);
+          } else {
+            alert("File upload failed");
+          }
+        } catch (err) {
+          console.error("Upload error:", err);
+          alert("Document upload failed");
+        }
+      }
+
+      // reset input so same file can be uploaded again if needed
+      e.target.value = "";
+    });
+  });
+
+  /* ================= CREATE PATIENT ================= */
   async function createPatient() {
     const payload = {
       name: document.getElementById("name").value.trim(),
@@ -137,38 +215,40 @@ block content %}
       age: document.getElementById("age").value || null,
       gender: document.getElementById("gender").value || null,
       medical_history: document.getElementById("medical_history").value || null,
-      address: document.getElementById("address").value.trim() || null, // ✅ NEW
+      address: document.getElementById("address").value.trim() || null,
       service_start: document.getElementById("service_start").value || null,
       service_end: document.getElementById("service_end").value || null,
       assigned_doctor: document.getElementById("doctor").value || null,
+
+      // 🔥 documents
+      documents: uploadedDocuments,
     };
 
     console.log("📦 Payload:", payload);
 
     if (!payload.name || !payload.phone) {
-      alert("Name and phone required");
+      alert("Name and phone are required");
       return;
     }
 
     try {
-      const res = await fetch(`/patient/create`, {
+      const res = await fetch("/patient/create", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      console.log("✅ Response:", res);
 
       if (res.ok && data.success) {
-        alert("Patient added successfully!");
+        alert("✅ Patient added successfully!");
         window.location.href = "/admin/patients";
       } else {
         alert(data.detail || "Failed to add patient");
       }
     } catch (err) {
-      console.error(err);
-      alert("Something went wrong!");
+      console.error("Create patient error:", err);
+      alert("Something went wrong");
     }
   }
 </script>

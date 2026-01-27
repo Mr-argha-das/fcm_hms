@@ -211,20 +211,31 @@
       </select>
     </div>
 
+    <!-- Duty Location -->
     <div class="col-md-3">
+      <label class="form-label">Duty Location</label>
+      <select id="dutyLocation" class="form-select" onchange="toggleLocationFields()">
+        <option value="HOSPITAL">Hospital</option>
+        <option value="HOME">Home</option>
+      </select>
+    </div>
+
+    <!-- Hospital Fields -->
+    <div class="col-md-3 hospital-field">
       <label class="form-label">Ward</label>
       <input id="ward" class="form-control">
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-3 hospital-field">
       <label class="form-label">Room</label>
       <input id="room_no" class="form-control">
     </div>
 
-    <!-- <div class="col-md-12">
-      <label class="form-label">Notes</label>
-      <textarea id="notes" class="form-control"></textarea>
-    </div> -->
+    <!-- Home Address -->
+    <div class="col-md-6 home-field d-none">
+      <label class="form-label">Home Address</label>
+      <textarea id="address" class="form-control" rows="2"></textarea>
+    </div>
 
   </div>
 
@@ -295,26 +306,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <script>
 
+  function toggleLocationFields() {
+  const location = document.getElementById("dutyLocation").value;
+
+  document.querySelectorAll(".hospital-field").forEach(el => {
+    el.classList.toggle("d-none", location === "HOME");
+  });
+
+  document.querySelectorAll(".home-field").forEach(el => {
+    el.classList.toggle("d-none", location === "HOSPITAL");
+  });
+}
+
+// async function createVisit() {
+
+//   const nurseId = "{{ nurse.id }}"; 
+//   console.log("🔍 Nurse ID:", nurseId) ;
+//   const payload = {
+//     nurse_id: nurseId,
+//     patient_id: document.getElementById("patient_id").value,
+//     visit_type: document.getElementById("visit_type").value,
+//     ward: document.getElementById("ward").value || null,
+//     room_no: document.getElementById("room_no").value || null,
+//     // notes: document.getElementById("notes").value || null
+//   };
+
+//   console.log("📤 Visit Payload:", payload);
+
+//    if (!payload.nurse_id || !payload.patient_id) {
+//       // alert("Select nurse & patient");
+//     alert("Select patient");
+//     return;
+//   }
+
+//   try {
+//     const res = await fetch(`/nurse/visit/create-admin`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Authorization": "Bearer " + localStorage.getItem("token")
+//       },
+//       body: JSON.stringify(payload)
+//     });
+
+//     const data = await res.json();
+
+//     console.log("📥 Response:", res);
+
+//     if (!res.ok) {
+//       alert(data.detail || "Failed");
+//       return;
+//     }
+
+//     alert("✅ Visit created successfully");
+//     location.reload();
+
+//   } catch (err) {
+//     console.log(err);
+//     alert("Server error");
+//   }
+// }
+
 async function createVisit() {
 
-  const nurseId = "{{ nurse.id }}"; // 🔥 URL nurse auto
-  console.log("🔍 Nurse ID:", nurseId) ;
+  const nurseId = "{{ nurse.id }}";
+
+  const dutyLocation = document.getElementById("dutyLocation").value;
+
   const payload = {
     nurse_id: nurseId,
     patient_id: document.getElementById("patient_id").value,
     visit_type: document.getElementById("visit_type").value,
-    ward: document.getElementById("ward").value || null,
-    room_no: document.getElementById("room_no").value || null,
-    // notes: document.getElementById("notes").value || null
+    dutyLocation: dutyLocation
   };
 
-  console.log("📤 Visit Payload:", payload);
-
-   if (!payload.nurse_id || !payload.patient_id) {
-      // alert("Select nurse & patient");
+  if (!payload.patient_id) {
     alert("Select patient");
     return;
   }
+
+  // 🏥 Hospital
+  if (dutyLocation === "HOSPITAL") {
+    payload.ward = document.getElementById("ward").value || null;
+    payload.room_no = document.getElementById("room_no").value || null;
+  }
+
+  // 🏠 Home
+  if (dutyLocation === "HOME") {
+    payload.address = document.getElementById("address").value;
+    if (!payload.address) {
+      alert("Address is required for Home visit");
+      return;
+    }
+  }
+
+  console.log("📤 Visit Payload:", payload);
 
   try {
     const res = await fetch(`/nurse/visit/create-admin`, {
@@ -328,8 +414,6 @@ async function createVisit() {
 
     const data = await res.json();
 
-    console.log("📥 Response:", res);
-
     if (!res.ok) {
       alert(data.detail || "Failed");
       return;
@@ -339,7 +423,7 @@ async function createVisit() {
     location.reload();
 
   } catch (err) {
-    console.log(err);
+    console.error(err);
     alert("Server error");
   }
 }

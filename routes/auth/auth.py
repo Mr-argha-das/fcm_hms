@@ -45,6 +45,7 @@ def verify_otp(data: VerifyOTPRequest):
     })
 
     return {"access_token": token, "role": user.role}
+
 @router.post("/login-password", response_model=TokenResponse)
 def login_password(data: PasswordLoginRequest):
     user = User.objects(phone=data.phone).first()
@@ -67,6 +68,7 @@ def login_password(data: PasswordLoginRequest):
     })
 
     return {"access_token": token}
+
 @router.get("/me")
 def me(user: User = Depends(get_current_user)):
     return {
@@ -76,6 +78,7 @@ def me(user: User = Depends(get_current_user)):
         "active": user.is_active,
         "last_login": user.last_login
     }
+
 @router.post("/logout")
 def logout():
     return {"message": "Logout successful (client-side token delete)"}

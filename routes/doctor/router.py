@@ -12,6 +12,7 @@ from models import (
 )
 
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
+
 @router.post("/profile/create")
 def create_profile(
     specialization: str,
@@ -35,10 +36,50 @@ def create_profile(
 
     return {"message": "Doctor profile created", "id": str(doc.id)}
 
+@router.put("/profile/update")
+async def update_profile(
+    data: dict,
+    user=Depends(get_current_user)
+):
+    profile = DoctorProfile.objects(user=user).first()
+
+    if not profile:
+        raise HTTPException(404, "Profile not found")
+
+    # =========================
+    # UPDATE USER NAME
+    # =========================
+    if "name" in data:
+        user.name = data["name"]
+        user.save()
+
+    # =========================
+    # UPDATE PROFILE FIELDS
+    # =========================
+    if "specialization" in data:
+        profile.specialization = data["specialization"]
+
+    if "experience_years" in data:
+        profile.experience_years = data["experience_years"]
+
+    profile.save()
+
+    return {"message": "Profile updated successfully"}
+
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
-    return DoctorProfile.objects(user=user).first()
+    profile = DoctorProfile.objects(user=user).first()
 
+    if not profile:
+        raise HTTPException(404, "Profile not found")
+
+    return {
+        "name": user.name,   # 🔥 added
+        "phone": user.phone,  # 🔥 added
+        "specialization": profile.specialization,
+        "experience_years": profile.experience_years,
+        "available": profile.available
+    }
 
 @router.post("/availability")
 def toggle_availability(

@@ -21,6 +21,7 @@ content %}
     <thead class="table-light">
       <tr>
         <th>Name</th>
+        <th>Mobile</th>
         <th>Specialization</th>
         <th>Experience</th>
         <th>Status</th>
@@ -32,7 +33,10 @@ content %}
       {% if doctors %} {% for doctor in doctors %}
       <tr>
         <!-- NAME -->
-        <td>{{ doctor.user.name }}</td>
+        <td>
+          <span class="capitalize"> {{ doctor.user.name }} </span>
+        </td>
+        <td>{{ doctor.user.phone }}</td>
 
         <!-- SPECIALIZATION -->
         <td>

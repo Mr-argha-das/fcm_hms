@@ -11,43 +11,38 @@ from models import (
 )
 from datetime import datetime
 from mongoengine.errors import NotUniqueError
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+
 router = APIRouter(prefix="/patient", tags=["Patient"])
 
 @router.post("/create")
 def create_patient(payload: dict):
     try:
-        # 🔹 CREATE USER
         user = User(
             role="PATIENT",
             name=payload["name"],
+            father_name=payload.get("father_name"),
             phone=payload["phone"],
             other_number=payload.get("other_number"),
             email=payload.get("email"),
         ).save()
 
-        # 🔹 CREATE PATIENT PROFILE
         patient = PatientProfile(
             user=user,
             age=payload.get("age"),
             gender=payload.get("gender"),
             medical_history=payload.get("medical_history"),
-            address=payload.get("address"),              # ✅ NEW
+            address=payload.get("address"),
             service_start=payload.get("service_start"),
             service_end=payload.get("service_end"),
-            assigned_doctor=payload.get("assigned_doctor") or None,
+            assigned_doctor=payload.get("assigned_doctor"),
+            documents=payload.get("documents", [])   # ✅ HERE
         ).save()
 
-        return {
-            "success": True,
-            "patient_id": str(patient.id)
-        }
+        return {"success": True, "patient_id": str(patient.id)}
 
     except NotUniqueError:
-        raise HTTPException(
-            status_code=400,
-            detail="Phone number already registered"
-        )
+        raise HTTPException(status_code=400, detail="Phone already registered")
 
     except Exception as e:
         raise HTTPException(
@@ -56,9 +51,108 @@ def create_patient(payload: dict):
         )
 
     return {"message": "Patient registered", "id": str(patient.id)}
+
+@router.post("/{patient_id}/add-document")
+def add_patient_document(patient_id: str, path: str):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    patient.documents.append(path)
+    patient.save()
+
+    return {
+        "success": True,
+        "documents": patient.documents
+    }
+
+@router.put("/{patient_id}/update-document")
+def update_patient_document(
+    patient_id: str,
+    old_path: str,
+    new_path: str
+):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    if old_path not in patient.documents:
+        raise HTTPException(404, "Document not found")
+
+    # 🔁 Replace
+    index = patient.documents.index(old_path)
+    patient.documents[index] = new_path
+    patient.save()
+
+    return {
+        "success": True,
+        "documents": patient.documents
+    }
+@router.delete("/{patient_id}/delete-document")
+def delete_patient_document(
+    patient_id: str,
+    path: str
+):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    if path not in patient.documents:
+        raise HTTPException(404, "Document not found")
+
+    patient.documents.remove(path)
+    patient.save()
+
+    return {
+        "success": True,
+        "documents": patient.documents
+    }
+
+
+@router.post("/me/add-document")
+def add_my_document(path: str, user=Depends(get_current_user)):
+    patient = PatientProfile.objects(user=user).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    patient.documents.append(path)
+    patient.save()
+
+    return {"success": True, "documents": patient.documents}
+
+
+@router.put("/me/update-document")
+def update_my_document(old_path: str, new_path: str, user=Depends(get_current_user)):
+    patient = PatientProfile.objects(user=user).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    if old_path not in patient.documents:
+        raise HTTPException(404, "Document not found")
+
+    idx = patient.documents.index(old_path)
+    patient.documents[idx] = new_path
+    patient.save()
+
+    return {"success": True, "documents": patient.documents}
+
+
+@router.delete("/me/delete-document")
+def delete_my_document(path: str, user=Depends(get_current_user)):
+    patient = PatientProfile.objects(user=user).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    patient.documents.remove(path)
+    patient.save()
+
+    return {"success": True, "documents": patient.documents}
+
+
 @router.get("/profile/me")
 def my_profile(user=Depends(get_current_user)):
     return PatientProfile.objects(user=user).first()
+
 @router.get("/note/list")
 def daily_notes(user=Depends(get_current_user)):
     patient = PatientProfile.objects(user=user).first()
@@ -456,38 +550,43 @@ def serialize_medication(m):
         "notes": getattr(m, "notes", []),
     }
 
+# def serialize_patient(patient):
+#     return {
+#         "id": str(patient.id),
+#         "name": patient.user.name,
+#         "phone": patient.user.phone,
+#         "age": patient.age,
+#         "gender": patient.gender,
+#         "address": patient.address,
+#         "service_start": patient.service_start,
+#         "service_end": patient.service_end,
+
+#         # ✅ NEW
+#         "documents": patient.documents or []
+#     }
+
 def serialize_patient(patient):
+    user = patient.user
+
     return {
         "id": str(patient.id),
-        "name": patient.user.name,
-        "phone": patient.user.phone,
+
+        # USER FIELDS
+        "name": user.name,
+        "father_name": user.father_name,
+        "phone": user.phone,
+        "other_number": user.other_number,
+        "email": user.email,
+
+        # PATIENT FIELDS
         "age": patient.age,
         "gender": patient.gender,
         "address": patient.address,
+        "medical_history": patient.medical_history,
         "service_start": patient.service_start,
         "service_end": patient.service_end,
+        "documents": patient.documents or []
     }
-
-
-
-# @router.get("/profile/view")
-# def view_patient_detailsfgcg(user=Depends(get_current_user)):
-#     patient = PatientProfile.objects(user=user).first()
-#     if not patient:
-#         raise HTTPException(404, "Patient not found")
-
-#     duties = NurseDuty.objects(patient=patient, is_active=True)
-#     notes = PatientDailyNote.objects(patient=patient)
-#     vitals = PatientVitals.objects(patient=patient)
-#     medications = PatientMedication.objects(patient=patient)
-
-#     return {
-#         "patient": serialize_patient(patient),
-#         "duties": [serialize_duty(d) for d in duties],
-#         "notes": [serialize_note(n) for n in notes],
-#         "vitals": [serialize_vital(v) for v in vitals],
-#         "medications": [serialize_medication(m) for m in medications],
-#     }
 
 @router.get("/profile/view")
 def view_patient_profile(user=Depends(get_current_user)):
@@ -512,11 +611,11 @@ def view_patient_profile(user=Depends(get_current_user)):
     vitals = PatientVitals.objects(
         patient=patient
     ).order_by("-recorded_at")
-
+    
     medications = PatientMedication.objects(
         patient=patient
     )
-
+    
     return {
         "patient": serialize_patient(patient),
         "duties": [serialize_duty(d) for d in duties],
@@ -543,4 +642,52 @@ def view_patient_detailsbjjbj(isd:str):
         "notes": [serialize_note(n) for n in notes],
         "vitals": [serialize_vital(v) for v in vitals],
         "medications": [serialize_medication(m) for m in medications],
+    }
+
+
+class PatientProfileUpdate(BaseModel):
+    name: str
+    father_name: str
+    phone: str
+    other_number: str
+    email: EmailStr
+
+    age: int
+    gender: str
+    address: str
+    medical_history: str          # ✅ NEW
+    documents: List[str]
+
+
+@router.put("/profile/update")
+def update_patient_profile(
+    payload: PatientProfileUpdate,
+    user: User = Depends(get_current_user)
+):
+    if user.role != "PATIENT":
+        raise HTTPException(403, "Only patients can update profile")
+
+    patient = PatientProfile.objects(user=user).first()
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+
+    # USER
+    user.name = payload.name
+    user.father_name = payload.father_name
+    user.phone = payload.phone
+    user.other_number = payload.other_number
+    user.email = payload.email
+    user.save()
+
+    # PATIENT
+    patient.age = payload.age
+    patient.gender = payload.gender
+    patient.address = payload.address
+    patient.medical_history = payload.medical_history   # ✅ NEW
+    patient.documents = payload.documents
+    patient.save()
+
+    return {
+        "success": True,
+        "message": "Profile updated successfully"
     }

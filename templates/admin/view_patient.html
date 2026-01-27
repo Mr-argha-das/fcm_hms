@@ -50,11 +50,13 @@
         <p><b>Name:</b> {{ patient.user.name }}</p>
         <p><b>Phone:</b> {{ patient.user.phone }}</p>
         <p><b>Email:</b> {{ patient.user.email or "-" }}</p>
+        
       </div>
       <div class="col-md-4">
         <p><b>Age:</b> {{ patient.age }}</p>
         <p><b>Gender:</b> {{ patient.gender }}</p>
         <p><b>Address:</b> {{ patient.address }}</p>
+       
       </div>
       <div class="col-md-4">
         <p><b>Service Start:</b> {{ patient.service_start }}</p>
@@ -69,6 +71,21 @@
         </p>
       </div>
     </div>
+     <p><b>Documents:</b></p>
+
+    {% if patient.documents %}
+      <ul class="list-unstyled mt-2">
+        {% for doc in patient.documents %}
+          <li class="mb-1">
+            <a href="{{ doc }}" target="_blank" class="text-primary">
+              📄 Document {{ loop.index }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <span class="text-muted">No documents uploaded</span>
+    {% endif %}
   </div>
 </div>
 
@@ -336,6 +353,8 @@
           <th width="140">Till Date</th>
           <th width="80">Days</th>
            <th width="120">Qty</th>
+            <th width="120">Price</th> <!-- 🔥 NEW -->
+           <th width="60">GST</th>
           <th width="120">Unit Price</th>
           <th width="60"></th>
         </tr>
@@ -443,7 +462,7 @@ function addOtherItemRow() {
   const tbody = document.getElementById("otherItemsTable");
   const row = document.createElement("tr");
 
-  row.innerHTML = `
+ row.innerHTML = `
     <td>
       <input class="form-control item-title" placeholder="Service name">
     </td>
@@ -461,15 +480,38 @@ function addOtherItemRow() {
     </td>
 
     <td>
-     <input type="number" class="form-control item-qty" value="1" min="1">
+      <input type="number" value="1" min="1"
+      class="form-control item-qty"
+      onchange="updateRowTotal(this)">
+      </td>
+      
+      
+      <td>
+        <input type="number"
+        class="form-control item-price"
+        placeholder="Unit price"
+        onchange="updateRowTotal(this)">
+        </td>
+        <td>
+          <select class="form-control item-gst"
+            onchange="updateRowTotal(this)">
+            <option value="0">0%</option>
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18">18%</option>
+          </select>
+        </td>
+
+    <!-- 🔥 FINAL PRICE -->
+    <td>
+      <input type="number"
+        class="form-control item-final-price"
+        readonly>
     </td>
 
     <td>
-      <input type="number" class="form-control item-price" placeholder="Unit price">
-    </td>
-
-    <td>
-      <button class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">✖</button>
+      <button class="btn btn-sm btn-danger"
+        onclick="this.closest('tr').remove()">✖</button>
     </td>
   `;
 
@@ -490,6 +532,7 @@ function generateBill() {
     const days = Number(row.querySelector(".item-days").value) || null;
     const quantity = Number(row.querySelector(".item-qty").value) || 1;
     const unit_price = Number(row.querySelector(".item-price").value);
+    const gst_percent = Number(row.querySelector(".item-gst").value);
 
     if (title && unit_price > 0) {
       otherItems.push({
@@ -498,9 +541,13 @@ function generateBill() {
         till_date: till_date || null,
         days,
         quantity,
-        unit_price
+        unit_price,
+         gst_percent   // 🔥 NEW
       });
+
+     
     }
+
   });
 
 
@@ -554,7 +601,9 @@ function calculateDays(el) {
     const days =
       Math.floor((t - s) / (1000 * 60 * 60 * 24)) + 1;
 
+    // daysInput.value = days > 0 ? days : "";
     daysInput.value = days > 0 ? days : "";
+    updateRowTotal(row.querySelector(".item-days"));
   } else {
     daysInput.value = "";
   }
@@ -615,6 +664,30 @@ function loadBills() {
     alert("Failed to load bills");
   });
 }
+
+function updateRowTotal(el) {
+  const row = el.closest("tr");
+
+  const days = Number(row.querySelector(".item-days").value) || 0;
+  const qty = Number(row.querySelector(".item-qty").value) || 1;
+  const unit = Number(row.querySelector(".item-price").value) || 0;
+  const gst = Number(row.querySelector(".item-gst").value) || 0;
+
+  let base;
+
+  if (days > 0) {
+    base = days * qty * unit;
+  } else {
+    base = qty * unit;
+  }
+
+  const gstAmount = base * gst / 100;
+  const finalPrice = base + gstAmount;
+
+  row.querySelector(".item-final-price").value =
+    finalPrice.toFixed(2);
+}
+
 
 /* ---------- MARK PAID ---------- */
 function markPaid(id) {

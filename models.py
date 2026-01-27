@@ -51,6 +51,12 @@ class NurseProfile(Document):
     created_by = StringField(default="ADMIN", required=True)
     created_at = DateTimeField(default=datetime.utcnow)
 
+class NurseLiveLocation(Document):
+    nurse = ReferenceField(NurseProfile, required=True)
+    latitude = FloatField(required=True)
+    longitude = FloatField(required=True)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
 class NurseDuty(Document):
     nurse = ReferenceField(NurseProfile)
     patient = ReferenceField("PatientProfile")
@@ -166,6 +172,9 @@ class PatientProfile(Document):
     service_start = DateField()
     service_end = DateField()
 
+    # ✅ NEW FIELD (multiple documents)
+    documents = ListField(StringField(), default=list)
+
 class PatientDailyNote(Document):
     patient = ReferenceField(PatientProfile)
     nurse = ReferenceField(NurseProfile)
@@ -245,17 +254,39 @@ class RelativeAccess(Document):
     permissions = ListField(
         StringField(choices=["VITALS", "NOTES", "BILLING"])
     )
+
+
+# class PatientInvoice(Document):
+#     patient = ReferenceField(PatientProfile)
+
+#     total_amount = FloatField()
+#     paid_amount = FloatField()
+#     due_amount = FloatField()
+
+#     invoice_pdf = StringField()
+#     status = StringField(choices=["PAID", "PARTIAL", "DUE"])
+
+#     created_at = DateTimeField(default=datetime.utcnow)
+
 class PatientInvoice(Document):
     patient = ReferenceField(PatientProfile)
+
+    invoice_no = StringField(unique=True)   # ✅ only field
 
     total_amount = FloatField()
     paid_amount = FloatField()
     due_amount = FloatField()
 
     invoice_pdf = StringField()
-    status = StringField(choices=["PAID", "PARTIAL", "DUE"])
+
+    status = StringField(
+        choices=["PAID", "PARTIAL", "DUE"],
+        default="DUE"
+    )
 
     created_at = DateTimeField(default=datetime.utcnow)
+
+
 class Complaint(Document):
     raised_by = ReferenceField(User)
 
@@ -288,19 +319,41 @@ class Notification(Document):
 
     created_at = DateTimeField(default=datetime.utcnow)
 
+# class NurseVisit(Document):
+#     nurse = ReferenceField(NurseProfile, required=True)
+#     patient = ReferenceField(PatientProfile, required=True)
+#     duty = ReferenceField(NurseDuty)
+#     ward = StringField()
+#     room_no = StringField()
+#     visit_type = StringField(
+#         choices=["ROUTINE", "MEDICATION", "EMERGENCY", "FOLLOW_UP", "OTHER"],
+#     )
+    
+#     notes = StringField()
+#     visit_time = DateTimeField(default=datetime.utcnow)
+#     created_by = ReferenceField(User)   # 🔥 IMPORTANT
+#     created_at = DateTimeField(default=datetime.utcnow)
 class NurseVisit(Document):
     nurse = ReferenceField(NurseProfile, required=True)
     patient = ReferenceField(PatientProfile, required=True)
     duty = ReferenceField(NurseDuty)
+
+    dutyLocation = StringField(
+        choices=["HOME", "HOSPITAL"],
+        required=True
+    )
+
     ward = StringField()
     room_no = StringField()
+    address = StringField()
+
     visit_type = StringField(
         choices=["ROUTINE", "MEDICATION", "EMERGENCY", "FOLLOW_UP", "OTHER"],
     )
-    
+
     notes = StringField()
     visit_time = DateTimeField(default=datetime.utcnow)
-    created_by = ReferenceField(User)   # 🔥 IMPORTANT
+    created_by = ReferenceField(User)
     created_at = DateTimeField(default=datetime.utcnow)
 
 class DoctorAttendance(Document):
@@ -363,50 +416,55 @@ class Medicine(Document):
 #     created_at = DateTimeField(default=datetime.utcnow)
 
 
+# class BillItem(EmbeddedDocument):
+#     title = StringField()
+#     quantity = IntField()
+#     unit_price = FloatField()
+#     total_price = FloatField()
+#     dosage = StringField()
+
+#     # 🔹 DATE RANGE
+#     start_date = DateField(required=False)
+#     till_date = DateField(required=False)
+
+#     # 🔹 AUTO-CALCULATED
+#     days = IntField(required=False)
+
 class BillItem(EmbeddedDocument):
     title = StringField()
-    quantity = IntField()
-    unit_price = FloatField()
-    total_price = FloatField()
+
+    quantity = IntField(default=1)
+    unit_price = FloatField(default=0)
+
+    # 🔥 base total without GST
+    base_total = FloatField(default=0)
+
+    # 🔥 GST
+    gst_percent = FloatField(default=0)
+    gst_amount = FloatField(default=0)
+
+    # 🔥 final
+    total_price = FloatField(default=0)
+
     dosage = StringField()
 
-    # 🔹 DATE RANGE
-    start_date = DateField(required=False)
-    till_date = DateField(required=False)
-
-    # 🔹 AUTO-CALCULATED
-    days = IntField(required=False)
-
-
-# class PatientBill(Document):
-#     patient = ReferenceField(PatientProfile)
-#     items = ListField(EmbeddedDocumentField(BillItem))
-
-#     sub_total = FloatField()
-#     discount = FloatField(default=0)
-#     extra_charges = FloatField(default=0)
-
-#     gst_percent = FloatField(default=0)   # e.g. 18
-#     gst_amount = FloatField(default=0)
-
-#     grand_total = FloatField()
-
-#     bill_type = StringField(choices=["GST", "NON_GST"], default="NON_GST")
-
-#     pdf_file = StringField()
-#     bill_month = StringField()
-#     created_by = ReferenceField(User)
+    start_date = DateField()
+    till_date = DateField()
+    days = IntField()
 
 class PatientBill(Document):
     patient = ReferenceField("PatientProfile", required=True)
 
-    # 🔥 ITEMS
     items = EmbeddedDocumentListField(BillItem)
-    sub_total = FloatField(default=0)
+
+    sub_total = FloatField(default=0)     # without GST
+    gst_total = FloatField(default=0)     # only GST sum
+    total_gst = FloatField(default=0) 
+
     discount = FloatField(default=0)
     extra_charges = FloatField(default=0)
 
-    grand_total = FloatField(required=True)   # final without GST
+    grand_total = FloatField(required=True)  # final payable
 
     status = StringField(default="UNPAID")
     pdf = StringField()
@@ -415,3 +473,22 @@ class PatientBill(Document):
     bill_month = StringField()
 
     created_at = DateTimeField(default=datetime.utcnow)
+
+# class PatientBill(Document):
+#     patient = ReferenceField("PatientProfile", required=True)
+
+#     # 🔥 ITEMS
+#     items = EmbeddedDocumentListField(BillItem)
+#     sub_total = FloatField(default=0)
+#     discount = FloatField(default=0)
+#     extra_charges = FloatField(default=0)
+
+#     grand_total = FloatField(required=True)   # final without GST
+
+#     status = StringField(default="UNPAID")
+#     pdf = StringField()
+
+#     created_by = ReferenceField("User")
+#     bill_month = StringField()
+
+#     created_at = DateTimeField(default=datetime.utcnow)

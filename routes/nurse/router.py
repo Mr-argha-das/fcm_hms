@@ -9,7 +9,7 @@ from mongoengine.errors import ValidationError, NotUniqueError
 
 from core.dependencies import get_current_user
 from models import (
-    DoctorProfile, NurseProfile, NurseDuty, NurseAttendance,
+    DoctorProfile, NurseLiveLocation, NurseProfile, NurseDuty, NurseAttendance,
     NurseSalary, NurseConsent, NurseVisit, PatientProfile, User, PatientVitals, PatientDailyNote, PatientMedication
 )
 
@@ -185,6 +185,63 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
         user_id=str(user.id),
         verification_status=nurse.verification_status
     )
+
+
+@router.get("/self-signup/me", response_model=NurseSelfSignupRequest)
+def get_my_profile(current_user: User = Depends(get_current_user)):
+
+    nurse = NurseProfile.objects(user=current_user).first()
+    if not nurse:
+        raise HTTPException(404, "Profile not found")
+
+    return {
+        # USER
+        "phone": current_user.phone,
+        "other_number": current_user.other_number,
+        "name": current_user.name,
+        "father_name": current_user.father_name,
+        "email": current_user.email,
+
+        # PROFILE
+        "nurse_type": nurse.nurse_type,
+        "aadhaar_number": nurse.aadhaar_number,
+        "qualification_docs": nurse.qualification_docs,
+        "experience_docs": nurse.experience_docs,
+        "profile_photo": nurse.profile_photo,
+        "digital_signature": nurse.digital_signature,
+        "joining_date": nurse.joining_date,
+    }
+
+@router.put("/self-signup/update")
+def update_my_profile(
+    payload: NurseSelfSignupRequest,
+    current_user: User = Depends(get_current_user)
+):
+    nurse = NurseProfile.objects(user=current_user).first()
+    if not nurse:
+        raise HTTPException(404, "Profile not found")
+
+    # 🔹 update user
+    current_user.update(
+        set__phone=payload.phone,
+        set__other_number=payload.other_number,
+        set__name=payload.name,
+        set__father_name=payload.father_name,
+        set__email=payload.email,
+    )
+
+    # 🔹 update nurse
+    nurse.update(
+        set__nurse_type=payload.nurse_type,
+        set__aadhaar_number=payload.aadhaar_number,
+        set__qualification_docs=payload.qualification_docs,
+        set__experience_docs=payload.experience_docs,
+        set__profile_photo=payload.profile_photo,
+        set__digital_signature=payload.digital_signature,
+        set__joining_date=payload.joining_date,
+    )
+
+    return {"message": "Profile updated successfully"}
 
 
 @router.post("/create", response_model=NurseResponse)
@@ -487,6 +544,8 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
             "patient_name": patient_user.name if patient_user else None,
             "ward": v.ward,
             "room_no": v.room_no,
+            "address": v.address,
+            "dutyLocation": v.dutyLocation,
             "visit_type": v.visit_type,
             "visit_time": v.visit_time
         })
@@ -530,6 +589,48 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
         },
 
         "weekly_hours": weekly_hours
+    }
+
+
+# Location Track
+@router.post("/location/update")
+def update_location(
+    payload: dict,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "NURSE":
+        raise HTTPException(403, "Only nurse allowed")
+
+    nurse = NurseProfile.objects(user=current_user).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    NurseLiveLocation.objects(nurse=nurse).update_one(
+        set__latitude=payload["latitude"],
+        set__longitude=payload["longitude"],
+        set__updated_at=datetime.utcnow(),
+        upsert=True
+    )
+
+    return {"success": True}
+
+@router.get("/{nurse_id}/location-track")
+def get_nurse_location(nurse_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "ADMIN":
+        raise HTTPException(403)
+
+    loc = NurseLiveLocation.objects(
+        nurse=nurse_id
+    ).first()
+
+    if not loc:
+        return {"active": False}
+
+    return {
+        "active": True,
+        "latitude": loc.latitude,
+        "longitude": loc.longitude,
+        "updated_at": loc.updated_at
     }
 
 @router.get("/patients")
@@ -868,6 +969,73 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
     ]
 
 
+# @router.get("/nurse/visits")
+# def nurse_visits(
+#     request: Request,
+#     current_user: User = Depends(get_current_user)
+# ):
+#     if current_user.role != "NURSE":
+#         raise HTTPException(403, "Unauthorized")
+
+#     nurse = NurseProfile.objects(user=current_user).first()
+#     if not nurse:
+#         raise HTTPException(404, "Nurse profile not found")
+
+#     # 🔥 Pending first
+#     pending_visits = NurseVisit.objects(
+#         nurse=nurse,
+#         notes__in=[None, ""]
+#     ).order_by("-visit_time")
+
+#     # 🔥 Completed later
+#     completed_visits = NurseVisit.objects(
+#         nurse=nurse,
+#         notes__nin=[None, ""]
+#     ).order_by("-visit_time")
+
+#     visits = list(pending_visits) + list(completed_visits)
+    
+#     data = []
+
+#     for v in visits:
+#         patient = v.patient
+
+#         # 🔹 MEDICATIONS for this patient
+#         meds = []
+#         if patient:
+#             medications = PatientMedication.objects(patient=patient)
+#             for m in medications:
+#                 meds.append({
+#                     "medicine_name": m.medicine_name,
+#                     "dosage": m.dosage,
+#                     "timing": m.timing,
+#                     "duration_days": m.duration_days
+#                 })
+
+#         data.append({
+#             "visit_id": str(v.id),
+
+#             # PATIENT
+#             "patient_id": str(patient.id) if patient else None,
+#             "patient_name": patient.user.name if patient else "Unknown",
+#             "address": patient.address if patient else "",
+
+#             # VISIT
+#             "visit_type": v.visit_type,
+#             "visit_time": v.visit_time.isoformat(),
+#             "completed": bool(v.notes),
+
+#             # LOCATION
+#             "ward": v.ward,
+#             "room_no": v.room_no,
+
+#             # 💊 MEDICATIONS
+#             "medications": meds
+#         })
+
+#     return data
+
+
 @router.get("/nurse/visits")
 def nurse_visits(
     request: Request,
@@ -899,7 +1067,7 @@ def nurse_visits(
     for v in visits:
         patient = v.patient
 
-        # 🔹 MEDICATIONS for this patient
+        # 💊 MEDICATIONS
         meds = []
         if patient:
             medications = PatientMedication.objects(patient=patient)
@@ -911,22 +1079,39 @@ def nurse_visits(
                     "duration_days": m.duration_days
                 })
 
+        # 📍 LOCATION LOGIC
+        location_data = {
+            "dutyLocation": v.dutyLocation
+        }
+
+        if v.dutyLocation == "HOSPITAL":
+            location_data.update({
+                "ward": v.ward,
+                "room_no": v.room_no,
+                "address": None
+            })
+        else:  # HOME
+            location_data.update({
+                "ward": None,
+                "room_no": None,
+                "address": v.address
+            })
+
         data.append({
             "visit_id": str(v.id),
 
-            # PATIENT
+            # 👤 PATIENT
             "patient_id": str(patient.id) if patient else None,
             "patient_name": patient.user.name if patient else "Unknown",
-            "address": patient.address if patient else "",
+            "patient_address": patient.address if patient else "",
 
-            # VISIT
+            # 🕒 VISIT
             "visit_type": v.visit_type,
             "visit_time": v.visit_time.isoformat(),
             "completed": bool(v.notes),
 
-            # LOCATION
-            "ward": v.ward,
-            "room_no": v.room_no,
+            # 📍 LOCATION
+            **location_data,
 
             # 💊 MEDICATIONS
             "medications": meds
@@ -935,14 +1120,18 @@ def nurse_visits(
     return data
 
 
-
 # Create Vist Admin Schema
 class NurseVisitCreateAdmin(BaseModel):
     nurse_id: str
     patient_id: str
     duty_id: Optional[str] = None
+
+    dutyLocation: str   # HOME / HOSPITAL
+
     ward: Optional[str] = None
     room_no: Optional[str] = None
+    address: Optional[str] = None
+
     visit_type: str
     notes: Optional[str] = None
 
@@ -952,10 +1141,7 @@ def create_visit_admin(
     current_user: User = Depends(get_current_user)
 ):
     print("🔥 ADMIN VISIT CREATE HIT")
-    print("Payload:", payload.dict())
-    print("User:", current_user.role)
 
-    # ✅ Only admin allowed
     if current_user.role != "ADMIN":
         raise HTTPException(403, "Only admin allowed")
 
@@ -967,12 +1153,33 @@ def create_visit_admin(
     if not patient:
         raise HTTPException(404, "Patient not found")
 
+    # 🔐 LOCATION VALIDATION
+    if payload.dutyLocation == "HOME":
+        if not payload.address:
+            raise HTTPException(
+                400, "Address is required for HOME visit"
+            )
+
+        # hospital fields ignore
+        ward = None
+        room_no = None
+
+    elif payload.dutyLocation == "HOSPITAL":
+        ward = payload.ward
+        room_no = payload.room_no
+        address = None
+
+    else:
+        raise HTTPException(400, "Invalid dutyLocation")
+
     visit = NurseVisit(
         nurse=nurse,
         patient=patient,
         duty=payload.duty_id,
-        ward=payload.ward,
-        room_no=payload.room_no,
+        dutyLocation=payload.dutyLocation,
+        ward=ward,
+        room_no=room_no,
+        address=payload.address if payload.dutyLocation == "HOME" else None,
         visit_type=payload.visit_type,
         notes=payload.notes,
         created_by=current_user
@@ -1389,7 +1596,7 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
         "nurse": {
             "id": str(nurse.id),
             "phone": user.phone,
-            "name" : user.phone,
+            "name" : user.name,
             "nurse_type": nurse.nurse_type,
             "aadhaar_verified": nurse.aadhaar_verified,
             "verification_status": nurse.verification_status,
