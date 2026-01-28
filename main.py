@@ -22,6 +22,8 @@ from routes.medicine.routes import router as medicine_admin_router
 from admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
+from routes.digikey.digikey_routes import router as digikey_router
+
 from routes.staff.routes import router as staff_router
 
 from jose import JWTError
@@ -65,6 +67,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory="media"), name="media")
 # app.include_router(upload_router)
+app.include_router(digikey_router)
 app.include_router(upload_router)
 app.include_router(auth_router)
 app.include_router(nurse_router)
