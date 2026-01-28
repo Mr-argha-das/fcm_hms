@@ -50,9 +50,17 @@ class NurseCreateRequest(BaseModel):
         example="GNM",
         description="GNM | ANM | CARETAKER | PHYSIO | COMBO"
     )
-    aadhaar_number: Optional[str] = Field(
+    # aadhaar_number: Optional[str] = Field(
+    #     None,
+    #     example="123412341234"
+    # )
+    addhar_front: Optional[str] = Field(    
         None,
-        example="123412341234"
+        example="uploads/documents/aadhaar_front.jpg"
+    )
+    aadhaar_back: Optional[str] = Field(    
+        None,
+        example="uploads/documents/aadhaar_back.jpg"
     )
     qualification_docs: List[str] = Field(
         default_factory=list,
@@ -135,8 +143,8 @@ class NurseSelfSignupRequest(BaseModel):
         description="GNM | ANM | CARETAKER | PHYSIO | COMBO"
     )
 
-    aadhaar_number: Optional[str] = Field(None, example="123412341234")
-
+    aadhaar_front: Optional[str] = None
+    aadhaar_back: Optional[str] = None
     qualification_docs: List[str] = Field(default_factory=list)
     experience_docs: List[str] = Field(default_factory=list)
 
@@ -169,7 +177,8 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
     nurse = NurseProfile(
         user=user,
         nurse_type=payload.nurse_type,
-        aadhaar_number=payload.aadhaar_number,
+        aadhaar_front=payload.aadhaar_front,
+        aadhaar_back=payload.aadhaar_back,
         qualification_docs=payload.qualification_docs,
         experience_docs=payload.experience_docs,
         profile_photo=payload.profile_photo,
@@ -574,7 +583,7 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
         "nurse": {
             "nurse_id": str(nurse.id),
             "name": current_user.email.split("@")[0].title(),
-            "profile" : with_domain(nurse.profile_photo),
+           "profile": with_domain(nurse.profile_photo) if nurse.profile_photo else "/static/default.png",
             "nurse_type": nurse.nurse_type,
             "status": "ACTIVE" if attendance and attendance.check_in and not attendance.check_out else "INACTIVE",
             "worked_time": f"{worked_minutes // 60}h {worked_minutes % 60}m"

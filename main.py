@@ -1,6 +1,8 @@
 import os
-from core.dependencies import get_current_user
-from fastapi import FastAPI , Depends
+from core.dependencies import get_current_user, get_current_user_from_cookie
+from fastapi import FastAPI , Depends ,Request
+from fastapi.responses import RedirectResponse
+
 from fastapi.staticfiles import StaticFiles
 from core.database import init_db
 from routes.auth.auth import router as auth_router
@@ -21,8 +23,12 @@ from admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
 from routes.staff.routes import router as staff_router
+
+from jose import JWTError
 from startup import create_default_admin
 app = FastAPI(title="Hospital Management System")
+
+
 
 init_db()
 app.add_middleware(
@@ -40,6 +46,20 @@ app.add_middleware(
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/documents", exist_ok=True)
+
+@app.middleware("http")
+async def admin_auth_guard(request: Request, call_next):
+
+    path = request.url.path
+
+    if path.startswith("/admin") and path not in ["/admin/login"]:
+        try: 
+            user = get_current_user_from_cookie(request)
+            request.state.user = user
+        except:
+            return RedirectResponse("/admin/login")
+
+    return await call_next(request)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")

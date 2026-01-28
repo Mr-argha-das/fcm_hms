@@ -123,10 +123,28 @@
         });
 
         const d = await r.json();
+        console.log("D", d);
+
+        // if (d.access_token) {
+        //   localStorage.setItem("token", d.access_token);
+        //   window.location.href = "/admin/dashboard";
+        // }
 
         if (d.access_token) {
           localStorage.setItem("token", d.access_token);
-          window.location.href = "/admin/dashboard";
+
+          // 🔥 ROLE BASED REDIRECT
+          if (d.role === "ADMIN") {
+            window.location.href = "/admin/dashboard";
+          } else if (d.role === "NURSE") {
+            window.location.href = "/admin/nurses";
+          } else if (d.role === "DOCTOR") {
+            window.location.href = "/admin/doctors";
+          } else if (d.role === "PATIENT") {
+            window.location.href = "/admin/patients";
+          } else {
+            alert("Unknown role");
+          }
         } else {
           alert("Login failed");
         }

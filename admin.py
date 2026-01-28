@@ -3,8 +3,8 @@ from collections import defaultdict
 from datetime import date, timedelta
 from http.client import HTTPException
 import json
-from core.dependencies import get_current_user
-from fastapi import APIRouter, Request
+from core.dependencies import get_current_user , role_required
+from fastapi import APIRouter, Request , Depends
 from fastapi.params import Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,6 +15,8 @@ router = APIRouter(prefix="/admin", tags=["Admin Pages"])
 templates = Jinja2Templates(directory="templates")
 
 
+
+
 @router.get("/user-list")
 def admin_home(request: Request):
     return json.loads(User.objects.all().to_json())
@@ -22,11 +24,32 @@ def admin_home(request: Request):
 # -------------------------
 # AUTH
 # -------------------------
+# @router.get("/login", response_class=HTMLResponse)
+# def admin_login(request: Request):
+#     return templates.TemplateResponse(
+#         "admin/login.html", {"request": request}
+#     )
 @router.get("/login", response_class=HTMLResponse)
 def admin_login(request: Request):
     return templates.TemplateResponse(
-        "admin/login.html", {"request": request}
+        "admin/login.html",
+        {"request": request}
     )
+# @router.get("/login", response_class=HTMLResponse)
+# def admin_login(request: Request):
+
+#     try:
+#         user = get_current_user(request)
+#         if user:
+#             return RedirectResponse("/admin/dashboard")
+#     except:
+#         pass
+
+#     return templates.TemplateResponse(
+#         "admin/login.html",
+#         {"request": request}
+#     )
+
 
 
 @router.get("/nurses/self", response_class=HTMLResponse)
@@ -46,9 +69,20 @@ def self_registered_nurses(request: Request):
     )
 
 
+# @router.get("/dashboard", response_class=HTMLResponse)
+# def dashboard(request: Request):
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(request: Request, user = Depends(get_current_user)):
 
+    if user.role == "NURSE":
+        return RedirectResponse("/admin/nurses")
+
+    if user.role == "DOCTOR":
+        return RedirectResponse("/admin/doctors")
+
+    if user.role == "PATIENT":
+        return RedirectResponse("/admin/patients")
+    
     now = datetime.now()
 
     # ======================
@@ -159,6 +193,7 @@ def dashboard(request: Request):
         {
             "request": request,
 
+
             # KPI
             "total_patients": total_patients,
             "active_nurses": active_nurses,
@@ -175,6 +210,23 @@ def dashboard(request: Request):
             "chart_values": chart_values
         }
     )
+
+
+
+@router.get("/nurse-dashboard", response_class=HTMLResponse)
+def nurse_dashboard(
+    request: Request,
+    user = Depends(role_required(["NURSE"]))
+):
+    # basic data (abhi empty, next step me bharenge)
+    return templates.TemplateResponse(
+        "admin/nurse_dashboard.html",
+        {
+            "request": request
+        }
+    )
+
+
 # -------------------------
 # USERS
 # -------------------------
@@ -205,9 +257,24 @@ def create_patient_page(request: Request):
 # -------------------------
 # NURSE MODULE
 # -------------------------
-@router.get("/nurses", response_class=HTMLResponse)
-def nurses(request: Request):
+# @router.get("/nurses", response_class=HTMLResponse)
+# def nurses(request: Request):
 
+#     nurses_qs = NurseProfile.objects(created_by="ADMIN").select_related()
+
+#     return templates.TemplateResponse(
+#         "admin/nurses.html",
+#         {
+#             "request": request,
+#             "nurses": nurses_qs
+#         }
+#     )
+
+@router.get("/nurses", response_class=HTMLResponse)
+def nurses(
+    request: Request,
+    user = Depends(role_required(["ADMIN", "NURSE"]))
+):
     nurses_qs = NurseProfile.objects(created_by="ADMIN").select_related()
 
     return templates.TemplateResponse(
@@ -264,10 +331,25 @@ def consent(request: Request):
 # -------------------------
 # DOCTOR MODULE
 # -------------------------
-@router.get("/doctors", response_class=HTMLResponse)
-def doctors(request: Request):
+# @router.get("/doctors", response_class=HTMLResponse)
+# def doctors(request: Request):
 
-    doctors_qs = DoctorProfile.objects.select_related()
+#     doctors_qs = DoctorProfile.objects.select_related()
+
+#     return templates.TemplateResponse(
+#         "admin/doctors.html",
+#         {
+#             "request": request,
+#             "doctors": doctors_qs
+#         }
+#     )
+
+@router.get("/doctors", response_class=HTMLResponse)
+def doctors(
+    request: Request,
+    user = Depends(role_required(["ADMIN", "DOCTOR"]))
+):
+    doctors_qs = DoctorProfile.objects()  # select_related bhi hata hua hai (safe)
 
     return templates.TemplateResponse(
         "admin/doctors.html",
@@ -276,6 +358,8 @@ def doctors(request: Request):
             "doctors": doctors_qs
         }
     )
+
+
 @router.get("/doctor/assign", response_class=HTMLResponse)
 def doctor_assign(request: Request):
     return templates.TemplateResponse(
@@ -293,8 +377,23 @@ def doctor_visits(request: Request):
 # -------------------------
 # PATIENT MODULE
 # -------------------------
+# @router.get("/patients", response_class=HTMLResponse)
+# def patients(request: Request):
+
+#     patients_qs = PatientProfile.objects.select_related()
+
+#     return templates.TemplateResponse(
+#         "admin/patients.html",
+#         {
+#             "request": request,
+#             "patients": patients_qs
+#         }
+#     )
 @router.get("/patients", response_class=HTMLResponse)
-def patients(request: Request):
+def patients(
+    request: Request,
+    user = Depends(role_required(["ADMIN", "NURSE", "DOCTOR", "PATIENT"]))
+):
 
     patients_qs = PatientProfile.objects.select_related()
 

@@ -13,9 +13,11 @@ class User(Document):
     phone = StringField(required=True, unique=True)
     other_number = StringField(required=False)
     email = EmailField()
-    password_hash = StringField()     # Admin / Doctor
+    password_hash = StringField(default="$pbkdf2-sha256$29000$v1fqnbMWQqi1dg4hhJAyJg$i/NU8Lx6vm7TXh5pitQrPvFLS47wHbb8wtKArKmn.NE")     # Admin / Doctor
     otp_verified = BooleanField(default=False)
-
+    
+     # ⭐ ADD THIS
+    otp_session = StringField()
     is_active = BooleanField(default=True)
     last_login = DateTimeField()
 
@@ -26,8 +28,9 @@ class NurseProfile(Document):
     nurse_type = StringField(
         choices=["GNM", "ANM", "CARETAKER", "PHYSIO", "COMBO", "OTHER"]
     )
-
-    aadhaar_number = StringField()
+    aadhaar_front = StringField()
+    aadhaar_back = StringField()
+    # aadhaar_number = StringField()
     aadhaar_verified = BooleanField(default=False)
 
     qualification_docs = ListField(StringField())

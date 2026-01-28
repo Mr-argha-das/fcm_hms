@@ -1,80 +1,4 @@
-<!-- <div class="sidebar">
-  <h3 class="brand">🏥 WellNest</h3>
-
-  <a
-    href="/admin/dashboard"
-    class="{% if request.url.path == '/admin/dashboard' %}active{% endif %}"
-  >
-    📊 Dashboard
-  </a>
-
-  <a
-    href="/admin/nurses"
-    class="{% if request.url.path == '/admin/nurses' %}active{% endif %}"
-  >
-    👩‍⚕️ Nurses
-  </a>
-
-  <a
-    href="/admin/nurses/self"
-    class="{% if request.url.path == '/admin/nurses/self' %}active{% endif %}"
-  >
-    🧾 Self Registered
-  </a>
-
-  <a
-    href="/admin/doctors"
-    class="{% if request.url.path == '/admin/doctors' %}active{% endif %}"
-  >
-    👨‍⚕️ Doctors
-  </a>
-
-  <a
-    href="/admin/patients"
-    class="{% if request.url.path == '/admin/patients' %}active{% endif %}"
-  >
-    🧑‍🦽 Patients
-  </a>
-
-  <a
-    href="/admin/staff/manage"
-    class="{% if request.url.path.startswith('/admin/staff/manage') %}active{% endif %}"
-  >
-    👷 Staff
-  </a>
-
-  <a
-    href="/admin/medicine"
-    class="{% if request.url.path == '/admin/medicine' %}active{% endif %}"
-  >
-    💊 Medicines
-  </a>
-
-  <a
-    href="/admin/sos"
-    class="{% if request.url.path == '/admin/sos' %}active{% endif %}"
-  >
-    🚨 SOS
-  </a>
-
-  <a
-    href="/admin/complaints"
-    class="{% if request.url.path == '/admin/complaints' %}active{% endif %}"
-  >
-    📝 Complaints
-  </a>
-
-  <a
-    href="/admin/notifications"
-    class="{% if request.url.path == '/admin/notifications' %}active{% endif %}"
-  >
-    🔔 Notifications
-  </a>
-
-  <div class="mt-auto">
-    <a href="/admin/login" onclick="logout()" class="logout"> 🚪 Logout </a>
-  </div>
-</div> -->
+{% set role = request.state.user.role if request.state.user else None %}
 
 <aside
   class="w-72 fixed bg-gradient-to-b from-sky-100 to-white top-0 left-0 bottom-0 overflow-y-auto min-h-screen bg-sidebar flex flex-col p-3 py-6"
@@ -98,6 +22,7 @@
 
   <!-- Menu -->
   <nav class="space-y-1 mt-16 text-sm font-medium">
+    {% if role == "ADMIN" %}
     <!-- Dashboard -->
     <a
       href="/admin/dashboard"
@@ -187,6 +112,76 @@
       <div class="flex items-center gap-3">🔔 Notifications</div>
       <span>›</span>
     </a>
+    {% endif %} {% if role == "NURSE" %}
+
+    <!-- Nurses -->
+    <a
+      href="/admin/nurses"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/nurses' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">👩‍⚕️ Nurses</div>
+      <span>›</span>
+    </a>
+
+    <!-- Self Registered Nurses -->
+    <a
+      href="/admin/nurses/self"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/nurses/self' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🧾 Self Registered</div>
+      <span>›</span>
+    </a>
+    <!-- Patients -->
+    <a
+      href="/admin/patients"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/patients' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🧑‍🦽 Patients</div>
+      <span>›</span>
+    </a>
+    {% endif %}
+    <!--  -->
+    {% if role == "DOCTOR" %}
+
+    <!-- Doctors -->
+    <a
+      href="/admin/doctors"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/doctors' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">👨‍⚕️ Doctors</div>
+      <span>›</span>
+    </a>
+
+    <a
+      href="/admin/medicine"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/medicine' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">💊 Medicines</div>
+      <span>›</span>
+    </a>
+    <!-- Patients -->
+    <a
+      href="/admin/patients"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/patients' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🧑‍🦽 Patients</div>
+      <span>›</span>
+    </a>
+    {% endif %}
+    <!--  -->
+    {% if role == "PATIENT" %}
+    <!-- Patients -->
+    <a
+      href="/admin/patients"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/patients' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">🧑‍🦽 Patients</div>
+      <span>›</span>
+    </a>
+
+    {% if not role %}
+    <a href="/admin/login" class="text-gray-500 px-4 py-3">Login</a>
+    {% endif %} {% endif %}
   </nav>
 
   <div class="mt-10">
