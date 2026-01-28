@@ -50,10 +50,10 @@ class NurseCreateRequest(BaseModel):
         example="GNM",
         description="GNM | ANM | CARETAKER | PHYSIO | COMBO"
     )
-    # aadhaar_number: Optional[str] = Field(
-    #     None,
-    #     example="123412341234"
-    # )
+    aadhaar_number: Optional[str] = Field(
+        None,
+        example="123412341234"
+    )
     addhar_front: Optional[str] = Field(    
         None,
         example="uploads/documents/aadhaar_front.jpg"
@@ -135,22 +135,19 @@ class NurseSelfSignupRequest(BaseModel):
     name: str = Field(..., example="Sruti Das")
     father_name: Optional[str] = Field(None, example="Ram Das")
     email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
-
     # -------- NURSE PROFILE --------
     nurse_type: str = Field(
         ...,
         example="GNM",
         description="GNM | ANM | CARETAKER | PHYSIO | COMBO"
     )
-
+    aadhaar_number: Optional[str] = None
     aadhaar_front: Optional[str] = None
     aadhaar_back: Optional[str] = None
     qualification_docs: List[str] = Field(default_factory=list)
     experience_docs: List[str] = Field(default_factory=list)
-
     profile_photo: Optional[str] = None
     digital_signature: Optional[str] = None
-
     joining_date: Optional[date] = None
 
 
@@ -226,10 +223,10 @@ def get_my_profile(current_user: User = Depends(get_current_user)):
 def update_my_profile(
     payload: NurseSelfSignupRequest,
     current_user: User = Depends(get_current_user)
-):
+): 
     nurse = NurseProfile.objects(user=current_user).first()
     if not nurse:
-        raise HTTPException(404, "Profile not found")
+       raise HTTPException(404, "Profile not found")
 
     # 🔹 update user
     current_user.update(
@@ -250,9 +247,9 @@ def update_my_profile(
         set__digital_signature=payload.digital_signature,
         set__joining_date=payload.joining_date,
     )
-
+    
     return {"message": "Profile updated successfully"}
-
+    
 
 @router.post("/create", response_model=NurseResponse)
 async def create_nurse(payload: NurseCreateRequest , request: Request):   
@@ -337,7 +334,6 @@ async def create_nurse(payload: NurseCreateRequest , request: Request):
             status_code=500,
             detail="Internal server error while creating nurse"
         )
-
 
 
 @router.delete("/delete/{nurse_id}")

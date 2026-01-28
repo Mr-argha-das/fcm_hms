@@ -30,7 +30,7 @@ class NurseProfile(Document):
     )
     aadhaar_front = StringField()
     aadhaar_back = StringField()
-    # aadhaar_number = StringField()
+    aadhaar_number = StringField()
     aadhaar_verified = BooleanField(default=False)
 
     qualification_docs = ListField(StringField())

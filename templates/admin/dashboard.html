@@ -3,35 +3,38 @@ block content %}
 
 <!-- KPI CARDS -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-  <div
-    class="bg-card bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  <a
+    href="/admin/patients"
+    class="bg-card cursor-pointer bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
   >
     <div>
       <p class="text-sm text-muted">Total Patients</p>
       <h3 class="text-2xl font-bold">{{ total_patients }}</h3>
     </div>
     <div class="text-3xl">🧑‍🦽</div>
-  </div>
+  </a>
 
-  <div
-    class="bg-card !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  <a
+    href="/admin/nurses"
+    class="bg-card cursor-pointer !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
   >
     <div>
       <p class="text-sm text-muted">Active Nurses</p>
       <h3 class="text-2xl font-bold">{{ active_nurses }}</h3>
     </div>
     <div class="text-3xl">👩‍⚕️</div>
-  </div>
+  </a>
 
-  <div
-    class="bg-card !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
+  <a
+    href="/admin/doctors"
+    class="bg-card cursor-pointer !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
   >
     <div>
       <p class="text-sm text-muted">Doctors</p>
       <h3 class="text-2xl font-bold">{{ total_doctors }}</h3>
     </div>
     <div class="text-3xl">👨‍⚕️</div>
-  </div>
+  </a>
 
   <div
     class="bg-card !bg-gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"

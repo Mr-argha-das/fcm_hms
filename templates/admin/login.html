@@ -67,13 +67,15 @@
   <body class="d-flex align-items-center justify-content-center vh-100">
     <div class="card shadow login-card p-4">
       <!-- ICON -->
-      <div class="hospital-icon mb-3">
-        <i class="bi bi-hospital"></i>
+      <div style="display: flex; width: 100%; justify-content: center">
+        <img
+          src="{{ request.url_for('media', path='logos/wecare_header.png') }}"
+          style="width: 200px"
+        />
       </div>
-
       <!-- TITLE -->
       <div class="text-center mb-4">
-        <div class="brand">WellNest Hospital</div>
+        <!-- <div class="brand">WellNest Hospital</div> -->
         <div class="subtext">Admin Panel Login</div>
       </div>
 

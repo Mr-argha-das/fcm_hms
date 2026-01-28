@@ -31,7 +31,6 @@ from startup import create_default_admin
 app = FastAPI(title="Hospital Management System")
 
 
-
 init_db()
 app.add_middleware(
     CORSMiddleware,
@@ -85,6 +84,7 @@ app.include_router(notification_router)
 app.include_router(admin_router)
 app.include_router(medicine_admin_router)
 app.include_router(staff_router)
+
 @app.on_event("startup")
 def startup_event():
     create_default_admin()

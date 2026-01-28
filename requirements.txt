@@ -30,8 +30,8 @@ six==1.17.0
 starlette==0.50.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
-uvicorn==0.40.0
-httpx==0.24.1
+uvicorn>=0.23
+httpx>=0.24
 requests
 python-dotenv==1.0.0
 # sdsdsd

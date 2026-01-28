@@ -74,10 +74,10 @@ content %}
 
         <!-- VERIFICATION -->
         <td>
-          {% if nurse.verification_status == "APPROVED" %}
+          {% if nurse.aadhaar_verified == true %}
           <span class="badge bg-success">Verified</span>
-          {% elif nurse.verification_status == "REJECTED" %}
-          <span class="badge bg-danger">Rejected</span>
+          {% elif nurse.aadhaar_verified == false %}
+          <span class="badge bg-danger">Not Verified</span>
           {% else %}
           <span class="badge bg-warning text-dark">Pending</span>
           {% endif %}

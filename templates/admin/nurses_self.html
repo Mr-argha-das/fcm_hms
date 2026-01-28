@@ -69,13 +69,32 @@ endblock %} {% block content %}
 
         <!-- VERIFICATION -->
         <td>
-          <span class="badge bg-warning text-dark"> Pending </span>
+          {% if nurse.aadhaar_verified == true %}
+          <span class="badge bg-success">Verified</span>
+          {% elif nurse.aadhaar_verified == false %}
+          <span class="badge bg-danger">Not Verified</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
         </td>
+
+        <!-- <td>
+          <span class="badge bg-warning text-dark"> Pending </span>
+        </td> -->
 
         <!-- POLICE -->
         <td>
-          <span class="badge bg-warning text-dark"> Pending </span>
+          {% if nurse.police_verification_status == "CLEAR" %}
+          <span class="badge bg-success">Cleared</span>
+          {% elif nurse.police_verification_status == "FAILED" %}
+          <span class="badge bg-danger">Failed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
         </td>
+        <!-- <td>
+          <span class="badge bg-warning text-dark"> Pending </span>
+        </td> -->
 
         <!-- STATUS -->
         <td>
