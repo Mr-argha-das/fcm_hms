@@ -1,10 +1,16 @@
+import os
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from datetime import date, datetime
 from core.dependencies import admin_required, get_current_user
 from models import NurseProfile, NurseDuty, NurseSalary, NurseConsent, NurseVisit, PatientProfile
-from routes.auth.schemas import NurseVisitCreate
-
+from routes.auth.schemas import NurseVisitCreate, SignatureUpdateSchema
+from bson import ObjectId
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 router = APIRouter(prefix="/admin/nurse", tags=["Admin-Nurse"])
+
+
 @router.post("/approve")
 def approve_nurse(nurse_id: str, admin=Depends(admin_required)):
     nurse = NurseProfile.objects(id=nurse_id).first()
@@ -129,23 +135,94 @@ def admin_create_visit(
     visit.save()
 
     return {"message": "Visit created by admin"}
+from dotenv import load_dotenv
+load_dotenv()
+
+
+EMAIL_USER = "abhaykoli214@gmail.com"
+EMAIL_PASS = "qlan xrpx mzga jpls"
+
+def send_email(to_email: str, subject: str, body: str, is_html: bool = False) -> bool:
+    """
+    Generic reusable email sender
+    """
+
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL_USER
+    msg["To"] = to_email
+    msg["Subject"] = subject
+
+    content_type = "html" if is_html else "plain"
+    msg.attach(MIMEText(body, content_type))
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.sendmail(EMAIL_USER, to_email, msg.as_string())
+        server.quit()
+
+        print("✅ Email sent")
+        return True
+
+    except Exception as e:
+        print("❌ Email Error:", e)
+        return False
+
+
+# ==================================
+# Beautiful Account Approved Template
+# ==================================
+def send_account_approved_email(to_email: str, username: str = "User") -> bool:
+    """
+    Sends a beautiful account approved email
+    """
+
+    subject = "🎉 Your Account Has Been Approved"
+
+    body = f"""
+    <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:40px;">
+      <div style="max-width:520px; margin:auto; background:white; padding:35px;
+                  border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.08);
+                  text-align:center;">
+
+        <h2 style="color:#22c55e;">✅ Account Approved</h2>
+
+        <p style="font-size:16px; color:#333;">
+            Hi <b>{username}</b>,
+        </p>
+
+        <p style="font-size:15px; color:#555;">
+            Your account has been <b>successfully approved</b> 🎉<br>
+            You can now login and start using our services.
+        </p>
+
+
+        <p style="margin-top:30px; font-size:12px; color:#888;">
+            Thanks for choosing us ❤️
+        </p>
+      </div>
+    </div>
+    """
+
+    return send_email(to_email, subject, body, is_html=True)
+
 @router.post("/{nurse_id}/update")
 def update_nurse_admin(
     nurse_id: str,
-
     aadhaar_verified: str = Form("false"),
     police_verification_status: str = Form(...),
-
     nurse_type: str = Form(...),
     joining_date: str | None = Form(None),
     resignation_date: str | None = Form(None),
     is_active: str = Form("false"),
-
     salary_type: str = Form(...),
     salary_amount: float = Form(...),
     payment_mode: str = Form(...),
-    salary_date: int = Form(...)
-):
+    salary_date: int = Form(...),
+    digital_signature_verify: bool = Form(False)
+):  
+    
     nurse = NurseProfile.objects(id=nurse_id).first()
     if not nurse:
         raise HTTPException(404, "Nurse not found")
@@ -164,8 +241,14 @@ def update_nurse_admin(
         date.fromisoformat(resignation_date)
         if resignation_date else None
     )
+    nurse.digital_signature_verify = digital_signature_verify
 
     nurse.save()
+    if nurse.digital_signature_verify == True:
+       send_account_approved_email(
+       f"{nurse.user.email}",
+       username=f"{nurse.user.name}"
+       )
 
     # ✅ user active fix
     if nurse.user:
@@ -187,6 +270,28 @@ def update_nurse_admin(
     consent.salary_amount = salary_amount
     consent.payment_mode = payment_mode
     consent.salary_date = salary_date
+
     consent.save()
 
     return {"success": True}
+
+
+@router.put("/signature/{nurse_id}")
+async def update_nurse_signature(nurse_id: str, body: SignatureUpdateSchema):
+    try:
+        nurse = NurseProfile.objects(id=ObjectId(nurse_id)).first()
+
+        if not nurse:
+            raise HTTPException(status_code=404, detail="Nurse not found")
+
+        nurse.digital_signature = body.signature_path
+        nurse.save()
+
+        return {
+            "success": True,
+            "message": "Signature uploaded successfully",
+            "digital_signature": nurse.digital_signature
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

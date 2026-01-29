@@ -4,12 +4,12 @@ from urllib import request
 from fastapi import APIRouter, Depends, HTTPException, Request,status
 from datetime import datetime, timedelta,date
 from mongoengine.errors import ValidationError, NotUniqueError
-
+from bson import ObjectId
 
 
 from core.dependencies import get_current_user
 from models import (
-    DoctorProfile, NurseLiveLocation, NurseProfile, NurseDuty, NurseAttendance,
+    AboutUs, DoctorProfile, NurseLiveLocation, NurseProfile, NurseDuty, NurseAttendance,
     NurseSalary, NurseConsent, NurseVisit, PatientProfile, User, PatientVitals, PatientDailyNote, PatientMedication
 )
 
@@ -151,6 +151,30 @@ class NurseSelfSignupRequest(BaseModel):
     joining_date: Optional[date] = None
 
 
+
+@router.get("/about-us-get")
+def get_about_us():
+    about = AboutUs.objects.first()
+    # print(about.to_json())
+    # 🔥 if no data → return default empty
+    if not about:
+        return {
+            "id": None,
+            "name": "",
+            "designation": "",
+            "description": "",
+            "profile_image": "",
+        }
+
+    return {
+        "id": str(about.id),
+        "name": about.name,
+        "designation": about.designation,
+        "description": about.description,
+        "profile_image": with_domain(about.profile_image),
+    }
+
+
 @router.post("/self-signup", response_model=NurseResponse)
 def nurse_self_signup(payload: NurseSelfSignupRequest):
 
@@ -250,6 +274,29 @@ def update_my_profile(
     
     return {"message": "Profile updated successfully"}
     
+class SignatureUpdateSchema(BaseModel):
+    signature_path: str
+
+@router.put("/signature/{nurse_id}")
+async def update_nurse_signature(nurse_id: str, body: SignatureUpdateSchema):
+    try:
+        nurse = NurseProfile.objects(id=ObjectId(nurse_id)).first()
+
+        if not nurse:
+            raise HTTPException(status_code=404, detail="Nurse not found")
+
+        nurse.digital_signature = body.signature_path
+        nurse.save()
+
+        return {
+            "success": True,
+            "message": "Signature uploaded successfully",
+            "digital_signature": nurse.digital_signature
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/create", response_model=NurseResponse)
 async def create_nurse(payload: NurseCreateRequest , request: Request):   
@@ -391,7 +438,6 @@ def duty_check_in(user=Depends(get_current_user)):
     if nurse.police_verification_status == "FAILED":
         raise HTTPException(403, "Police verification failed")
 
-    ensure_consent_active(nurse)
 
     now = datetime.now(IST)
 
@@ -1556,6 +1602,7 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
     if not nurse:
         raise HTTPException(404, "Nurse profile not found")
 
+    print(nurse.to_mongo())
     user = nurse.user
 
     if month is None:
@@ -1605,6 +1652,8 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
             "name" : user.name,
             "nurse_type": nurse.nurse_type,
             "aadhaar_verified": nurse.aadhaar_verified,
+            "digital_signature_verify": nurse.digital_signature_verify,
+
             "verification_status": nurse.verification_status,
             "police_verification_status": nurse.police_verification_status,
             "joining_date": str(nurse.joining_date),
@@ -1615,7 +1664,10 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
             "profile_photo": with_domain(nurse.profile_photo),
             "qualification_docs": [with_domain(p) for p in nurse.qualification_docs],
             "experience_docs": [with_domain(p) for p in nurse.experience_docs],
+              # ✅ NEW FIELDS ADDED
+            "digital_signature": with_domain(nurse.digital_signature),
         },
+
         "kpi": {
             "attendance": total_present,
             "salary": salary.net_salary if salary else None,

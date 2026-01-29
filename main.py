@@ -19,6 +19,7 @@ from routes.complaint.router import router as complaint_router
 from routes.complaint.admin_router import router as admin_complaint_router
 from routes.notification.router import router as notification_router
 from routes.medicine.routes import router as medicine_admin_router
+from routes.auth.about_us_routes import router as about_router
 from admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
@@ -66,6 +67,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory="media"), name="media")
 # app.include_router(upload_router)
+app.include_router(about_router)
 app.include_router(digikey_router)
 app.include_router(upload_router)
 app.include_router(auth_router)

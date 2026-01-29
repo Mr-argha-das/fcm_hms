@@ -50,6 +50,19 @@ def admin_login(request: Request):
 #         {"request": request}
 #     )
 
+# =====================================================
+@router.get("/about", response_class=HTMLResponse)
+def about_page(request: Request):
+
+    about = AboutUs.objects.first()
+
+    return templates.TemplateResponse(
+        "admin/about_us.html",
+        {
+            "request": request,
+            "about": about
+        }
+    )
 
 
 @router.get("/nurses/self", response_class=HTMLResponse)

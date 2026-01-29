@@ -18,8 +18,15 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, token_version: int):
     to_encode = data.copy()
+
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+
+    to_encode.update({
+        "exp": expire,
+        "tv": token_version   # 🔥 token version add
+    })
+
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+

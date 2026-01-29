@@ -31,6 +31,13 @@
       <div class="flex items-center gap-3">📊 <span>Dashboard</span></div>
       <span class="text-gray-300">›</span>
     </a>
+    <a
+      href="/admin/about"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/about' %} bg-white text-primary shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-primary {% endif %}"
+    >
+      <div class="flex items-center gap-3">ℹ️ <span>About Us</span></div>
+      <span class="text-gray-300">›</span>
+    </a>
 
     <!-- Nurses -->
     <a

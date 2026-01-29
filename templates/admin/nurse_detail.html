@@ -16,27 +16,37 @@ block content %}
       <div>
         <h4>{{ user.name }}</h4>
         <h5 class="text-xs">Mobile : {{ user.phone }}</h5>
-        <h6 class="text-xs">Alt Mobile : {{ user.other_number }}</h6>
-        <p class="mb-1">
-          {{ nurse.nurse_type }} Nurse {% if nurse.aadhaar_verified %}
-          <span class="badge bg-success ms-2">Aadhaar Verified</span>
+        <h6 class="text-xs w-full flex">
+          Alt Mobile : {{ user.other_number }}
+        </h6>
+
+        <!-- <span class="badge bg-warning">{{ nurse.verification_status }}</span> -->
+
+        <span class="mb-1"> {{ nurse.nurse_type }} Nurse </span>
+        <div>
+          {% if nurse.aadhaar_verified %}
+          <span class="badge bg-success">Aadhaar Verified</span>
           {% endif %}
-        </p>
-        <span class="badge bg-warning">{{ nurse.verification_status }}</span>
-        <span class="badge bg-info"
-          >{{ nurse.police_verification_status }}</span
-        >
+          <span class="badge bg-info"
+            >Police Verification {{ nurse.police_verification_status }}</span
+          >
+          <span
+            class="badge {{ 'bg-warning' if nurse.digital_signature_verify else 'bg-danger' }}"
+            >Consent : {{ "Signed" if nurse.digital_signature_verify else
+            "Unsigned" }}
+          </span>
+        </div>
       </div>
     </div>
 
     <!-- 🔥 NAVIGATION BUTTON -->
     <div>
-      <a
+      <!-- <a
         href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
         class="btn btn-outline-primary btn-sm"
       >
         📊 Attendance & Salary
-      </a>
+      </a> -->
       <!-- <div class="mt-2 flex justify-content-between">
         <h5 class="text-sm">ward : {{ user.ward }}</h5>
         <h5 class="text-sm">room : {{ user.room }}</h5>

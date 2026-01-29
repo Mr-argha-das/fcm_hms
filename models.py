@@ -4,6 +4,7 @@ from xml.dom.minidom import Document
 from mongoengine import *
 
 class User(Document):
+    token_version = IntField(default=0)
     role = StringField(
         choices=["ADMIN", "NURSE", "DOCTOR", "PATIENT", "RELATIVE", "STAFF"],
         required=True
@@ -23,6 +24,17 @@ class User(Document):
 
     created_at = DateTimeField(default=datetime.utcnow)
 
+class AboutUs(Document):
+    name = StringField()
+    designation = StringField()
+    description = StringField()
+    profile_image = StringField()
+
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {"collection": "about_us"}
+
+    
 class NurseProfile(Document):
     user = ReferenceField(User, required=True)
     nurse_type = StringField(
@@ -38,21 +50,24 @@ class NurseProfile(Document):
 
     profile_photo = StringField()
     digital_signature = StringField()
+    digital_signature_verify = BooleanField(default=False)
 
     joining_date = DateField()
     resignation_date = DateField()
+
 
     verification_status = StringField(
         choices=["PENDING", "APPROVED", "REJECTED"],
         default="PENDING"
     )
-
     police_verification_status = StringField(
         choices=["PENDING", "CLEAR", "FAILED"],
         default="PENDING"
     )
     created_by = StringField(default="ADMIN", required=True)
     created_at = DateTimeField(default=datetime.utcnow)
+
+
 
 class NurseLiveLocation(Document):
     nurse = ReferenceField(NurseProfile, required=True)

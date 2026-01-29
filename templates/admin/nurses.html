@@ -24,8 +24,9 @@ content %}
       <tr>
         <th>Name</th>
         <th>Type</th>
-        <th>Verification</th>
+        <th>Addhaar</th>
         <th>Police</th>
+        <th>Signaure</th>
         <th>Status</th>
         <th class="text-center !min-w-[200px">Actions</th>
       </tr>
@@ -91,6 +92,15 @@ content %}
           <span class="badge bg-danger">Failed</span>
           {% else %}
           <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+
+        <!-- SIGNATURE -->
+        <td>
+          {% if nurse.digital_signature_verify %}
+          <span class="badge bg-success">Signed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Unsigned</span>
           {% endif %}
         </td>
 

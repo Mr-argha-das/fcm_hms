@@ -1,0 +1,160 @@
+{% extends "admin/base.html" %} {% block title %}About Us Management{% endblock
+%} {% block content %}
+
+<div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
+  <h4>About Us Management</h4>
+  <p class="text-muted">Update app About Us content</p>
+</div>
+
+<form id="aboutForm">
+  <!-- ================= IMAGE ================= -->
+  <div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
+    <label class="form-label">Profile Image</label>
+
+    <div class="mb-2">
+      <img
+        id="previewImg"
+        src=""
+        style="
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 1px solid #ccc;
+        "
+      />
+    </div>
+
+    <input type="file" id="imageInput" class="form-control" accept="image/*" />
+  </div>
+
+  <!-- ================= NAME ================= -->
+  <div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
+    <label>Name</label>
+    <input type="text" name="name" class="form-control" required />
+  </div>
+
+  <!-- ================= DESIGNATION ================= -->
+  <div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
+    <label>Designation</label>
+    <input type="text" name="designation" class="form-control" required />
+  </div>
+
+  <!-- ================= DESCRIPTION ================= -->
+  <div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
+    <label>Description</label>
+    <textarea
+      name="description"
+      rows="10"
+      class="form-control"
+      required
+    ></textarea>
+  </div>
+
+  <!-- ================= SAVE ================= -->
+  <button type="button" id="saveBtn" class="btn btn-success">
+    💾 Save Changes
+  </button>
+</form>
+
+<!-- =====================================================
+      JS
+===================================================== -->
+<script>
+  function headers() {
+    return {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+      "Content-Type": "application/json",
+    };
+  }
+
+  let uploadedImagePath = null;
+
+  /* =====================================================
+   🔹 LOAD EXISTING DATA
+===================================================== */
+  async function loadAbout() {
+    const res = await fetch("/admin/about-us-get", {
+      headers: headers(),
+    });
+
+    const data = await res.json();
+
+    document.querySelector("[name=name]").value = data.name || "";
+    document.querySelector("[name=designation]").value = data.designation || "";
+    document.querySelector("[name=description]").value = data.description || "";
+
+    if (data.profile_image) {
+      uploadedImagePath = data.profile_image;
+      document.getElementById("previewImg").src = data.profile_image;
+    }
+  }
+
+  /* =====================================================
+   🔹 IMAGE PREVIEW + UPLOAD
+===================================================== */
+  document
+    .getElementById("imageInput")
+    .addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // preview
+      document.getElementById("previewImg").src = URL.createObjectURL(file);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "about");
+
+      const res = await fetch("/upload/file", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert("Upload failed");
+        return;
+      }
+
+      uploadedImagePath = data.path;
+    });
+
+  /* =====================================================
+   🔹 SAVE DATA
+===================================================== */
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const payload = {
+      name: document.querySelector("[name=name]").value,
+      designation: document.querySelector("[name=designation]").value,
+      description: document.querySelector("[name=description]").value,
+      profile_image: uploadedImagePath || "",
+    };
+
+    const res = await fetch("/admin/get-update", {
+      method: "PUT",
+      headers: headers(),
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.detail || "Update failed");
+      return;
+    }
+
+    alert("✅ About Us updated successfully");
+  });
+
+  /* =====================================================
+   🔹 INIT
+===================================================== */
+  loadAbout();
+</script>
+
+{% endblock %}

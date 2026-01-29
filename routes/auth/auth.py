@@ -113,15 +113,21 @@ def verify_otp(data: VerifyOTPRequest):
 
 
     user.otp_verified = True
-    user.otp_session = None        # cleanup session
+    user.otp_session = None
     user.last_login = datetime.utcnow()
+
+# 🔥 SINGLE SESSION LOGIC
+    user.token_version += 1   # old tokens invalid
     user.save()
 
-
-    token = create_access_token({
+    token = create_access_token(
+    {
         "user_id": str(user.id),
         "role": user.role
-    })
+    },
+    user.token_version
+    )
+
 
 
     return {

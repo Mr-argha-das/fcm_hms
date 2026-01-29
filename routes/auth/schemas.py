@@ -58,4 +58,8 @@ class NurseCreateWithConsentRequest(BaseModel):
     salary_type: str               # DAILY / MONTHLY
     salary_amount: float
     payment_mode: str              # CASH / BANK / UPI
-    salary_date: int               # 1–31
+    salary_date: int  
+    
+                 # 1–31
+class SignatureUpdateSchema(BaseModel):
+    signature_path: str
