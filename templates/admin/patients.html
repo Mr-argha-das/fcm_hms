@@ -17,9 +17,33 @@ content %}
   </div> -->
 
   <div class="d-flex p-3 justify-content-between align-items-center">
-    <h5 class="mb-0 text-md">Patients</h5>
+    <div>
+      <h5 class="mb-0 text-md">Patients</h5>
+      <div class="text-sm text-muted mt-1">
+        Total: {{ total_patients }} | Active: {{ active_patients }} |
+        Discharged: {{ discharged_patients }}
+      </div>
+    </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
+      <a
+        href="/admin/patients"
+        class="btn btn-sm {% if status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+      >
+        All
+      </a>
+      <a
+        href="/admin/patients?status=active"
+        class="btn btn-sm {% if status == 'active' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+      >
+        Active
+      </a>
+      <a
+        href="/admin/patients?status=discharged"
+        class="btn btn-sm {% if status == 'discharged' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+      >
+        Discharged
+      </a>
       <button
         class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
         onclick="location.href = '/admin/create/patient'"
@@ -37,7 +61,6 @@ content %}
           <th class="min-w-40">Name</th>
           <th>Age</th>
           <th>Gender</th>
-          <th>Age</th>
           <th>Mobile</th>
           <th class="min-w-40">Doctor</th>
           <th class="min-w-96">Address / Ward</th>
@@ -50,15 +73,13 @@ content %}
         {% if patients %} {% for patient in patients %}
         <tr>
           <!-- NAME -->
-          <td>{{ patient.user.name }}</td>
+          <td>{{ patient.user.name or "Self Registered Patient" }}</td>
 
           <!-- AGE -->
           <td>{{ patient.age or "-" }}</td>
 
           <!-- GENDER -->
           <td>{{ patient.gender or "-" }}</td>
-          <!-- AGE -->
-          <td>{{ patient.age or "-" }}</td>
 
           <!-- MOBILE -->
           <td>{{ patient.user.phone }}</td>
@@ -75,7 +96,7 @@ content %}
           <!-- STATUS -->
           <td>
             {% if patient.service_end %}
-            <span class="badge bg-success">Recovered</span>
+            <span class="badge bg-success">Discharged</span>
             {% elif patient.assigned_doctor %}
             <span class="badge bg-info text-dark">Under Observation</span>
             {% else %}
@@ -100,7 +121,11 @@ content %}
             </a>
 
             {% if not patient.service_end %}
-            <button class="btn btn-sm btn-outline-danger" title="Discharge">
+            <button
+              class="btn btn-sm btn-outline-danger"
+              title="Discharge"
+              onclick="dischargePatient('{{ patient.id }}')"
+            >
               🏥
             </button>
             {% endif %}
@@ -115,5 +140,35 @@ content %}
     </table>
   </div>
 </div>
+
+<script>
+  function authHeaders() {
+    return {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    };
+  }
+
+  async function dischargePatient(patientId) {
+    if (!confirm("Discharge this patient?")) return;
+
+    try {
+      const res = await fetch(`/admin/patient/${patientId}/discharge`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert("Patient discharged successfully");
+        window.location.reload();
+      } else {
+        alert(data.detail || "Failed to discharge patient");
+      }
+    } catch (err) {
+      console.error("Discharge error:", err);
+      alert("Something went wrong");
+    }
+  }
+</script>
 
 {% endblock %}

@@ -1,10 +1,9 @@
 import calendar
 from collections import defaultdict
 from datetime import date, timedelta
-from http.client import HTTPException
 import json
 from core.dependencies import get_current_user , role_required
-from fastapi import APIRouter, Request , Depends
+from fastapi import APIRouter, Request , Depends, HTTPException, Query
 from fastapi.params import Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -13,6 +12,13 @@ from models import *
 router = APIRouter(prefix="/admin", tags=["Admin Pages"])
 
 templates = Jinja2Templates(directory="templates")
+
+
+def ensure_patient_profiles_for_registered_users():
+    patient_users = User.objects(role="PATIENT")
+    for patient_user in patient_users:
+        if not PatientProfile.objects(user=patient_user).first():
+            PatientProfile(user=patient_user).save()
 
 
 
@@ -97,11 +103,16 @@ def dashboard(request: Request, user = Depends(get_current_user)):
         return RedirectResponse("/admin/patients")
     
     now = datetime.now()
+    ensure_patient_profiles_for_registered_users()
 
     # ======================
     # KPI
     # ======================
     total_patients = PatientProfile.objects.count()
+    discharged_patients = PatientProfile.objects(
+        service_end__exists=True,
+        service_end__ne=None
+    ).count()
 
     active_nurses = NurseProfile.objects(
         verification_status="APPROVED"
@@ -209,6 +220,7 @@ def dashboard(request: Request, user = Depends(get_current_user)):
 
             # KPI
             "total_patients": total_patients,
+            "discharged_patients": discharged_patients,
             "active_nurses": active_nurses,
             "total_doctors": total_doctors,
             "monthly_revenue": round(monthly_revenue, 2),
@@ -405,18 +417,61 @@ def doctor_visits(request: Request):
 @router.get("/patients", response_class=HTMLResponse)
 def patients(
     request: Request,
+    status: str = Query("all", pattern="^(all|active|discharged)$"),
     user = Depends(role_required(["ADMIN", "NURSE", "DOCTOR", "PATIENT"]))
 ):
+    ensure_patient_profiles_for_registered_users()
 
-    patients_qs = PatientProfile.objects.select_related()
+    total_patients = PatientProfile.objects.count()
+    active_patients = PatientProfile.objects(service_end=None).count()
+    discharged_patients = PatientProfile.objects(
+        service_end__exists=True,
+        service_end__ne=None
+    ).count()
+
+    if status == "active":
+        patients_qs = PatientProfile.objects(service_end=None).select_related()
+    elif status == "discharged":
+        patients_qs = PatientProfile.objects(
+            service_end__exists=True,
+            service_end__ne=None
+        ).select_related()
+    else:
+        patients_qs = PatientProfile.objects.select_related()
 
     return templates.TemplateResponse(
         "admin/patients.html",
         {
             "request": request,
-            "patients": patients_qs
+            "patients": patients_qs,
+            "status": status,
+            "total_patients": total_patients,
+            "active_patients": active_patients,
+            "discharged_patients": discharged_patients,
         }
     )
+
+
+@router.post("/patient/{patient_id}/discharge")
+def discharge_patient(
+    patient_id: str,
+    user = Depends(role_required(["ADMIN", "NURSE"]))
+):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    if not patient.service_end:
+        patient.service_end = date.today()
+        patient.save()
+
+    NurseDuty.objects(patient=patient, is_active=True).update(is_active=False)
+
+    return {
+        "success": True,
+        "message": "Patient discharged successfully",
+        "service_end": patient.service_end.isoformat()
+    }
 
 
 

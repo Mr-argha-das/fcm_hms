@@ -7,7 +7,7 @@ from .schemas import (
 from fastapi.responses import JSONResponse
 import requests
 from pydantic import BaseModel
-from models import User
+from models import PatientProfile, User
 from core.security import create_access_token, verify_password
 from core.dependencies import get_current_user, admin_required
 
@@ -26,6 +26,11 @@ BASE_URL = "https://connect.muzztech.com/api/V1"
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 STATIC_OTP = "123456"
+
+
+def ensure_patient_profile(user: User) -> None:
+    if user.role == "PATIENT" and not PatientProfile.objects(user=user).first():
+        PatientProfile(user=user).save()
 
 # @router.post("/send-otp")
 # def send_otp(data: SendOTPRequest):
@@ -67,6 +72,7 @@ def send_otp(data: SendOTPRequest):
     user.otp_session = otp_session
     user.otp_verified = False
     user.save()
+    ensure_patient_profile(user)
 
     return {"message": "OTP sent successfully"}
 
@@ -119,6 +125,7 @@ def verify_otp(data: VerifyOTPRequest):
 # 🔥 SINGLE SESSION LOGIC
     user.token_version += 1   # old tokens invalid
     user.save()
+    ensure_patient_profile(user)
 
     token = create_access_token(
     {
