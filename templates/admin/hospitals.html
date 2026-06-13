@@ -1,0 +1,259 @@
+{% extends "admin/base.html" %} {% block title %}Hospital Management{% endblock
+%} {% block content %}
+
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
+  <div class="d-flex p-3 justify-content-between align-items-center">
+   <div class="flex items-center gap-3">
+     <h5 class="mb-0 text-md">Hospitals</h5>
+
+  <input
+    type="text"
+    id="searchHospital"
+    placeholder="Search hospital..."
+    class="border border-gray-800 px-3 py-1.5 w-72 rounded-lg text-sm"
+    onkeyup="searchHospitals()"
+  />
+   </div>
+    <div class="d-flex gap-2">
+      <!-- <a href="/admin/consent" class="btn btn-sm btn-outline-secondary">
+        📄 Nurse Consent
+      </a> -->
+      <button
+        class="bg-success -500 text-white px-3 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
+        onclick="openCreateModal()"
+      >
+        Partner Hospital
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= TABLE ================= -->
+  <div class="overflow-hidden">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr class="bg-gray-100 text-left">
+          <th class="px-3 py-2.5">Hospital Name</th>
+          <th class="px-3 py-2.5">Authority Person</th>
+          <th class="px-3 py-2.5">Authority Contact</th>
+          <th class="px-3 py-2.5">Full Address</th>
+          <th class="px-3 py-2.5">City</th>
+          <th class="px-3 py-2.5">Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="hospitalTable" class="divide-y">
+        <!-- JS will fill -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ================================================= -->
+<!-- =============== CREATE MODAL ===================== -->
+<!-- ================================================= -->
+
+<div
+  id="createModal"
+  class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+>
+  <div class="bg-white rounded-2xl w-[420px] p-6 shadow-xl">
+    <h5 class="text- mb-4">Add Hospital</h5>
+
+    <input class="input" id="h_name" placeholder="Hospital Name" />
+    <input class="input" id="h_aname" placeholder="Authority Person" />
+    <input class="input" id="h_acontact" placeholder="Authority Contact" />
+    <input class="input" id="h_address" placeholder="Address" />
+    <input class="input mb-4" id="h_branch" placeholder="Branch" />
+
+    <div class="flex justify-end gap-2">
+      <button onclick="closeCreateModal()" class="btn-gray">Cancel</button>
+
+      <button onclick="createHospital()" class="btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- =============== EDIT MODAL ===================== -->
+
+
+<div
+  id="editModal"
+  class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+>
+  <div class="bg-white rounded-2xl w-[420px] p-6 shadow-xl">
+    <h5 class="mb-4">Edit Hospital</h5>
+
+    <input type="hidden" id="edit_id" />
+
+    <input class="input" id="edit_name" placeholder="Hospital Name" />
+    <input class="input" id="edit_aname" placeholder="Authority Person" />
+    <input class="input" id="edit_acontact" placeholder="Authority Contact" />
+    <input class="input" id="edit_address" placeholder="Address" />
+    <input class="input mb-4" id="edit_branch" placeholder="Branch" />
+
+    <div class="flex justify-end gap-2">
+      <button onclick="closeEditModal()" class="btn-gray">Cancel</button>
+      <button onclick="updateHospital()" class="btn-primary">
+        Update
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================= -->
+<!-- =============== STYLES =========================== -->
+<!-- ================================================= -->
+
+<style>
+  .input {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+
+  .btn-primary {
+    background: #0284c7;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 10px;
+  }
+
+  .btn-gray {
+    background: #e5e7eb;
+    padding: 8px 14px;
+    border-radius: 10px;
+  }
+</style>
+
+<!-- ================================================= -->
+<!-- =============== JS =============================== -->
+<!-- ================================================= -->
+
+<script>
+  const table = document.getElementById("hospitalTable");
+
+  /* =========================
+   LOAD HOSPITALS
+========================= */
+
+  async function loadHospitals() {
+    const res = await fetch("/hospital/get-all");
+    const data = await res.json();
+
+    table.innerHTML = "";
+
+    data.forEach((h) => {
+  table.innerHTML += `
+  <tr class="hover:bg-gray-50">
+    <td class="px-3 py-2.5 font-medium">${h.name}</td>
+    <td class="px-3 py-2.5 font-medium">${h.aname}</td>
+    <td class="px-3 py-2.5 font-medium">${h.acontact}</td>
+    <td class="px-3 py-2.5">${h.address}</td>
+    <td class="px-3 py-2.5">${h.branch}</td>
+    <td class="px-3 py-2.5">
+      <button onclick="openEditModal('${h.id}')" class="btn-primary">
+        Edit
+      </button>
+    </td>
+  </tr>
+  `;
+});
+  }
+
+  /* =========================
+   CREATE HOSPITAL
+========================= */
+
+  async function createHospital() {
+    const payload = {
+      name: h_name.value,
+      aname: h_aname.value,
+      acontact: h_acontact.value,
+      address: h_address.value,
+      branch: h_branch.value,
+    };
+
+    const res = await fetch("/hospital/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      closeCreateModal();
+      loadHospitals();
+    } else {
+      alert("Failed to create hospital");
+    }
+  }
+
+  async function updateHospital() {
+  const id = edit_id.value;
+
+  const payload = {
+    name: edit_name.value,
+    aname: edit_aname.value,
+    acontact: edit_acontact.value,
+    address: edit_address.value,
+    branch: edit_branch.value,
+  };
+
+  const res = await fetch(`/hospital/update/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (res.ok) {
+    closeEditModal();
+    loadHospitals();
+  } else {
+    alert("Failed to update hospital");
+  }
+}
+  async function openEditModal(id) {
+  const res = await fetch(`/hospital/get/${id}`);
+  const data = await res.json();
+
+  edit_id.value = data.id;
+  edit_name.value = data.name;
+  edit_aname.value = data.aname;
+  edit_acontact.value = data.acontact;
+  edit_address.value = data.address;
+  edit_branch.value = data.branch;
+
+  editModal.classList.remove("hidden");
+  editModal.classList.add("flex");
+}
+
+function closeEditModal() {
+  editModal.classList.add("hidden");
+}
+
+  /* =========================
+   MODAL CONTROLS
+========================= */
+
+  function openCreateModal() {
+    createModal.classList.remove("hidden");
+    createModal.classList.add("flex");
+  }
+
+  function closeCreateModal() {
+    createModal.classList.add("hidden");
+  }
+
+  /* =========================
+   INIT
+========================= */
+
+  loadHospitals();
+</script>
+
+{% endblock %}

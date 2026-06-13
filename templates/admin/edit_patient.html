@@ -1,51 +1,193 @@
-{% extends "admin/base.html" %} {% block title %}Patient Care{% endblock %} {%
-block content %}
 
-<h4 class="mb-3">🧑‍⚕️ Patient Care Management</h4>
+{% extends "admin/base.html" %}
+{% block title %}Patient Care{% endblock %}
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="bg-card flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-3 mb-4 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <div>
+    <h4 class="text-md mb-1">Patient Care Management</h4>
+    <p class="text-muted text-sm">Admin controls, nurse assignment & security</p>
+  </div>
+
+  <!-- PASSWORD UPDATE -->
+  <div class="flex items-center gap-2">
+    <label>Password:</label>
+    <input
+      type="text"
+      id="password_field"
+      class="form-control"
+      style="width:220px"
+      value="{{ patient.user.password_hash or '' }}"
+    />
+    <button class="btn btn-success px-3" onclick="updatePassword()">💾</button>
+  </div>
+</div>
 
 <!-- ================= PATIENT INFO ================= -->
-<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-4">
-        <p><b>Name:</b> {{ patient.user.name }}</p>
-        <p><b>Phone:</b> {{ patient.user.phone }}</p>
-        <p><b>Other number:</b> {{ patient.user.other_number }}</p>
-        <p><b>Email:</b> {{ patient.user.email }}</p>
-        <p><b>Address:</b> {{ patient.address }}</p>
-      </div>
-
-      <div class="col-md-4">
-        <p><b>Age:</b> {{ patient.age }}</p>
-
-        <p><b>Gender:</b> {{ patient.gender }}</p>
-        <p><b>Service Start:</b> {{ patient.service_start }}</p>
-        <p>
-          <b>Service End:</b>
-          {% if patient.service_end %} {{ patient.service_end }} {% else %} — {%
-          endif %}
-        </p>
-      </div>
-
-      <div class="col-md-4">
-        <p>
-          <b>Assigned Doctor:</b>
-          {% if doctor %} Dr. {{ doctor.user.name }} ({{ doctor.specialization
-          }}) {% else %}
-          <span class="text-muted">Not Assigned</span>
-          {% endif %}
-        </p>
-      </div>
+<!-- <div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <div class="row">
+    <div class="col-md-4">
+      <p><b>Name:</b> {{ patient.user.name }}</p>
+      <p><b>Phone:</b> {{ patient.user.phone }}</p>
+      <p><b>Other:</b> {{ patient.user.other_number }}</p>
+      <p><b>Email:</b> {{ patient.user.email }}</p>
+      <p><b>Address:</b> {{ patient.address }}</p>
     </div>
+
+    <div class="col-md-4">
+      <p><b>Age:</b> {{ patient.age }}</p>
+      <p><b>Gender:</b> {{ patient.gender }}</p>
+      <p><b>Service Start:</b> {{ patient.service_start }}</p>
+      <p><b>Service End:</b> {{ patient.service_end or "—" }}</p>
+    </div>
+
+    <div class="col-md-4">
+      <p>
+        <b>Assigned Doctor:</b>
+        {% if doctor %}
+          Dr. {{ doctor.user.name }} ({{ doctor.specialization }})
+        {% else %}
+          <span class="text-muted">Not Assigned</span>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</div> -->
+
+<!-- ================= EDIT PATIENT ================= -->
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="mb-3 font-semibold underline flex gap-2">  <i data-lucide="users" class="w-5 h-5"></i>Edit Patient Details</h5>
+
+  <div class="row g-3">
+    <!-- USER -->
+    <div class="col-md-4">
+      <label>Name</label>
+      <input id="edit_name" class="form-control" value="{{ patient.user.name }}">
+    </div>
+
+    <div class="col-md-4">
+      <label>Phone</label>
+      <input id="edit_phone" class="form-control" value="{{ patient.user.phone }}">
+    </div>
+
+    <div class="col-md-4">
+      <label>Other Number</label>
+      <input id="edit_other_number" class="form-control" value="{{ patient.user.other_number or '' }}">
+    </div>
+
+    <div class="col-md-4">
+      <label>Email</label>
+      <input id="edit_email" class="form-control" value="{{ patient.user.email or '' }}">
+    </div>
+
+    <!-- PATIENT -->
+    <div class="col-md-4">
+      <label>Age</label>
+      <input id="edit_age" type="number" class="form-control" value="{{ patient.age or '' }}">
+    </div>
+
+    <div class="col-md-4">
+      <label>Gender</label>
+      <select id="edit_gender" class="form-select">
+        <option value="">Select</option>
+        <option value="Male" {% if patient.gender == "Male" %}selected{% endif %}>Male</option>
+        <option value="Female" {% if patient.gender == "Female" %}selected{% endif %}>Female</option>
+        <option value="Other" {% if patient.gender == "Other" %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+
+    <div class="col-md-6">
+      <label>Medical History</label>
+      <textarea id="edit_medical_history" class="form-control">{{ patient.medical_history }}</textarea>
+    </div>
+
+    <div class="col-md-6">
+      <label>Address</label>
+      <textarea id="edit_address" class="form-control">{{ patient.address }}</textarea>
+    </div>
+
+    <div class="col-md-3">
+      <label>Service Start</label>
+      <input id="edit_service_start" type="date" class="form-control" value="{{ patient.service_start }}">
+    </div>
+
+    <div class="col-md-3">
+      <label>Service End</label>
+      <input id="edit_service_end" type="date" class="form-control" value="{{ patient.service_end }}">
+    </div>
+
+  <div class="col-md-3">
+    <label>Hospital</label>
+    <select id="edit_hospital" class="form-select">
+      <option value="">Select</option>
+
+      {% for h in hospitals %}
+        <option value="{{ h.id }}"
+          {% if patient.user.hospital and patient.user.hospital.id == h.id %}
+            selected
+          {% endif %}>
+          {{ h.name }} ({{ h.branch }})
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+
+    <div class="col-md-3">
+      <label>Doctor</label>
+      <select id="edit_doctor" class="form-select">
+        <option value="">Not Assigned</option>
+        {% for d in doctors %}
+        <option value="{{ d.id }}"
+          {% if patient.assigned_doctor and patient.assigned_doctor.id == d.id %}selected{% endif %}>
+          {{ d.user.name }} ({{ d.specialization }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label>City</label>
+      <input id="edit_city" class="form-control" value="{{ patient.city or '' }}">
+    </div>
+    
+    <div class="col-md-3">
+      <label>State</label>
+      <input id="edit_state" class="form-control" value="{{ patient.state or '' }}">
+    </div>
+    
+    <div class="col-md-3">
+      <label>Pincode</label>
+      <input id="edit_pincode" class="form-control" value="{{ patient.pincode or '' }}">
+    </div>
+  </div>
+
+  <!-- <div class="col-md-3">
+  <label>Aadhar Card</label>
+  <input id="edit_adharcard" class="form-control" value="{{ patient.adharcard or '' }}">
+</div> -->
+
+
+<!-- <div class="col-md-6">
+  <label>Documents (comma separated URLs)</label>
+  <textarea id="edit_documents" class="form-control">{{ patient.documents | join(',') }}</textarea>
+</div> -->
+
+  <div class="text- mt-3">
+    <button class="- bg-success text-white text-md px-3 py-1.5 hover:scale-105  rounded-xl" onclick="updatePatient()"> Update Patient</button>
   </div>
 </div>
 
 <!-- ================= ASSIGN NURSE ================= -->
+<!-- ================= ASSIGN NURSE ================= -->
 <div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-header p-3 bg-light !rounded-t-2xl">
-    <b>👩‍⚕️ Assign Nurse</b>
+  <div class="card-header font-bold flex gap-2 p-3 bg-light rounded-t-2xl">
+    <i data-lucide="stethoscope" class="w-5 h-5 mt-[2px]"></i>
+    Assign Nurse
   </div>
+
   <div class="card-body row g-3 p-3">
+
     <div class="col-md-4">
       <select id="nurse" class="form-select">
         {% for n in nurses %}
@@ -61,6 +203,7 @@ block content %}
         <option value="10HR">10 Hours</option>
         <option value="12HR">12 Hours</option>
         <option value="24HR">24 Hours</option>
+        <option value="FLEX">Flexible</option>
       </select>
     </div>
 
@@ -71,25 +214,56 @@ block content %}
       </select>
     </div>
 
-    <div class="col-md-6 mb-3">
-      <label>Ward</label>
-      <input type="text" class="form-control" id="ward" />
-    </div>
-    <div class="col-md-6 mb-3">
-      <label>Room</label>
-      <input type="text" class="form-control" id="room" />
+    <!-- Duty Location -->
+    <div class="col-md-3">
+      <label>Duty Location</label>
+      <select id="dutyLocation" class="form-select" onchange="toggleDutyFields()">
+        <option value="HOSPITAL">Hospital</option>
+        <option value="HOME">Home</option>
+      </select>
     </div>
 
-    <div class="col-md-2">
-      <button class="btn btn-primary w-100" id="assignBtn">Assign</button>
+    <!-- HOSPITAL -->
+    <div class="col-md-3 hospital-field">
+      <label>Ward</label>
+      <input id="ward" class="form-control">
     </div>
+
+    <div class="col-md-3 hospital-field">
+      <label>Room</label>
+      <input id="room" class="form-control">
+    </div>
+
+    <!-- HOME -->
+    <div class="col-md-6 home-field d-none">
+      <label>Home Address</label>
+      <textarea id="address" class="form-control"></textarea>
+    </div>
+
+    <!-- Duration -->
+    <div class="col-md-3">
+      <label>Duration (Days)</label>
+      <input type="number" id="duration_days" class="form-control" placeholder="e.g. 5">
+    </div>
+
+    <!-- Price Per Day -->
+    <div class="col-md-3">
+      <label>Price Per Day</label>
+      <input type="number" step="0.01" id="price_perday" class="form-control" placeholder="e.g. 1200">
+    </div>
+
+    <div class="col-md-2 ">
+      <button
+        class="bg-success mt-4 text-white px-3 py-2 rounded-xl hover:scale-105"
+        id="assignBtn">
+        Assign
+      </button>
+    </div>
+
   </div>
 </div>
 
-<!-- ================= DAILY NOTES ================= -->
-
-<!-- ================= RELATIVES ACCESS ================= -->
-
+<!-- ================= JS ================= -->
 <script>
   const patientId = "{{ patient.id }}";
 
@@ -100,139 +274,121 @@ block content %}
     };
   }
 
-  // 🔹 Assign Nurse with duty_start and duty_end
+async function updatePatient() {
+  const payload = {
+    name: edit_name.value || null,
+    phone: edit_phone.value || null,
+    other_number: edit_other_number.value || null,
+    email: edit_email.value || null,
+
+    age: edit_age.value || null,
+    gender: edit_gender.value || null,
+    medical_history: edit_medical_history.value || null,
+    address: edit_address.value || null,
+
+    service_start: edit_service_start.value || null,
+    service_end: edit_service_end.value || null,
+
+    hospital: edit_hospital.value || null,
+    assigned_doctor: edit_doctor.value || null,
+
+    // adharcard: edit_adharcard.value || null,
+    city: edit_city.value || null,
+    state: edit_state.value || null,
+    pincode: edit_pincode.value || null,
+
+    // documents: edit_documents.value
+    //   ? edit_documents.value.split(",").map(d => d.trim())
+    //   : null
+  };
+
+  const res = await fetch(`/patient/${patientId}/edit`, {
+    method: "PUT",
+    headers: headers(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.detail || "Update failed");
+    return;
+  }
+
+  alert("✅ Patient updated successfully");
+  location.reload();
+}
   document.getElementById("assignBtn").addEventListener("click", async () => {
-    const nurseId = document.getElementById("nurse").value;
-    const dutyType = document.getElementById("duty_type").value;
-    const shift = document.getElementById("shift").value;
 
-    const now = new Date().toISOString(); // ISO format
-    const end = new Date();
-    end.setHours(end.getHours() + 12); // Example: duty_end 12 hours later
-    const dutyEnd = end.toISOString();
+  const dutyLocation = document.getElementById("dutyLocation").value;
+  const duration = parseInt(document.getElementById("duration_days").value) || 0;
+const pricePerDay = parseFloat(document.getElementById("price_perday").value) || 0;
+ const startDate = new Date();
+const endDate = new Date();
+endDate.setDate(startDate.getDate() + duration);
+  const payload = {
+  nurse_id: nurse.value,
+  duty_type: duty_type.value,
+  shift: shift.value,
+  dutyLocation: dutyLocation,
 
-    await fetch(`/patient/${patientId}/assign-nurse`, {
+  duration_days: duration,
+  price_perday: pricePerDay,
+
+  duty_start: startDate.toISOString(),
+  duty_end: endDate.toISOString(),
+};
+  // 🏥 Hospital
+  if (dutyLocation === "HOSPITAL") {
+    payload.ward = ward.value || null;
+    payload.room_no = room.value || null;
+  }
+
+  // 🏠 Home
+  if (dutyLocation === "HOME") {
+    payload.address = address.value || null;
+  }
+
+  const res = await fetch(`/patient/${patientId}/assign-nurse`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.detail || "Failed");
+    return;
+  }
+
+  alert("✅ Nurse assigned successfully");
+  location.reload();
+});
+
+function toggleDutyFields() {
+  const location = document.getElementById("dutyLocation").value;
+
+  document.querySelectorAll(".hospital-field").forEach(el =>
+    el.classList.toggle("d-none", location === "HOME")
+  );
+
+  document.querySelectorAll(".home-field").forEach(el =>
+    el.classList.toggle("d-none", location === "HOSPITAL")
+  );
+}
+  async function updatePassword() {
+    const res = await fetch("/auth/update-password", {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({
-        nurse_id: nurseId,
-        duty_type: dutyType,
-        ward: ward,
-        room: room,
-        shift: shift,
-        duty_start: now,
-        duty_end: dutyEnd,
+        phone: "{{ patient.user.phone }}",
+        password: password_field.value,
       }),
     });
 
-    alert("Nurse assigned successfully!");
-  });
-
-  // 🔹 Save Note
-  document.getElementById("saveNoteBtn").addEventListener("click", async () => {
-    const nurseId = document.getElementById("nurse").value;
-    const noteText = document.getElementById("note").value;
-
-    await fetch(`/patient/${patientId}/daily-note`, {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({ nurse_id: nurseId, note: noteText }),
-    });
-
-    location.reload();
-  });
-
-  // 🔹 Save Vitals
-  document
-    .getElementById("saveVitalsBtn")
-    .addEventListener("click", async () => {
-      const bp = document.getElementById("bp").value;
-      const pulse = document.getElementById("pulse").value;
-      const spo2 = document.getElementById("spo2").value;
-      const temp = document.getElementById("temp").value;
-
-      await fetch(`/patient/${patientId}/vitals`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ bp, pulse, spo2, temperature: temp }),
-      });
-
-      location.reload();
-    });
-</script>
-<script>
-  // 🔹 Save Medication
-  document
-    .getElementById("saveMedicationBtn")
-    .addEventListener("click", async () => {
-      const medicine_name = document.getElementById("medicine_name").value;
-      const dosage = document.getElementById("dosage").value;
-      const timing = document
-        .getElementById("timing")
-        .value.split(",")
-        .map((t) => t.trim());
-      const duration_days = parseInt(
-        document.getElementById("duration_days").value,
-      );
-      const price = parseFloat(document.getElementById("price")?.value || 0.0);
-
-      if (!medicine_name || !dosage || !duration_days || !price) {
-        alert("Please fill all required fields");
-        return;
-      }
-
-      await fetch(`/patient/${patientId}/medication`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({
-          medicine_name,
-          dosage,
-          timing,
-          duration_days,
-          price,
-        }),
-      });
-
-      location.reload(); // reload page to see new medication
-    });
-</script>
-
-<script>
-  // 🔹 Add Relative Access
-  document
-    .getElementById("addRelativeBtn")
-    .addEventListener("click", async () => {
-      const relative_user_id = document.getElementById("relative_user").value;
-      const access_type = document.getElementById("access_type").value;
-      const permissions = Array.from(
-        document.getElementById("permissions").selectedOptions,
-      ).map((opt) => opt.value);
-
-      if (!relative_user_id) {
-        alert("Select a relative");
-        return;
-      }
-
-      await fetch(`/patient/${patientId}/relative-access`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ relative_user_id, access_type, permissions }),
-      });
-
-      location.reload();
-    });
-
-  // 🔹 Remove Relative Access
-  async function removeRelative(accessId) {
-    if (!confirm("Are you sure you want to remove this relative's access?"))
-      return;
-
-    await fetch(`/patient/${patientId}/relative-access/${accessId}`, {
-      method: "DELETE",
-      headers: headers(),
-    });
-
-    location.reload();
+    if (!res.ok) return alert("Failed");
+    alert("Password updated");
   }
 </script>
 

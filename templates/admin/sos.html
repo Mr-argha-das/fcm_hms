@@ -4,12 +4,13 @@ block content %}
 <div class="bg-card border border-gray-100 rounded-2xl shadow-soft4">
   <!-- HEADER -->
 
-  <div class="d-flex p-3 justify-content-between align-items-center">
-    <h5 class="mb-0 text-md">🚨 SOS Alerts</h5>
+  <div class="d-flex p-3  justify-content-between align-items-center">
+    <h5 class="mb-0 text-md flex gap-2">        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500"></i>
+ SOS Alerts</h5>
 
     <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-danger" onclick="location.reload()">
-        🔄 Refresh
+      <button class="btn btn-sm flex gap-2 btn-outline-danger" onclick="location.reload()">
+        <i data-lucide="refresh-cw" class="w-4 h-4 mt-[3px] "></i> Refresh
       </button>
     </div>
   </div>
@@ -27,11 +28,12 @@ block content %}
   <table class="table table-hover align-middle">
     <thead class="table-light">
       <tr>
-        <th>Patient</th>
-        <th>Address / Ward</th>
-        <th>Alert Type</th>
-        <th>Time</th>
-        <th>Status</th>
+        <th>Patient Name</th>
+        <th>Phone</th>
+        <th>Location / Address</th>
+        <th>Alert Type (Fall / Emergency / Help)</th>
+        <th>Alert Time</th>
+        <th>Status (Pending / In Progress / Resolved)</th>
         <th class="text-center">Actions</th>
       </tr>
     </thead>
@@ -42,8 +44,11 @@ block content %}
         <!-- PATIENT -->
         <td>{{ sos.patient.user.name if sos.patient else "N/A" }}</td>
 
-        <!-- ROOM / WARD -->
-        <td>{{sos.patient.address if sos.patient else "N/A"}}</td>
+        <!-- PHONE -->
+        <td>{{ sos.patient.user.phone if sos.patient else "N/A" }}</td>
+
+        <!-- LOCATION / ADDRESS -->
+        <td>{{ sos.patient.address if sos.patient else "N/A" }}</td>
 
         <!-- ALERT TYPE -->
         <td>
@@ -69,16 +74,19 @@ block content %}
             title="View Details"
             onclick="location.href='/admin/sos/{{ sos.id }}'"
           >
-            👁️
+         <i data-lucide="eye" class="w-4 h-4"></i>
+
           </button>
 
           {% if not sos.patient or not sos.patient.service_end %}
           <button class="btn btn-sm btn-outline-warning" title="Acknowledge">
-            ⚠️
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+
           </button>
 
-          <button class="btn btn-sm btn-outline-success" title="Resolve">
-            ✅
+          <button class="btn btn-sm btn-outline-success" title="Mark Resolved">
+     <i data-lucide="check-circle" class="w-4 h-4"></i>
+
           </button>
           {% endif %}
         </td>

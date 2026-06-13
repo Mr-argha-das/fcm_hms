@@ -43,12 +43,15 @@
   <!-- ================= DESCRIPTION ================= -->
   <div class="bg-card p-3 mb-3 border rounded-2xl shadow-soft4">
     <label>Description</label>
-    <textarea
+    <div id="editor" style="height: 250px"></div>
+    <input type="hidden" name="description" id="descriptionInput" />
+
+    <!-- <textarea
       name="description"
       rows="10"
       class="form-control"
       required
-    ></textarea>
+    ></textarea> -->
   </div>
 
   <!-- ================= SAVE ================= -->
@@ -60,6 +63,9 @@
 <!-- =====================================================
       JS
 ===================================================== -->
+<!-- ✅ Quill CDN FIRST -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet" />
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script>
   function headers() {
     return {
@@ -69,6 +75,21 @@
   }
 
   let uploadedImagePath = null;
+
+  const quill = new Quill("#editor", {
+    theme: "snow",
+    placeholder: "Write description...",
+    modules: {
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline"],
+        ["blockquote", "code-block"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link", "image"],
+        ["clean"],
+      ],
+    },
+  });
 
   /* =====================================================
    🔹 LOAD EXISTING DATA
@@ -82,8 +103,8 @@
 
     document.querySelector("[name=name]").value = data.name || "";
     document.querySelector("[name=designation]").value = data.designation || "";
-    document.querySelector("[name=description]").value = data.description || "";
-
+    // document.querySelector("[name=description]").value = data.description || "";
+    quill.root.innerHTML = data.description || "";
     if (data.profile_image) {
       uploadedImagePath = data.profile_image;
       document.getElementById("previewImg").src = data.profile_image;
@@ -126,12 +147,17 @@
 
   /* =====================================================
    🔹 SAVE DATA
-===================================================== */
+  ===================================================== */
   document.getElementById("saveBtn").addEventListener("click", async () => {
+    let desc = quill.root.innerHTML;
+    if (desc === "<p><br></p>") desc = "";
+
+    document.getElementById("descriptionInput").value = desc;
+
     const payload = {
       name: document.querySelector("[name=name]").value,
       designation: document.querySelector("[name=designation]").value,
-      description: document.querySelector("[name=description]").value,
+      description: desc,
       profile_image: uploadedImagePath || "",
     };
 

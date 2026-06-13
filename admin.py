@@ -2,21 +2,26 @@ import calendar
 from collections import defaultdict
 from datetime import date, timedelta
 import json
-from core.dependencies import get_current_user , role_required
+from typing import List, Optional
+from core.dependencies import admin_required, get_current_user , role_required
+from core.permissions import ADMIN_MODULES, get_admin_menu
 from fastapi import APIRouter, Request , Depends, HTTPException, Query
 from fastapi.params import Form
+from pydantic import BaseModel
+
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from models import *
-
+from mongoengine.errors import NotUniqueError
+from mongoengine.queryset.visitor import Q
 router = APIRouter(prefix="/admin", tags=["Admin Pages"])
 
 templates = Jinja2Templates(directory="templates")
+templates.env.globals["get_admin_menu"] = get_admin_menu
 
 
 def ensure_patient_profiles_for_registered_users():
-    patient_users = User.objects(role="PATIENT")
-    for patient_user in patient_users:
+    for patient_user in User.objects(role="PATIENT"):
         if not PatientProfile.objects(user=patient_user).first():
             PatientProfile(user=patient_user).save()
 
@@ -35,6 +40,12 @@ def admin_home(request: Request):
 #     return templates.TemplateResponse(
 #         "admin/login.html", {"request": request}
 #     )
+@router.get("/lead/create", response_class=HTMLResponse)
+def admin_login(request: Request):
+    return templates.TemplateResponse(
+        "admin/lead_create.html",
+        {"request": request}
+    )
 @router.get("/login", response_class=HTMLResponse)
 def admin_login(request: Request):
     return templates.TemplateResponse(
@@ -76,6 +87,7 @@ def self_registered_nurses(request: Request):
 
     nurses_qs = (
         NurseProfile.objects(created_by="SELF")
+        .filter(nurse_type__ne="CARETAKER")
         .select_related()
        
     )
@@ -83,160 +95,241 @@ def self_registered_nurses(request: Request):
         "admin/nurses_self.html",
         {
             "request": request,
-            "nurses": nurses_qs
+            "nurses": nurses_qs,
+            "page_title": "Self Registered Nurses",
+            "page_description": "Nurses who signed up themselves (Admin approval pending)",
+            "active_tab": "nurses",
+            "empty_message": "No self registered nurses found",
+            "detail_base": "/admin/nurses",
+            "edit_base": "/admin/nurses",
+        }
+    )
+
+
+@router.get("/nurses/self/caretacker", response_class=HTMLResponse)
+def self_registered_caretakers(request: Request):
+    caretakers_qs = (
+        NurseProfile.objects(created_by="SELF", nurse_type="CARETAKER")
+        .select_related()
+    )
+
+    return templates.TemplateResponse(
+        "admin/nurses_self.html",
+        {
+            "request": request,
+            "nurses": caretakers_qs,
+            "page_title": "Self Registered Caretakers",
+            "page_description": "Caretakers who signed up themselves (Admin approval pending)",
+            "active_tab": "caretakers",
+            "empty_message": "No self registered caretakers found",
+            "detail_base": "/admin/caretacker",
+            "edit_base": "/admin/caretacker",
         }
     )
 
 
 # @router.get("/dashboard", response_class=HTMLResponse)
 # def dashboard(request: Request):
-@router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, user = Depends(get_current_user)):
 
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard(
+    request: Request,
+    start: str | None = None,
+    end: str | None = None,
+    hospital_id: str | None = None,
+    user = Depends(get_current_user)
+):
+    # ======================
+    # ROLE REDIRECTS
+    # ======================
     if user.role == "NURSE":
         return RedirectResponse("/admin/nurses")
-
     if user.role == "DOCTOR":
         return RedirectResponse("/admin/doctors")
-
     if user.role == "PATIENT":
         return RedirectResponse("/admin/patients")
-    
+
     now = datetime.now()
     ensure_patient_profiles_for_registered_users()
 
     # ======================
+    # DATE RANGE
+    # ======================
+    if start and end:
+        start_date = datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.strptime(end, "%Y-%m-%d") + timedelta(days=1)
+    else:
+        start_date = now.replace(day=1, hour=0, minute=0, second=0)
+        end_date = now + timedelta(days=1)
+
+    # ======================
+    # HOSPITAL → USERS
+    # ======================
+    user_filter = {}
+
+    if hospital_id:
+        hospital_users = User.objects(
+            hospital=hospital_id
+        ).only("id")
+
+        user_filter["user__in"] = hospital_users
+
+    # ======================
+    # DROPDOWN DATA
+    # ======================
+    hospitals = HospitalModel.objects.only("id", "name", "branch")
+
+    # ======================
     # KPI
     # ======================
-    total_patients = PatientProfile.objects.count()
+    total_patients = PatientProfile.objects(
+        **user_filter
+    ).count()
+
     discharged_patients = PatientProfile.objects(
         service_end__exists=True,
-        service_end__ne=None
+        service_end__ne=None,
+        **user_filter
     ).count()
 
-    active_nurses = NurseProfile.objects(
-        verification_status="APPROVED"
+    total_nurses = NurseProfile.objects(
+        **user_filter
     ).count()
 
-    total_doctors = DoctorProfile.objects.count()
+    total_doctors = DoctorProfile.objects(
+        **user_filter
+    ).count()
 
     # ======================
-    # MONTHLY REVENUE
+    # REVENUE (SAFE VERSION)
     # ======================
-    start_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
     invoices = PatientInvoice.objects(
-        created_at__gte=start_month,
+        created_at__gte=start_date,
+        created_at__lt=end_date,
         status="PAID"
-    )
+    ).only("total_amount")
 
-    monthly_revenue = sum(inv.total_amount for inv in invoices)
+    monthly_revenue = sum(i.total_amount or 0 for i in invoices)
 
     # ======================
     # RECENT ACTIVITY
     # ======================
     recent_activity = []
 
-    for note in PatientDailyNote.objects.order_by("-created_at").limit(3):
-        recent_activity.append("Daily note added")
+    for note in PatientDailyNote.objects.order_by("-created_at").limit(3).select_related():
+        if not hospital_id or note.patient.user in hospital_users:
+            recent_activity.append(
+                f"Note added for {note.patient.user.name}"
+            )
 
-    for visit in DoctorVisit.objects.order_by("-created_at").limit(2):
-        recent_activity.append("Doctor visit completed")
+    for visit in DoctorVisit.objects.order_by("-created_at").limit(2).select_related():
+        if not hospital_id or visit.patient.user in hospital_users:
+            recent_activity.append(
+                f"Doctor visit for {visit.patient.user.name}"
+            )
 
     # ======================
     # SOS ALERTS
     # ======================
-    # sos_alerts = SOSAlert.objects.order_by("-created_at").limit(5)
-    # ======================
-# SOS ALERTS
-# ======================
-    raw_sos = SOSAlert.objects.order_by("-created_at").limit(5)
-
     sos_alerts = []
 
-    for alert in raw_sos:
-     sos_alerts.append({
-        "triggered_by": alert.triggered_by.name if alert.triggered_by else "-",
-        "patient_name": alert.patient.user.name if alert.patient and alert.patient.user else "-",
-        "message": alert.message,
-        "location": alert.location["coordinates"] if alert.location else None,
-        "status": alert.status,
-        "created_at": alert.created_at.strftime("%d %b %H:%M")
-    })
+    for alert in SOSAlert.objects.order_by("-created_at").limit(5).select_related():
+        if hospital_id and alert.patient and alert.patient.user not in hospital_users:
+            continue
+
+        sos_alerts.append({
+            "triggered_by": alert.triggered_by.name if alert.triggered_by else "-",
+            "patient_name": alert.patient.user.name if alert.patient else "-",
+            "message": alert.message,
+            "status": alert.status,
+            "created_at": alert.created_at.strftime("%d %b %H:%M"),
+            "location": alert.location
+        })
+
     # ======================
-    # TODAY DATE RANGE (IMPORTANT FIX)
+    # TODAY SCHEDULE
     # ======================
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
 
-    # ======================
-    # TODAY SCHEDULE (FIXED)
-    # ======================
     today_schedule = []
 
-    nurse_duties = NurseDuty.objects(
-        duty_start__gte=today_start,
+    for duty in NurseDuty.objects(
+        duty_end__gte=today_start,
         duty_start__lt=today_end
-    )
+    ).select_related():
+        if not hospital_id or duty.nurse.user in hospital_users:
+            today_schedule.append(
+                f"Nurse duty ({duty.shift}) at {duty.duty_start.strftime('%H:%M')}"
+            )
 
-    for duty in nurse_duties:
-        today_schedule.append(
-            f"Nurse duty ({duty.shift}) at {duty.duty_start.strftime('%H:%M')}"
-        )
-
-    doctor_visits = DoctorVisit.objects(
+    for visit in DoctorVisit.objects(
         visit_time__gte=today_start,
         visit_time__lt=today_end
-    )
-
-    for visit in doctor_visits:
-        today_schedule.append(
-            f"Doctor visit at {visit.visit_time.strftime('%H:%M')}"
-        )
+    ).select_related():
+        if not hospital_id or visit.patient.user in hospital_users:
+            today_schedule.append(
+                f"Doctor visit at {visit.visit_time.strftime('%H:%M')}"
+            )
 
     # ======================
-    # PATIENT CHART (LAST 7 DAYS) – FIXED
+    # CHART DATA
     # ======================
     chart_labels = []
     chart_values = []
 
-    for i in range(6, -1, -1):
-        day_start = today_start - timedelta(days=i)
-        day_end = day_start + timedelta(days=1)
+    current_day = start_date
+    while current_day < end_date:
+        next_day = current_day + timedelta(days=1)
 
         count = PatientProfile.objects(
-            service_start__gte=day_start.date(),
-            service_start__lt=day_end.date()
+            service_start__gte=current_day.date(),
+            service_start__lt=next_day.date(),
+            **user_filter
         ).count()
 
-        chart_labels.append(day_start.strftime("%d %b"))
+        chart_labels.append(current_day.strftime("%d %b"))
         chart_values.append(count)
-
+        current_day = next_day
+    # ======================
+    # PENDING BILLING
+    # ======================. 
+    
+    pending_bills = PatientBill.objects(
+    status__ne="PAID"
+    ).only("grand_total")
+    # ======================
+    # RESPONSE
+    # ======================
+    total_pending_billing = sum(b.grand_total or 0 for b in pending_bills)
+    totalCareTakers = NurseProfile.objects(
+        nurse_type="CARETAKER",
+        **user_filter
+    ).count()
     return templates.TemplateResponse(
         "admin/dashboard.html",
         {
             "request": request,
-
-
-            # KPI
+            "hospitals": hospitals,
+            "doctors": DoctorProfile.objects(available=True).count(),
+            "selected_hospital": hospital_id,
             "total_patients": total_patients,
             "discharged_patients": discharged_patients,
-            "active_nurses": active_nurses,
+            "active_nurses": total_nurses,
             "total_doctors": total_doctors,
             "monthly_revenue": round(monthly_revenue, 2),
-
-            # Lists
             "recent_activity": recent_activity,
             "sos_alerts": sos_alerts,
             "today_schedule": today_schedule,
-
-            # Chart
             "chart_labels": chart_labels,
-            "chart_values": chart_values
+            "chart_values": chart_values,
+            "start": start,
+            "end": end,
+            "in_used_equipment": UserEquipmentRequest.objects(status=True).count(),
+            "pending_Payments": round(total_pending_billing, 2),
+            "total_caretakers": totalCareTakers
         }
     )
-
-
 
 @router.get("/nurse-dashboard", response_class=HTMLResponse)
 def nurse_dashboard(
@@ -257,9 +350,105 @@ def nurse_dashboard(
 # -------------------------
 @router.get("/users", response_class=HTMLResponse)
 def users(request: Request):
+    admin_users = User.objects(role="ADMIN").order_by("-created_at")
+    menu_modules = [module for module in ADMIN_MODULES if module.show_in_menu]
     return templates.TemplateResponse(
-        "admin/users.html", {"request": request}
+        "admin/users.html",
+        {
+            "request": request,
+            "admin_users": admin_users,
+            "admin_modules": menu_modules,
+        }
     )
+
+
+@router.post("/users/create")
+def create_admin_user(
+    name: str = Form(...),
+    phone: str = Form(...),
+    password: str = Form(...),
+    admin_role_name: str = Form(...),
+    email: str | None = Form(None),
+    permissions: List[str] = Form([]),
+    current_user=Depends(admin_required)
+):
+    if not permissions:
+        raise HTTPException(400, "Select at least one permission")
+
+    allowed_permissions = {module.key for module in ADMIN_MODULES}
+    clean_permissions = [p for p in permissions if p in allowed_permissions]
+    if not clean_permissions:
+        raise HTTPException(400, "Invalid permissions")
+
+    try:
+        User(
+            role="ADMIN",
+            name=name,
+            phone=phone,
+            email=email or None,
+            password_hash=password,
+            admin_role_name=admin_role_name,
+            admin_permissions=clean_permissions,
+            otp_verified=True,
+            is_active=True,
+            created_at=datetime.utcnow(),
+        ).save()
+    except NotUniqueError:
+        raise HTTPException(400, "Phone number already exists")
+
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/users/{user_id}/update")
+def update_admin_user(
+    user_id: str,
+    name: str = Form(...),
+    admin_role_name: str = Form(...),
+    email: str | None = Form(None),
+    password: str | None = Form(None),
+    permissions: List[str] = Form([]),
+    current_user=Depends(admin_required)
+):
+    user = User.objects(id=user_id, role="ADMIN").first()
+    if not user:
+        raise HTTPException(404, "Admin user not found")
+
+    if str(user.id) == str(current_user.id) and not permissions:
+        raise HTTPException(400, "You cannot remove your own access")
+
+    allowed_permissions = {module.key for module in ADMIN_MODULES}
+    clean_permissions = [p for p in permissions if p in allowed_permissions]
+    if not clean_permissions:
+        raise HTTPException(400, "Select at least one permission")
+
+    user.name = name
+    user.email = email or None
+    user.admin_role_name = admin_role_name
+    user.admin_permissions = clean_permissions
+    if password:
+        user.password_hash = password
+        user.token_version += 1
+    user.save()
+
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/users/{user_id}/toggle")
+def toggle_admin_user(
+    user_id: str,
+    current_user=Depends(admin_required)
+):
+    user = User.objects(id=user_id, role="ADMIN").first()
+    if not user:
+        raise HTTPException(404, "Admin user not found")
+    if str(user.id) == str(current_user.id):
+        raise HTTPException(400, "You cannot deactivate yourself")
+
+    user.is_active = not user.is_active
+    user.token_version += 1
+    user.save()
+
+    return RedirectResponse("/admin/users", status_code=303)
 @router.get("/create/nurse", response_class=HTMLResponse)
 def create_nurse(request: Request):
     return templates.TemplateResponse(
@@ -271,12 +460,16 @@ def create_nurse(request: Request):
 def create_patient_page(request: Request):
 
     doctors = DoctorProfile.objects(available=True)
+    hospitals = HospitalModel.objects.all()
+    nurses = NurseProfile.objects()
 
     return templates.TemplateResponse(
         "admin/add_pataint.html",
         {
             "request": request,
-            "doctors": doctors
+            "doctors": doctors,
+            "nurses": nurses,
+            "hospitals": hospitals,
         }
     )
 # -------------------------
@@ -298,15 +491,62 @@ def create_patient_page(request: Request):
 @router.get("/nurses", response_class=HTMLResponse)
 def nurses(
     request: Request,
+    search: str | None = None,
     user = Depends(role_required(["ADMIN", "NURSE"]))
 ):
-    nurses_qs = NurseProfile.objects(created_by="ADMIN").select_related()
+    nurses_query = Q(created_by="ADMIN")
+
+    if search:
+        matched_users = User.objects(
+            Q(role="NURSE") &
+            (
+                Q(name__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(email__icontains=search)
+            )
+        )
+        nurses_query &= Q(user__in=matched_users)
+
+    nurses_qs = NurseProfile.objects(nurses_query).select_related()
 
     return templates.TemplateResponse(
         "admin/nurses.html",
         {
             "request": request,
-            "nurses": nurses_qs
+            "nurses": nurses_qs,
+            "search": search or ""
+        }
+    )
+
+
+@router.get("/nurses/blocked", response_class=HTMLResponse)
+def blocked_nurses(
+    request: Request,
+    search: str | None = None,
+    admin=Depends(admin_required)
+):
+    blocked_user_query = Q(role="NURSE", is_active=False)
+
+    if search:
+        blocked_user_query &= (
+            Q(name__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(email__icontains=search)
+        )
+
+    blocked_users = User.objects(blocked_user_query)
+
+    nurses_qs = NurseProfile.objects(
+        user__in=blocked_users,
+        nurse_type__ne="CARETAKER"
+    ).select_related()
+
+    return templates.TemplateResponse(
+        "admin/blocked_nurses.html",
+        {
+            "request": request,
+            "nurses": nurses_qs,
+            "search": search or ""
         }
     )
 
@@ -557,7 +797,7 @@ def sos(request: Request):
         .order_by("-created_at")
         
     )
-    print("SOS Alerts Count:", sos_qs.to_json())
+    # print("SOS Alerts Count:", sos_qs.to_json())
     return templates.TemplateResponse(
         "admin/sos.html",
         {
@@ -684,21 +924,22 @@ def nurse_detail_page(
 
     # ================= COMPLETE NURSE DUMP =================
     print("\n--- USER DATA ---")
-    print("Phone:", user.phone)
-    print("Other Number:", user.other_number)
-    print("Email:", user.email)
-    print("Role:", user.role)
+    # print("Phone:", user.phone)
+    # print("Other Number:", user.other_number)
+    # print("Email:", user.email)
+    # print("Role:", user.role)
 
-    print("\n--- NURSE PROFILE ---")
-    print("Type:", nurse.nurse_type)
-    print("Aadhaar:", nurse.aadhaar_number)
-    print("Verified:", nurse.verification_status)
-    print("Police Verification:", nurse.police_verification_status)
-    print("Joining:", nurse.joining_date)
-    print("Resignation:", nurse.resignation_date)
-    print("Qualification Docs:", nurse.qualification_docs)
-    print("Experience Docs:", nurse.experience_docs)
-    print("Profile Photo:",  nurse.profile_photo)
+    # print("\n--- NURSE PROFILE ---")
+    # print("Type:", nurse.nurse_type)
+    # print("Aadhaar:", nurse.aadhaar_number)
+    # print("Verified:", nurse.verification_status)
+    # print("Police Verification:", nurse.police_verification_status)
+    # print("PoliceDoc:", nurse.police)
+    # print("Joining:", nurse.joining_date)
+    # print("Resignation:", nurse.resignation_date)
+    # print("Qualification Docs:", nurse.qualification_docs)
+    # print("Experience Docs:", nurse.experience_docs)
+    print("Profile Photo:",  nurse.digital_signature)
 
     print("========================================\n")
 
@@ -724,7 +965,8 @@ def nurse_detail_page(
             "salary": salary,
             "duty": active_duty,
             "visits": visits,
-            "consent": consent
+            "consent": consent,
+            "ist_offset": timedelta(hours=5, minutes=30),
         }
     )
 
@@ -738,7 +980,7 @@ def edit_nurse(nurse_id: str, request: Request):
     duties = NurseDuty.objects(nurse=nurse, is_active=True).order_by("-duty_start")
     visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")[:10]
     consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
-
+    hospitals = HospitalModel.objects.all()
     return templates.TemplateResponse(
         "admin/nurse_edit.html",
         {
@@ -747,16 +989,23 @@ def edit_nurse(nurse_id: str, request: Request):
             "patients": patients,
             "duties": duties,
             "visits": visits,
-            "consent": consent
+            "consent": consent,
+            "hospitals": hospitals,
+
         }
     )
+
+
 @router.get("/create/doctor", response_class=HTMLResponse)
 def doctor_create_page(request: Request):
+    hospitals = HospitalModel.objects.all()
     return templates.TemplateResponse(
         "admin/doctor_create.html",
-        {"request": request}
+        {
+         "request": request,
+         "hospitals": hospitals
+        }
     )
-
 
     return user
 @router.get("/doctors/{doctor_id}", response_class=HTMLResponse)
@@ -800,14 +1049,18 @@ def doctor_edit_page(doctor_id: str, request: Request):
     if not doctor:
         raise HTTPException(404, "Doctor not found")
 
+    hospitals = HospitalModel.objects.all()
     return templates.TemplateResponse(
         "admin/doctor_edit.html",
         {
             "request": request,
             "doctor": doctor,
+            "hospitals": hospitals,
             "user": doctor.user
+
         }
     )
+
 
 
 @router.get("/patient/{patient_id}/care", response_class=HTMLResponse)
@@ -823,6 +1076,10 @@ def render_patient_care(
     duties = NurseDuty.objects(patient=patient, is_active=True)
     notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
+    hospitals = HospitalModel.objects.all()
+    visits = NurseVisit.objects(patient=patient).order_by("-visit_time")
+
+    print(patient.to_json())
 
     return templates.TemplateResponse(
         "admin/edit_patient.html",
@@ -831,44 +1088,103 @@ def render_patient_care(
             "patient": patient,
             "doctor": patient.assigned_doctor,
             "nurses": nurses,
+            "visits":visits,
             "duties": duties,
             "notes": notes,
             "vitals": vitals,
+            "hospitals": hospitals,
         }
     )
 
+
+# @router.get("/patient/{patient_id}/view", response_class=HTMLResponse)
+# def view_patient_details(request: Request, patient_id: str):
+#     patient = PatientProfile.objects(id=patient_id).first()
+#     if not patient:
+#         raise HTTPException(status_code=404, detail="Patient not found")
+
+#     nurses = NurseProfile.objects()
+#     duties = NurseDuty.objects(patient=patient, is_active=True)
+#     notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
+#     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
+#     medications = PatientMedication.objects(patient=patient)
+#     relatives = RelativeAccess.objects(patient=patient)
+#     relatives = RelativeAccess.objects(patient=patient)
+#     all_users = User.objects(role="RELATIVE")
+    
+#     return templates.TemplateResponse(
+#         "admin/view_patient.html",
+#         {
+#             "request": request,
+#             "patient": patient,
+#             "doctor": patient.assigned_doctor,
+#             "nurses": nurses,
+#             "duties": duties,
+#             "notes": notes,
+#             "vitals": vitals,
+#             "medications": medications,
+#             "relatives": relatives,
+#             "relatives": relatives,
+#         }
+#     )
 
 @router.get("/patient/{patient_id}/view", response_class=HTMLResponse)
 def view_patient_details(request: Request, patient_id: str):
     patient = PatientProfile.objects(id=patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-
-    nurses = NurseProfile.objects()
-    duties = NurseDuty.objects(patient=patient, is_active=True)
+ 
+    duties = NurseDuty.objects(patient=patient).order_by("-duty_start")
     notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
-    medications = PatientMedication.objects(patient=patient)
+    medications = PatientMedication.objects(patient=patient).order_by("-id")
     relatives = RelativeAccess.objects(patient=patient)
-    relatives = RelativeAccess.objects(patient=patient)
-    all_users = User.objects(role="RELATIVE")
-    
+ 
+    # ── Equipment ──────────────────────────────────────────────
+    equipment_requests = UserEquipmentRequest.objects(patient=patient)
+ 
+    equipment_data = []
+    total_equipment_cost = 0.0
+ 
+    for eq_req in equipment_requests:
+        try:
+            equip       = eq_req.equipment          # ReferenceField → EquipmentTable
+            days        = eq_req.day_duration or 1
+            price_per_day = eq_req.price_per_day or equip.price or 0.0
+            total_cost  = days * price_per_day
+ 
+            total_equipment_cost += total_cost
+ 
+            equipment_data.append({
+                "title"        : equip.title,
+                "image"        : equip.image,
+                "price_per_day": price_per_day,
+                "days"         : days,
+                "total_cost"   : total_cost,
+                "status"       : eq_req.status,   # True/False (approved/pending)
+            })
+        except Exception:
+            # Agar reference broken ho toh skip karo
+            continue
+    # ───────────────────────────────────────────────────────────
+ 
     return templates.TemplateResponse(
         "admin/view_patient.html",
         {
-            "request": request,
-            "patient": patient,
-            "doctor": patient.assigned_doctor,
-            "nurses": nurses,
-            "duties": duties,
-            "notes": notes,
-            "vitals": vitals,
-            "medications": medications,
-            "relatives": relatives,
-            "relatives": relatives,
+            "request"              : request,
+            "patient"              : patient,
+            "doctor"               : patient.assigned_doctor,
+            "duties"               : duties,
+            "notes"                : notes,
+            "vitals"               : vitals,
+            "medications"          : medications,
+            "relatives"            : relatives,
+            # ✅ NEW
+            "equipment_data"       : equipment_data,
+            "total_equipment_cost" : total_equipment_cost,
+            "ist_offset"           : timedelta(hours=5, minutes=30),
         }
     )
-
 
 
 
@@ -1001,12 +1317,255 @@ def medicine_master_page(
 
 
 @router.get("/staff/manage", response_class=HTMLResponse)
-def staff_manage_page(request: Request):
-    staff = User.objects(role="STAFF").order_by("-created_at")
+def staff_manage_page(
+    request: Request,
+    search: str | None = None
+):
+    staff_query = Q(role="STAFF")
+
+    if search:
+        staff_query &= (
+            Q(name__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(email__icontains=search)
+        )
+
+    staff = User.objects(staff_query).order_by("-created_at")
     return templates.TemplateResponse(
         "admin/staff_manage.html",
         {
             "request": request,
-            "staff": staff
+            "staff": staff,
+            "search": search or ""
+        }
+    )
+
+@router.get("/hospital", response_class=HTMLResponse)
+def hospital_page(request: Request):
+    return templates.TemplateResponse(
+        "admin/hospitals.html",
+        {"request": request}
+    )
+
+
+@router.get("/equipment")
+def equipment_page(request: Request):
+    return templates.TemplateResponse(
+        "admin/equipment.html",
+        {"request": request}
+    )
+
+@router.get("/request-equipment")
+def equipment_page(request: Request):
+    return templates.TemplateResponse(
+        "admin/equipment_requests.html",
+        {"request": request}
+    )
+
+@router.get("/payments", response_class=HTMLResponse)
+async def admin_payments_page(
+    request: Request,
+  
+):
+    payments = (
+    AllPaymentsHistory.objects
+    
+    .order_by("-id")
+)
+
+
+    return templates.TemplateResponse(
+        "admin/payments.html",
+        {
+            "request": request,
+            "payments": payments
+        }
+    )
+
+# care tacker ====================================
+@router.get("/create/caretacker", response_class=HTMLResponse)
+def create_nurse(request: Request):
+    return templates.TemplateResponse(
+        "admin/create_caretacker.html", {"request": request}
+    )
+
+@router.get("/caretacker/{nurse_id}")
+def nurse_detail_page(
+    nurse_id: str,
+    request: Request,
+    month: str = datetime.utcnow().strftime("%Y-%m")  # YYYY-MM
+):
+    print("\n========== NURSE DETAIL PAGE ==========")
+    print("Nurse ID:", nurse_id)
+    print("Month:", month)
+    
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+    
+    user = nurse.user
+    
+    # ================= MONTH RANGE =================
+    year, mon = map(int, month.split("-"))
+    last_day = calendar.monthrange(year, mon)[1]
+   
+    start_date = date(year, mon, 1)
+    end_date = date(year, mon, last_day)
+
+    print("Date Range:", start_date, "to", end_date)
+
+    # ================= ATTENDANCE =================
+    attendance_qs = NurseAttendance.objects(
+        nurse=nurse,
+        date__gte=start_date,
+        date__lte=end_date
+    ).order_by("date")
+
+    total_present = attendance_qs.count()
+
+    print("Total Attendance:", total_present)
+
+    # -------- GRAPH DATA (Day-wise count) --------
+    attendance_map = defaultdict(int)
+    for att in attendance_qs:
+        attendance_map[att.date.day] += 1
+
+    chart_labels = list(range(1, last_day + 1))
+    chart_values = [attendance_map.get(day, 0) for day in chart_labels]
+
+    print("Attendance Chart Labels:", chart_labels)
+    print("Attendance Chart Values:", chart_values)
+
+    # ================= SALARY =================
+    salary = NurseSalary.objects(
+        nurse=nurse,
+        month=month
+    ).first()
+
+    print("Salary:", salary.net_salary if salary else "N/A")
+
+    # ================= DUTY =================
+    active_duty = NurseDuty.objects(
+        nurse=nurse,
+        is_active=True
+    ).first()
+
+    print("Active Duty:", active_duty.duty_type if active_duty else "None")
+
+    # ================= VISITS =================
+    visits = NurseVisit.objects(
+        nurse=nurse
+    ).order_by("-visit_time")[:10]
+
+    print("Recent Visits:", visits.count())
+
+    # ================= CONSENT =================
+    consent = NurseConsent.objects(
+        nurse=nurse
+    ).order_by("-created_at").first()
+
+    print("Consent Status:", consent.status if consent else "None")
+
+    # ================= COMPLETE NURSE DUMP =================
+    print("\n--- USER DATA ---")
+    # print("Phone:", user.phone)
+    # print("Other Number:", user.other_number)
+    # print("Email:", user.email)
+    # print("Role:", user.role)
+
+    # print("\n--- NURSE PROFILE ---")
+    # print("Type:", nurse.nurse_type)
+    # print("Aadhaar:", nurse.aadhaar_number)
+    print(" Aadhaar Verified:", nurse.aadhaar_verified)
+    # print("Police Verification:", nurse.police_verification_status)
+    # print("PoliceDoc:", nurse.police)
+    # print("Joining:", nurse.joining_date)
+    # print("Resignation:", nurse.resignation_date)
+    # print("Qualification Docs:", nurse.qualification_docs)
+    # print("Experience Docs:", nurse.experience_docs)
+    print("Profile Photo:",  nurse.digital_signature)
+
+    print("========================================\n")
+
+    return templates.TemplateResponse(
+        "admin/caretacker_detetail.html",
+        {
+            "request": request,
+
+            # BASIC
+            "nurse": nurse,
+            "user": user,
+            "month": month,
+
+            # ATTENDANCE
+            "attendance": attendance_qs,
+            "total_present": total_present,
+
+            # GRAPH
+            "chart_labels": chart_labels,
+            "chart_values": chart_values,
+
+            # OTHERS
+            "salary": salary,
+            "duty": active_duty,
+            "visits": visits,
+            "consent": consent,
+            "ist_offset": timedelta(hours=5, minutes=30),
+        }
+    )
+
+@router.get("/caretacker/{nurse_id}/edit", response_class=HTMLResponse)
+def edit_nurse(nurse_id: str, request: Request):
+    nurse = NurseProfile.objects(id=nurse_id).first()
+    if not nurse:
+        raise HTTPException(404, "Nurse not found")
+
+    patients = PatientProfile.objects()
+    duties = NurseDuty.objects(nurse=nurse, is_active=True).order_by("-duty_start")
+    visits = NurseVisit.objects(nurse=nurse).order_by("-visit_time")[:10]
+    consent = NurseConsent.objects(nurse=nurse).order_by("-created_at").first()
+    hospitals = HospitalModel.objects.all()
+    return templates.TemplateResponse(
+        "admin/caretacker_edit.html",
+        {
+            "request": request,
+            "nurse": nurse,
+            "patients": patients,
+            "duties": duties,
+            "visits": visits,
+            "consent": consent,
+            "hospitals": hospitals,
+
+        }
+    )
+
+
+@router.get("/caretacker", response_class=HTMLResponse)
+def nurses(
+    request: Request,
+    search: str | None = None,
+    user = Depends(role_required(["ADMIN", "NURSE"]))
+):
+    nurses_query = Q(nurse_type="CARETAKER")
+
+    if search:
+        matched_users = User.objects(
+            Q(role="NURSE") &
+            (
+                Q(name__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(email__icontains=search)
+            )
+        )
+        nurses_query &= Q(user__in=matched_users)
+
+    nurses_qs = NurseProfile.objects(nurses_query).select_related()
+
+    return templates.TemplateResponse(
+        "admin/careTacker.html",
+        {
+            "request": request,
+            "nurses": nurses_qs,
+            "search": search or ""
         }
     )

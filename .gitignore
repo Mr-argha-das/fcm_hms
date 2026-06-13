@@ -9,4 +9,5 @@ venv/
 __pycache__/
 
 uploads/documents/
+utils/healthcare-hms-1fdc42c427ae.json
 

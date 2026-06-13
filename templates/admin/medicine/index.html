@@ -7,20 +7,32 @@
 <div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
   <div class="d-flex justify-content-between align-items-center p-3">
-    <h5 class="mb-0 text-md">💊 Medicine Master</h5>
-  </div>
+  <h5 class="mb-0 text-md">
+    <i data-lucide="pill" class="w-4 h-4 inline me-1"></i> Medications
+  </h5>
+
+  <input
+    type="text"
+    id="searchMedicine"
+    class="form-control"
+    placeholder="Search medicine..."
+    style="width:250px"
+    onkeyup="searchMedicines()"
+  />
+</div>
 
   <!-- CREATE MEDICINE -->
   <div class="p-3">
     <div class="flex flex-col">
       <h6 class="mb-1 text-sm">Add New Medicine</h6>
 
+
       <div class="row g-2">
         <div class="col-md-3">
           <input
             id="name"
             class="form-control"
-            placeholder="Medicine Name"
+            placeholder="Generic Name"
             required
             minlength="2"
           />
@@ -30,7 +42,7 @@
           <input
             id="company_name"
             class="form-control"
-            placeholder="Company Name"
+            placeholder="Manufacturer"
             required
           />
         </div>
@@ -39,7 +51,7 @@
           <input
             id="dosage"
             class="form-control"
-            placeholder="Dosage (500mg)"
+            placeholder="Strength (500mg)"
             required
           />
         </div>
@@ -67,10 +79,10 @@
       </div>
       <div class="flex justify-start">
         <button
-          class="bg-green-500 text-white px-3 py-1.5 mt-2.5 !rounded-xl hover:bg-green-600 transition-colors"
+          class="bg-success -500 text-white px-3 py-1.5 mt-2.5 !rounded-xl hover:bg-success -600 transition-colors"
           onclick="createMedicine()"
         >
-          ➕ Add Medicine
+          Add Medicine
         </button>
       </div>
     </div>
@@ -80,10 +92,10 @@
   <table class="table table-hover align-middle">
     <thead class="table-light">
       <tr>
-        <th>Name</th>
-        <th>Company</th>
-        <th>Dosage</th>
-        <th>Form</th>
+        <th>Generic Name</th>
+        <th>Manufacturer</th>
+        <th>Strength (e.g., 500 mg, 250 mg)</th>
+        <th>Form (Tablet / Syrup / Injection / Capsule)</th>
         <th>Price</th>
         <th class="text-center">Action</th>
       </tr>
@@ -149,7 +161,7 @@
 
         alert(d.message || "Medicine added successfully");
 
-        // Clear form
+        // VERIFIED form
         document.getElementById("name").value = "";
         document.getElementById("company_name").value = "";
         document.getElementById("dosage").value = "";
@@ -162,55 +174,70 @@
         alert("Something went wrong while creating medicine");
       });
   }
-
-  function loadMedicines() {
-    fetch(`/md/admin/medicine`, {
-      headers: headers(),
+function loadMedicines() {
+  fetch(`/md/admin/medicine`, {
+    headers: headers(),
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      medicinesData = data;
+      renderMedicines(data);
     })
-      .then((r) => r.json())
-      .then((data) => {
-        const tbody = document.getElementById("medicineTable");
-        tbody.innerHTML = "";
-
-        if (!data.length) {
-          tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="text-center text-muted">
-            No medicines found
-          </td>
-        </tr>`;
-          return;
-        }
-
-        data.forEach((m) => {
-          tbody.innerHTML += `
-        <tr>
-          <td>${m.name}</td>
-          <td>${m.company}</td>
-          <td>${m.dosage}</td>
-          <td>${m.form}</td>
-          <td>₹ ${m.price}</td>
-          <td class="text-center">
-            <button
-              class="btn btn-sm btn-outline-danger"
-              onclick="deactivateMedicine('${m.id}')"
-            >
-              ❌
-            </button>
-          </td>
-        </tr>`;
-        });
-      })
-      .catch(() => {
-        document.getElementById("medicineTable").innerHTML = `
+    .catch(() => {
+      document.getElementById("medicineTable").innerHTML = `
       <tr>
         <td colspan="6" class="text-center text-danger">
           Failed to load medicines
         </td>
       </tr>`;
-      });
+    });
+}
+
+function renderMedicines(data) {
+  const tbody = document.getElementById("medicineTable");
+  tbody.innerHTML = "";
+
+  if (!data.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted">
+          No medicines found
+        </td>
+      </tr>`;
+    return;
   }
 
+  data.forEach((m) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${m.name}</td>
+        <td>${m.company}</td>
+        <td>${m.dosage}</td>
+        <td>${m.form}</td>
+        <td>₹ ${m.price}</td>
+        <td class="text-center">
+          <button class="hover:scale-105" onclick="deactivateMedicine('${m.id}')">
+            ❌
+          </button>
+        </td>
+      </tr>`;
+  });
+}
+
+function searchMedicines() {
+  const keyword = document
+    .getElementById("searchMedicine")
+    .value
+    .toLowerCase();
+
+  const filtered = medicinesData.filter((m) =>
+    m.name.toLowerCase().includes(keyword) ||
+    m.company.toLowerCase().includes(keyword) ||
+    m.form.toLowerCase().includes(keyword)
+  );
+
+  renderMedicines(filtered);
+}
   function deactivateMedicine(id) {
     if (!confirm("Are you sure you want to delete this medicine?")) return;
 

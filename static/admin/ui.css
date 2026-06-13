@@ -91,7 +91,7 @@ a:active {
 /* ACTIVE */
 .sidebar a.active {
   background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-  color: var(--primary);
+  /* color: var(--primary); */
   box-shadow: 0 6px 14px rgba(79, 124, 255, 0.18);
 }
 

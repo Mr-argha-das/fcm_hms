@@ -24,7 +24,6 @@ class AboutUsUpdateSchema(BaseModel):
 @router.get("/about-us-get")
 def get_about_us():
     about = AboutUs.objects.first()
-    print(about.to_json())
     # 🔥 if no data → return default empty
     if not about:
         return {

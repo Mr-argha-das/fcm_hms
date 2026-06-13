@@ -1,0 +1,210 @@
+{% extends "admin/base.html" %} {% block title %}Nurses{% endblock %} {% block
+content %}
+
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
+  <!-- HEADER -->
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <h5 class="mb-0 text-md">Nurses</h5>
+    <div class="d-flex gap-2">
+      <form method="get" class="d-flex gap-2">
+        <input
+          type="text"
+          name="search"
+          value="{{ search }}"
+          placeholder="Search by name, phone, email"
+          class="form-control"
+          style="min-width: 260px"
+        />
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          Search
+        </button>
+        {% if search %}
+        <a href="/admin/caretacker" class="btn btn-outline-secondary btn-sm">
+          Clear
+        </a>
+        {% endif %}
+      </form>
+      <!-- <a href="/admin/consent" class="btn btn-sm btn-outline-secondary">
+        📄 Nurse Consent
+      </a> -->
+      <button
+        class="bg-success -500 text-white px-3 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
+        onclick="window.location.href = '/admin/create/caretacker'"
+      >
+        Add Caretacker
+      </button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Staff Name</th>
+        <th>Role / Type</th>
+        <th>Aadhar Verification </th>
+        <th>Police Verification</th>
+        <th>Agreement Signature</th>
+        <th>Avaibility Status</th>
+        <th class="text-center !min-w-[200px">Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if nurses %} {% for nurse in nurses %}
+      <tr>
+        <!-- NAME / IDENTITY -->
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {% if nurse.profile_photo %}
+            <!-- <span> {{ nurse.profile_photo }} </span> -->
+            <img
+              src="https://wecarehhcs.in{{ nurse.profile_photo }}"
+              style="width: 36px; height: 36px; border-radius: 50%"
+            />
+            {% else %}
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+              "
+            >
+              👩‍⚕️
+            </div>
+            {% endif %}
+
+            <div class="flex flex-col">
+              <div class="fw-semibold">{{ nurse.user.name }}</div>
+              <small class="text-muted">{{ nurse.user.phone }}</small>
+            </div>
+          </div>
+        </td>
+
+        <!-- TYPE -->
+        <td>
+          <span class="badge bg-info text-dark"> {{ nurse.nurse_type }} </span>
+        </td>
+
+        <!-- VERIFICATION -->
+        <td>
+          {% if nurse.aadhaar_verified == true %}
+          <span class="badge bg-success">Verified</span>
+          {% elif nurse.aadhaar_verified == false %}
+          <span class="badge bg-danger">Not Verified</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+
+        <!-- POLICE -->
+        <td>
+          {% if nurse.police_verification_status == "VERIFIED" %}
+          <span class="badge bg-success">VERIFIED</span>
+          {% elif nurse.police_verification_status == "FAILED" %}
+          <span class="badge bg-danger">Failed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+
+        <!-- SIGNATURE -->
+        <td>
+          {% if nurse.digital_signature_verify %}
+          <span class="badge bg-success">Signed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Unsigned</span>
+          {% endif %}
+        </td>
+
+        <!-- STATUS -->
+        <td>
+          {% if nurse.user.is_active %}
+          <span class="badge bg-success">Active</span>
+          {% else %}
+          <span class="badge bg-secondary">Inactive</span>
+          {% endif %}
+        </td>
+
+        <!-- ACTIONS -->
+        <td class="text-center">
+          <!-- <div class="flex"> -->
+          <button
+            class="btn btn-sm hover:bg-yellow-100"
+            title="View Details"
+            onclick="window.location.href='/admin/caretacker/{{ nurse.id }}'"
+          >
+           <i data-lucide="eye" class="w-5 h-5 text-yellow-600"></i>
+          </button>
+
+          <a
+            href="/admin/caretacker/{{ nurse.id }}/edit"
+            class="btn btn-sm hover:bg-yellow-100"
+          >
+            <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
+          </a>
+          <!-- <a
+            class="btn btn-sm btn-outline-warning"
+            onclick="deleteNurse('{{ nurse.id }}')"
+          >
+            🗑️
+          </a> -->
+
+          <!-- {% if nurse.user.is_active %}
+          <button class="btn btn-sm btn-outline-danger" title="Deactivate">
+            🚫
+          </button>
+          {% else %}
+          <button class="btn btn-sm btn-outline-success" title="Activate">
+            ✅
+          </button>
+          {% endif %} -->
+          <!-- </div> -->
+        </td>
+      </tr>
+      {% endfor %} {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted">No caretakers found</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  async function deleteNurse(nurseId) {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this nurse?",
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const r = await fetch(`/nurse/delete/${nurseId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+
+      const d = await r.json();
+
+      if (r.ok) {
+        alert("Nurse deleted successfully");
+        location.reload();
+      } else {
+        alert(d.detail || "Failed to delete nurse");
+      }
+    } catch (err) {
+      alert("Server error while deleting nurse");
+    }
+  }
+</script>
+{% endblock %}

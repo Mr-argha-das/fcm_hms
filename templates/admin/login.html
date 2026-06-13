@@ -107,9 +107,13 @@
       </button>
 
       <!-- FOOTER -->
-      <div class="text-center mt-4 subtext">
-        © {{ year }} WellNest Healthcare
-      </div>
+      <a
+        target="_blank"
+        href="https://digitalwishmedia.com/"
+        class="text-center mt-4 subtext"
+      >
+        © Made by Digital Wish Media (DWM)
+      </a>
     </div>
 
     <!-- 🔥 JS UNCHANGED -->
@@ -137,7 +141,7 @@
 
           // 🔥 ROLE BASED REDIRECT
           if (d.role === "ADMIN") {
-            window.location.href = "/admin/dashboard";
+            window.location.href = d.redirect_url || "/admin/dashboard";
           } else if (d.role === "NURSE") {
             window.location.href = "/admin/nurses";
           } else if (d.role === "DOCTOR") {

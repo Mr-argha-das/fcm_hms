@@ -14,25 +14,26 @@ block content %}
   <input type="hidden" id="experience_docs" />
   <input type="hidden" id="profile_photo" />
   <input type="hidden" id="digital_signature" />
+  <input type="hidden" id="medical_docs" />
 
   <!-- STEP 1 -->
   <div class="card step p-3 mb-4" id="step1">
-    <h5>Basic Details</h5>
+    <h5 class="mb-2">Professional Information</h5>
     <div class="row">
       <div class="col-md-6 mb-3">
-        <label>Name *</label>
+        <label>Full Name *</label>
         <input class="form-control" id="name" required />
       </div>
       <div class="col-md-6 mb-3">
-        <label>Father Name</label>
+        <label>Father's Name</label>
         <input class="form-control" id="father_name" />
       </div>
       <div class="col-md-6 mb-3">
-        <label>Phone *</label>
+        <label>Primary Contact Number *</label>
         <input class="form-control" id="phone" required />
       </div>
       <div class="col-md-6 mb-3">
-        <label>Alt Phone *</label>
+        <label>Alternative Contact Number *</label>
         <input class="form-control" id="other_number" required />
       </div>
       <div class="col-md-6 mb-3">
@@ -40,19 +41,18 @@ block content %}
         <input type="email" class="form-control" id="email" />
       </div>
       <div class="col-md-6 mb-3">
-        <label>Nurse Type *</label>
+        <label>Role Type *</label>
         <select class="form-control" id="nurse_type" required>
           <option value="">Select</option>
           <option>GNM</option>
           <option>ANM</option>
-          <option>CARETAKER</option>
           <option>PHYSIO</option>
           <option>COMBO</option>
           <option>OTHER</option>
         </select>
       </div>
       <div class="col-md-6 mb-3">
-        <label>Aadhaar Number</label>
+        <label>Aadhaar Number (UID) - Validation 12 Number only</label>
         <input class="form-control" id="aadhaar" />
       </div>
     </div>
@@ -63,7 +63,7 @@ block content %}
     <h5>Documents</h5>
 
     <div class="mb-3">
-      <label>Qualification Documents</label>
+      <label>Educational Documents</label>
       <input
         type="file"
         multiple
@@ -73,7 +73,7 @@ block content %}
     </div>
 
     <div class="mb-3">
-      <label>Experience Documents</label>
+      <label>Work Experience Certificate</label>
       <input
         type="file"
         multiple
@@ -102,13 +102,23 @@ block content %}
       />
     </div>
 
+    <div class="col-md-6 mb-3">
+      <label>HIV / AIDS / HBASG / HBA1C Documents</label>
+      <input
+        type="file"
+        multiple
+        class="form-control"
+        onchange="uploadMultipleFiles(this, 'medical_docs', 'documents')"
+      />
+    </div>
+
     <div class="row">
       <div class="col-md-6 mb-3">
-        <label>Joining Date</label>
+        <label>Date of joining</label>
         <input type="date" class="form-control" id="joining_date" />
       </div>
       <div class="col-md-6 mb-3">
-        <label>Resignation Date</label>
+        <label>Last Working Date</label>
         <input type="date" class="form-control" id="resignation_date" />
       </div>
     </div>
@@ -116,10 +126,10 @@ block content %}
 
   <!-- STEP 3 -->
   <div class="card step p-3 mb-4 d-none" id="step3">
-    <h5>Shift & Salary</h5>
+    <h5 class="mb-2">Shift & Salary</h5>
     <div class="row">
       <div class="col-md-4 mb-3">
-        <label>Shift Type *</label>
+        <label>Duty Type / Working Hours  *</label>
         <select class="form-control" id="shift_type" required>
           <option value="">Select</option>
           <option>DAY</option>
@@ -132,7 +142,7 @@ block content %}
         <input type="number" class="form-control" id="duty_hours" required />
       </div>
       <div class="col-md-4 mb-3">
-        <label>Salary Type *</label>
+        <label>Payment Cycle *</label>
         <select class="form-control" id="salary_type" required>
           <option value="">Select</option>
           <option>MONTHLY</option>
@@ -180,7 +190,7 @@ block content %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     /* ================= AUTH GUARD ================= */
-    guard(); // 🔐 auto redirect if no token
+    guard(); 
 
     /* ================= API ENDPOINTS ================= */
     const FILE_API = "/upload/file";
@@ -206,6 +216,7 @@ block content %}
     const experience_docs = document.getElementById("experience_docs");
     const profile_photo = document.getElementById("profile_photo");
     const digital_signature = document.getElementById("digital_signature");
+    const medical_docs = document.getElementById("medical_docs");
 
     const joining_date = document.getElementById("joining_date");
     const resignation_date = document.getElementById("resignation_date");
@@ -316,6 +327,12 @@ block content %}
       payload.experience_docs = experience_docs.value
         ? JSON.parse(experience_docs.value)
         : [];
+
+      payload.medical_docs = medical_docs.value
+        ? JSON.parse(medical_docs.value)
+        : [];
+
+      
 
       if (profile_photo.value) payload.profile_photo = profile_photo.value;
       if (digital_signature.value)

@@ -1,5 +1,7 @@
-{% extends "admin/base.html" %} {% block title %}Nurse Details{% endblock %} {%
-block content %}
+{% extends "admin/base.html" %}
+{% block title %}Nurse Details — WeCare360{% endblock %}
+
+{% block content %}
 
 <!-- ================= BASIC INFO ================= -->
 <div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
@@ -8,162 +10,540 @@ block content %}
       {% if nurse.profile_photo %}
       <img
         src="https://wecarehhcs.in{{ nurse.profile_photo }}"
-        style="width: 90px; height: 90px; border-radius: 50%"
+        style="width:90px;height:90px;border-radius:50%;object-fit:cover"
         class="me-3"
       />
       {% endif %}
-
       <div>
         <h4>{{ user.name }}</h4>
         <h5 class="text-xs">Mobile : {{ user.phone }}</h5>
-        <h6 class="text-xs w-full flex">
-          Alt Mobile : {{ user.other_number }}
-        </h6>
-
-        <!-- <span class="badge bg-warning">{{ nurse.verification_status }}</span> -->
-
-        <span class="mb-1"> {{ nurse.nurse_type }} Nurse </span>
-        <div>
-          {% if nurse.aadhaar_verified %}
-          <span class="badge bg-success">Aadhaar Verified</span>
-          {% endif %}
-          <span class="badge bg-info"
-            >Police Verification {{ nurse.police_verification_status }}</span
-          >
-          <span
-            class="badge {{ 'bg-warning' if nurse.digital_signature_verify else 'bg-danger' }}"
-            >Consent : {{ "Signed" if nurse.digital_signature_verify else
-            "Unsigned" }}
+        <h6 class="text-xs w-full flex">Alt Mobile : {{ user.other_number }}</h6>
+        <span class="mb-1">{{ nurse.nurse_type }} Nurse</span>
+        <div class="mt-1">
+          <span class="badge {% if nurse.aadhaar_verified %}bg-success{% else %}bg-danger{% endif %}">
+            Aadhaar Verification :
+            {% if nurse.aadhaar_verified %}Verified{% else %}Not Verified{% endif %}
+          </span>
+          <span class="badge bg-info">
+            Police Verification {{ nurse.police_verification_status }}
+          </span>
+          <span class="badge {{ 'bg-warning' if nurse.digital_signature_verify else 'bg-danger' }}">
+            Consent : {{ "Signed" if nurse.digital_signature_verify else "Unsigned" }}
           </span>
         </div>
       </div>
     </div>
-
-    <!-- 🔥 NAVIGATION BUTTON -->
     <div>
-      <!-- <a
-        href="/admin/staff/{{ user.id }}/attendance-salary?month={{ month }}"
-        class="btn btn-outline-primary btn-sm"
-      >
-        📊 Attendance & Salary
-      </a> -->
-      <!-- <div class="mt-2 flex justify-content-between">
-        <h5 class="text-sm">ward : {{ user.ward }}</h5>
-        <h5 class="text-sm">room : {{ user.room }}</h5>
-      </div> -->
+      {% if nurse.digital_signature %}
+      <img
+        src="https://wecarehhcs.in{{ nurse.digital_signature }}"
+        class="border h-28 w-60 rounded-lg"
+      />
+      {% endif %}
     </div>
   </div>
 </div>
 
+<div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h5 class="mb-0">Account Information</h5>
+    {% if consent %}
+    <span class="badge bg-light text-dark">
+      Payment Mode: {{ consent.payment_mode or "-" }}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if nurse.account_holder_name or nurse.bank_name or nurse.branch_name or nurse.account_number or nurse.ifsc_code or nurse.upi_id %}
+  <div class="row">
+    <div class="col-md-4 mb-2"><b>Account Holder:</b> {{ nurse.account_holder_name or "-" }}</div>
+    <div class="col-md-4 mb-2"><b>Bank Name:</b> {{ nurse.bank_name or "-" }}</div>
+    <div class="col-md-4 mb-2"><b>Branch Name:</b> {{ nurse.branch_name or "-" }}</div>
+    <div class="col-md-4 mb-2"><b>Account Number:</b> {{ nurse.account_number or "-" }}</div>
+    <div class="col-md-4 mb-2"><b>IFSC Code:</b> {{ nurse.ifsc_code or "-" }}</div>
+    <div class="col-md-4 mb-2"><b>UPI ID:</b> {{ nurse.upi_id or "-" }}</div>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No account information added yet.</p>
+  {% endif %}
+</div>
+
+
 <!-- ================= KPI SUMMARY ================= -->
-<div class="row g-4 mb-4">
-  <div class="col-md-3 flex">
-    <div
-      class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full"
-    >
-      <small>Attendance ({{ month }})</small>
+<div class="flex gap-3 mb-3">
+
+  <div class="flex w-full">
+    <div class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full">
+      <small>Monthly Attendance ({{ month }})</small>
       <h3>{{ total_present }} Days</h3>
     </div>
   </div>
 
-  <div class="col-md-3 flex">
-    <div
-      class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full"
-    >
-      <small>Salary</small>
-      <h3>₹ {{ salary.net_salary if salary else "N/A" }}</h3>
+  <div class="flex w-full">
+    <div class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full">
+      <small>Net Salary</small>
+      <h3>₹{{ salary.net_salary if salary else "0" }}</h3>
       {% if salary and salary.is_paid %}
-      <small class="text-success">Paid</small>
+        <small class="text-success fw-semibold">✅ Paid</small>
       {% elif salary %}
-      <small class="text-danger">Unpaid</small>
+        <small class="text-danger fw-semibold">⏳ Pending</small>
+      {% else %}
+        <small class="text-muted">No Record</small>
       {% endif %}
     </div>
   </div>
 
-  <div class="col-md-3 flex">
-    <div
-      class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full"
-    >
-      <small>Active Duty</small>
-      <h3>{{ duty.duty_type if duty else "N/A" }}</h3>
-      {% if duty %}
-      <small>{{ duty.shift }}</small>
-      {% endif %}
+  <div class="flex w-full">
+    <div class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full">
+      <small>Total Paid</small>
+      <h3 class="text-success">₹{{ salary.paid_amount if salary else "0" }}</h3>
+      <small class="text-muted">this month</small>
     </div>
   </div>
 
-  <div class="col-md-3">
-    <div class="card kpi p-3 text-center">
-      <small>Consent Status</small>
-      <h3>{{ consent.status if consent else "N/A" }}</h3>
-      {% if consent %}
-      <small>Version {{ consent.version }}</small>
-      {% endif %}
+  <div class="flex w-full">
+    <div class="card kpi p-3 text-center flex flex-col align-items-center justify-content-center w-full">
+      <small>Pending</small>
+      <h3 class="text-danger" id="kpiPending">
+        {% if salary %}
+          ₹{{ (salary.net_salary - salary.paid_amount) | round(2) }}
+        {% else %}₹0{% endif %}
+      </h3>
+      <small class="text-muted">to be paid</small>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ================= 💰 SALARY MANAGEMENT ================= -->
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4 overflow-hidden">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between p-3"
+    style="background:linear-gradient(135deg,#1a3c6b,#2e86de)">
+    <div>
+      <h5 class="text-white mb-0">💰 Salary Management</h5>
+      <small class="text-white opacity-75">{{ user.name }}</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <input
+        type="month" id="salaryMonthPicker"
+        class="form-control form-control-sm"
+        style="max-width:140px;background:rgba(255,255,255,0.15);
+               border-color:rgba(255,255,255,0.3);color:white"
+        value="{{ month }}"
+        onchange="loadSalarySummary()"
+      />
+      <button class="btn btn-sm btn-light fw-semibold" onclick="loadSalarySummary()">
+        🔄 Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="p-3">
+
+    <!-- Loader -->
+    <div id="salaryLoader" class="text-center py-4">
+      <div class="spinner-border text-primary mb-2"></div>
+      <p class="text-muted mb-0">Loading salary data...</p>
+    </div>
+
+    <!-- Content -->
+    <div id="salaryContent" style="display:none">
+      <div class="row g-3">
+
+        <!-- LEFT — Attendance + Breakdown info -->
+        <div class="col-md-5">
+
+          <p class="text-secondary fw-bold text-uppercase mb-2"
+            style="font-size:11px;letter-spacing:1px">Attendance</p>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <div class="text-center p-2 rounded-xl" style="background:#eaf1fb">
+                <div class="fw-bold fs-4 text-primary" id="sTotalDays">—</div>
+                <small class="text-muted" style="font-size:11px">Total</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="text-center p-2 rounded-xl" style="background:#d4edda">
+                <div class="fw-bold fs-4 text-success" id="sPresentDays">—</div>
+                <small class="text-muted" style="font-size:11px">Present</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="text-center p-2 rounded-xl" style="background:#fdecea">
+                <div class="fw-bold fs-4 text-danger" id="sAbsentDays">—</div>
+                <small class="text-muted" style="font-size:11px">Absent</small>
+              </div>
+            </div>
+          </div>
+
+          <div id="dutyBreakdown" class="mb-3"></div>
+
+          <p class="text-secondary fw-bold text-uppercase mb-2"
+            style="font-size:11px;letter-spacing:1px">Salary Breakdown</p>
+          <table class="table table-sm" style="font-size:13px">
+            <tbody>
+              <tr>
+                <td class="text-muted border-0 ps-0">Basic Salary</td>
+                <td class="text-end fw-semibold border-0" id="sBasic">—</td>
+              </tr>
+              <tr>
+                <td class="text-muted ps-0">Deductions</td>
+                <td class="text-end text-danger fw-semibold" id="sDed">—</td>
+              </tr>
+              <tr>
+                <td class="text-muted ps-0">Advance Taken</td>
+                <td class="text-end text-warning fw-semibold" id="sAdv">—</td>
+              </tr>
+              <tr style="border-top:2px solid #dee2e6">
+                <td class="fw-bold ps-0">Net Salary</td>
+                <td class="text-end fw-bold fs-5" id="sNet">—</td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+
+        <!-- RIGHT — Actions -->
+        <div class="col-md-7">
+
+          <!-- NO RECORD state -->
+          <div id="stateNoRecord" style="display:none">
+            <div class="text-center py-3 mb-3">
+              <div style="font-size:40px">📋</div>
+              <h6 class="fw-bold mt-1">No Salary Record</h6>
+              <p class="text-muted" style="font-size:13px">
+                Is month ka salary record nahi bana hai.
+              </p>
+            </div>
+            <div class="p-3 rounded-xl"
+              style="background:#f0f4ff;border:1px solid #c3d9f7">
+              <h6 class="fw-bold mb-3">📋 Create Salary Record</h6>
+              <div class="mb-2">
+                <label class="form-label form-label-sm fw-semibold mb-1">
+                  Basic Salary
+                  <small class="fw-normal text-muted">(0 = duty se auto-calculate)</small>
+                </label>
+                <input type="number" id="cBasic" class="form-control form-control-sm"
+                  placeholder="0" min="0" value="0" oninput="updateCreatePreview()" />
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col">
+                  <label class="form-label form-label-sm fw-semibold mb-1">Deductions (₹)</label>
+                  <input type="number" id="cDed" class="form-control form-control-sm"
+                    placeholder="0" min="0" value="0" oninput="updateCreatePreview()" />
+                </div>
+                <div class="col">
+                  <label class="form-label form-label-sm fw-semibold mb-1">Advance Taken (₹)</label>
+                  <input type="number" id="cAdv" class="form-control form-control-sm"
+                    placeholder="0" min="0" value="0" oninput="updateCreatePreview()" />
+                </div>
+              </div>
+              <div id="cNetPreview" class="alert alert-info py-1 px-2 mb-2"
+                style="font-size:13px;display:none">
+                Net Salary: <strong id="cNetVal">₹0</strong>
+              </div>
+              <div id="cErr" class="alert alert-danger py-1 px-2 mb-2"
+                style="font-size:13px;display:none"></div>
+              <button class="btn btn-primary btn-sm w-100 fw-semibold"
+                onclick="submitCreate()">
+                <span id="cSpin" class="spinner-border spinner-border-sm me-1"
+                  style="display:none"></span>
+                Create Salary Record
+              </button>
+            </div>
+          </div>
+
+          <!-- HAS RECORD state -->
+          <div id="stateHasRecord" style="display:none">
+
+            <p class="text-secondary fw-bold text-uppercase mb-2"
+              style="font-size:11px;letter-spacing:1px">Payment Status</p>
+            <div class="row g-2 mb-3">
+              <div class="col-4">
+                <div class="p-2 rounded-xl text-center"
+                  style="background:#f8f9fa;border:1px solid #dee2e6">
+                  <small class="text-muted d-block" style="font-size:11px">Net Salary</small>
+                  <strong style="font-size:14px" id="pNet">—</strong>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 rounded-xl text-center"
+                  style="background:#d4edda;border:1px solid #c3e6cb">
+                  <small class="text-muted d-block" style="font-size:11px">Total Paid</small>
+                  <strong style="font-size:14px" class="text-success" id="pPaid">—</strong>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 rounded-xl text-center"
+                  style="background:#fdecea;border:1px solid #f5c6cb">
+                  <small class="text-muted d-block" style="font-size:11px">Pending</small>
+                  <strong style="font-size:14px" class="text-danger" id="pPending">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mb-1" style="font-size:12px">
+              <span class="text-muted">Payment Progress</span>
+              <span id="pPct" class="fw-bold">0%</span>
+            </div>
+            <div class="progress mb-3" style="height:12px;border-radius:8px">
+              <div id="pBar" class="progress-bar bg-success"
+                style="width:0%;border-radius:8px;transition:width 0.6s ease"></div>
+            </div>
+
+            <div id="pStatus" class="mb-3"></div>
+
+            <!-- Payslip -->
+            <div id="pSlipBox" class="mb-3" style="display:none">
+              <div class="p-3 rounded-xl d-flex align-items-center justify-content-between"
+                style="background:#f0fff4;border:1px solid #b2dfdb">
+                <div>
+                  <div class="fw-semibold" style="font-size:13px">📄 Salary Slip Ready</div>
+                  <small class="text-muted">Download ya share karo</small>
+                </div>
+                <a id="pSlipLink" href="#" target="_blank"
+                  class="btn btn-sm btn-success fw-semibold">⬇ Download PDF</a>
+              </div>
+            </div>
+
+            <!-- Pay form -->
+            <div id="payFormBox" class="p-3 rounded-xl mb-3"
+              style="background:#f0fff4;border:1px solid #b2dfdb">
+              <h6 class="fw-bold mb-3">💸 Pay Salary</h6>
+              <div class="mb-2">
+                <label class="form-label form-label-sm fw-semibold mb-1">Amount to Pay (₹)</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" id="payAmt" class="form-control"
+                    placeholder="Amount daalo" min="1" />
+                  <button class="btn btn-outline-secondary"
+                    onclick="setFullAmt()">Full</button>
+                </div>
+                <small class="text-muted mt-1 d-block">
+                  Max payable: <span id="payMax" class="fw-semibold text-success">₹0</span>
+                </small>
+              </div>
+              <div id="payErr" class="alert alert-danger py-1 px-2 mb-2"
+                style="font-size:13px;display:none"></div>
+              <button class="btn btn-success btn-sm w-100 fw-bold" onclick="submitPay()">
+                <span id="paySpin" class="spinner-border spinner-border-sm me-1"
+                  style="display:none"></span>
+                💸 Pay & Generate Salary Slip
+              </button>
+              <small class="d-block text-center text-muted mt-1" style="font-size:11px">
+                Payment ke baad PDF slip automatically generate hogi
+              </small>
+            </div>
+
+            <!-- Update form -->
+            <div class="p-3 rounded-xl" style="background:#f8f9fa;border:1px solid #dee2e6">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0" style="font-size:13px">✏️ Update Salary Record</h6>
+                <button class="btn btn-sm btn-link p-0 text-muted"
+                  onclick="toggleUpdate()">Edit ▾</button>
+              </div>
+              <div id="updateBox" style="display:none" class="mt-3">
+                <div class="row g-2 mb-2">
+                  <div class="col">
+                    <label class="form-label form-label-sm mb-1">Basic Salary</label>
+                    <input type="number" id="uBasic" class="form-control form-control-sm"
+                      min="0" oninput="updateUPreview()" />
+                  </div>
+                  <div class="col">
+                    <label class="form-label form-label-sm mb-1">Deductions</label>
+                    <input type="number" id="uDed" class="form-control form-control-sm"
+                      min="0" oninput="updateUPreview()" />
+                  </div>
+                  <div class="col">
+                    <label class="form-label form-label-sm mb-1">Advance</label>
+                    <input type="number" id="uAdv" class="form-control form-control-sm"
+                      min="0" oninput="updateUPreview()" />
+                  </div>
+                </div>
+                <div id="uPreview" class="alert alert-info py-1 px-2 mb-2"
+                  style="font-size:12px;display:none">
+                  New Net: <strong id="uNetVal">₹0</strong>
+                </div>
+                <div id="uErr" class="alert alert-danger py-1 px-2 mb-2"
+                  style="font-size:12px;display:none"></div>
+                <button class="btn btn-primary btn-sm w-100 fw-semibold"
+                  onclick="submitUpdate()">
+                  <span id="uSpin" class="spinner-border spinner-border-sm me-1"
+                    style="display:none"></span>
+                  Save Changes
+                </button>
+              </div>
+            </div>
+
+          </div>
+          <!-- /stateHasRecord -->
+
+        </div>
+        <!-- /right col -->
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ================= 📜 SALARY HISTORY ================= -->
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4 overflow-hidden">
+  <div class="d-flex align-items-center justify-content-between p-3">
+    <h5 class="mb-0">📜 Salary History</h5>
+    <button class="btn btn-sm btn-outline-primary" onclick="toggleHistory()">
+      <span id="histToggleText">Show History</span>
+    </button>
+  </div>
+  <div id="historySection" style="display:none">
+    <div class="px-3 py-2 d-flex gap-4 flex-wrap"
+      style="background:#f8fafc;border-top:1px solid #e9ecef;border-bottom:1px solid #e9ecef">
+      <div>
+        <small class="text-muted d-block">Total Earned</small>
+        <div class="fw-bold text-primary" id="hEarned">—</div>
+      </div>
+      <div>
+        <small class="text-muted d-block">Total Paid</small>
+        <div class="fw-bold text-success" id="hPaid">—</div>
+      </div>
+      <div>
+        <small class="text-muted d-block">Total Pending</small>
+        <div class="fw-bold text-danger" id="hPending">—</div>
+      </div>
+    </div>
+    <div id="histLoader" class="text-center py-4">
+      <div class="spinner-border text-primary spinner-border-sm"></div>
+    </div>
+    <div id="histTable" style="display:none">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size:13px">
+          <thead style="background:#f8f9fa">
+            <tr>
+              <th class="ps-3">Month</th>
+              <th>Net Salary</th>
+              <th>Paid</th>
+              <th>Pending</th>
+              <th>Status</th>
+              <th class="text-center pe-3">Payslip</th>
+            </tr>
+          </thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ================= LIVE LOCATION TRACKING ================= -->
+
+<!-- ================= DOCUMENTS ================= -->
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h5 class="p-3">Documents</h5>
+  <div class="ro flex flex-wrap gap-4 px-3 pb-3">
+    <div class="col-md6">
+      <ul>
+        {% for doc in nurse.qualification_docs %}
+        <li>
+          <a href="https://wecarehhcs.in{{ doc }}" target="_blank"
+            class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-primary text-white">
+            Qualification
+          </a>
+        </li>
+        {% else %}
+        <li class="text-muted">No document</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="col-md6">
+      <ul>
+         {% if nurse.experience_letter %}
+         <li>
+           <a href="https://wecarehhcs.in{{ nurse.experience_letter }}" target="_blank"
+             class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-green-600 text-white">
+             Experience
+           </a>
+         </li>
+         {% else %}
+         <li class="text-muted">No document</li>
+         {% endif %}
+      </ul>
+    </div>
+    <div class="col-md6">
+      <ul>
+        {% for doc in nurse.police %}
+        <li>
+          <a href="https://wecarehhcs.in{{ doc }}" target="_blank"
+            class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-red-500 text-white">
+            Police Verification
+          </a>
+        </li>
+        {% else %}
+        <li class="text-muted">No document</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- ================= LIVE LOCATION ================= -->
 <div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="mb-0">📍 Live Nurse Location</h5>
-    <span id="liveStatus" class="badge bg-secondary"> Checking... </span>
+    <span id="liveStatus" class="badge bg-secondary">Checking...</span>
   </div>
-
   <div class="text-xs text-muted mb-2">
-    Last updated: <span id="lastUpdated">-</span>
+    Last Seen : <span id="lastUpdated">-</span>
   </div>
-
-  <div
-    id="liveMap"
-    style="width: 100%; height: 380px; border-radius: 12px"
-  ></div>
+  <div id="liveMap" style="width:100%;height:380px;border-radius:12px"></div>
 </div>
+
+
 <!-- ================= ATTENDANCE GRAPH ================= -->
 <div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h5>Attendance Graph – {{ month }}</h5>
+  <h5>Monthly Attendance Graph – {{ month }}</h5>
   <canvas id="attendanceChart" height="120"></canvas>
 </div>
 
+
 <!-- ================= ATTENDANCE TABLE ================= -->
 <div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h5 class="p-3">Attendance Records – {{ month }}</h5>
+  <h5 class="p-3">Monthly Attendance Records – {{ month }}</h5>
   <table class="table">
     <thead>
       <tr>
-        <th>Date</th>
-        <th>Check In</th>
-        <th>Check Out</th>
-        <th>Method</th>
+        <th>Date</th><th>Check In</th><th>Check Out</th><th>Method</th>
       </tr>
     </thead>
     <tbody>
       {% for a in attendance %}
       <tr>
         <td>{{ a.date.strftime("%d %b %Y") }}</td>
-        <td>{{ a.check_in.strftime("%H:%M") if a.check_in else "-" }}</td>
-        <td>{{ a.check_out.strftime("%H:%M") if a.check_out else "-" }}</td>
+        <td>{{ (a.check_in + ist_offset).strftime("%I:%M %p") if a.check_in else "-" }}</td>
+        <td>{{ (a.check_out + ist_offset).strftime("%I:%M %p") if a.check_out else "-" }}</td>
         <td>{{ a.method }}</td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="4" class="text-muted text-center">
-          No attendance for this month
-        </td>
+        <td colspan="4" class="text-muted text-center">No attendance for this month</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
+
 <!-- ================= RECENT VISITS ================= -->
 <div class="bg-card mb-3 p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h5 class="">Recent Nurse Visits</h5>
+  <h5>Recent Nurse Visits</h5>
   <ul class="activity">
-    {% for v in visits %}x
+    {% for v in visits %}
     <li>
-      <strong>{{ v.visit_type }}</strong> | Patient ID: {{ v.patient.id }} | {{
-      v.visit_time.strftime("%d %b %H:%M") }}
+      <strong>{{ v.visit_type }}</strong> | Patient ID: {{ v.patient.id }} |
+      {{ v.visit_time.strftime("%d %b %H:%M") }}
     </li>
     {% else %}
     <li class="text-muted">No visits recorded</li>
@@ -171,138 +551,500 @@ block content %}
   </ul>
 </div>
 
-<!-- ================= DOCUMENTS ================= -->
-<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h5 class="p-3">Documents</h5>
 
-  <div class="ro flex flexcol gap-3 px-3 pb-3">
-    <div class="col-md6">
-      <!-- <strong>Qualification Documents</strong> -->
-      <ul>
-        {% for doc in nurse.qualification_docs %}
-        <li>
-          <a
-            href="https://wecarehhcs.in{{ doc }}"
-            target="_blank"
-            class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-primary text-white"
-            >Qualification Documents</a
-          >
-        </li>
-        {% else %}
-        <li class="text-muted">No documents</li>
-        {% endfor %}
-      </ul>
-    </div>
-
-    <div class="col-md6">
-      <!-- <strong>Experience Documents</strong> -->
-      <ul>
-        {% for doc in nurse.experience_docs %}
-        <li>
-          <a
-            href="https://wecarehhcs.in{{ doc }}"
-            target="_blank"
-            class="border font-semibold border-gray-50 px-3 py-2 mt-2 rounded-lg bg-green-600 text-white"
-            >Experience Documents</a
-          >
-        </li>
-        {% else %}
-        <li class="text-muted">No documents</li>
-        {% endfor %}
-      </ul>
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="appToast" class="toast align-items-center text-white border-0"
+    style="border-radius:12px;min-width:300px" role="alert">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold" id="toastMsg">Done!</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+        data-bs-dismiss="toast"></button>
     </div>
   </div>
 </div>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+{% endblock %}
+
+
+{% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-  const nurseId = "{{ nurse.id }}";
-
-  // 🗺️ Init map
-  const map = L.map("liveMap").setView([20.5937, 78.9629], 5);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap",
-  }).addTo(map);
-
-  let marker = null;
-
-  async function fetchLiveLocation() {
-    try {
-      const res = await fetch(`/nurse/${nurseId}/location-track`, {
-        headers: {
-          Authorization: "Bearer " + localStorage.getItem("token"),
-        },
-      });
-
-      const data = await res.json();
-
-      if (!data.active) {
-        setStatus("OFFLINE", false);
-        return;
-      }
-
-      const lat = data.latitude;
-      const lng = data.longitude;
-
-      document.getElementById("lastUpdated").innerText = new Date(
-        data.updated_at,
-      ).toLocaleTimeString();
-
-      setStatus("LIVE", true);
-
-      if (!marker) {
-        marker = L.marker([lat, lng]).addTo(map);
-        map.setView([lat, lng], 16);
-      } else {
-        marker.setLatLng([lat, lng]);
-      }
-    } catch (e) {
-      console.error(e);
-      setStatus("ERROR", false);
-    }
-  }
-
-  function setStatus(text, live) {
-    const badge = document.getElementById("liveStatus");
-    badge.innerText = text;
-
-    badge.className = "badge " + (live ? "bg-success" : "bg-secondary");
-  }
-
-  // 🔁 Poll every 10 sec
-  fetchLiveLocation();
-  setInterval(fetchLiveLocation, 10000);
-</script>
-
-<!-- ================= CHART JS ================= -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  new Chart(document.getElementById("attendanceChart"), {
-    type: "bar",
-    data: {
-      labels: {{ chart_labels | safe }},
-      datasets: [{
-        label: "Attendance",
-        data: {{ chart_values | safe }},
-        borderWidth: 1
-      }]
-    },
-    options: {
-      plugins:{ legend:{ display:false }},
-      scales:{
-        y:{
-          beginAtZero:true,
-          ticks:{ stepSize:1 }
-        }
-      }
-    }
-  });
-</script>
 
+<script>
+// ─────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────
+const BASE     = "";
+const NURSE_ID = "{{ nurse.id }}";
+const getToken = () => localStorage.getItem("token") || "";
+
+function authHdr() {
+  return {
+    "Content-Type" : "application/json",
+    "Authorization": "Bearer " + getToken()
+  };
+}
+
+const rupee = v =>
+  "₹" + (parseFloat(v) || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+
+// ── Toast — bootstrap safe ────────
+function showToast(msg, color) {
+  color = color || "#27ae60";
+  try {
+    var el = document.getElementById("appToast");
+    if (!el) return;
+    el.style.background = color;
+    document.getElementById("toastMsg").textContent = msg;
+    // Bootstrap load hone ke baad call hoga isliye defer karo
+    setTimeout(function() {
+      if (typeof bootstrap !== "undefined" && bootstrap.Toast) {
+        new bootstrap.Toast(el, { delay: 3500 }).show();
+      } else {
+        // Fallback — manually show
+        el.style.display  = "flex";
+        el.style.opacity  = "1";
+        el.style.position = "fixed";
+        setTimeout(function() { el.style.opacity = "0"; }, 3500);
+      }
+    }, 50);
+  } catch(e) { console.log("[Toast]", msg); }
+}
+
+// ─────────────────────────────────
+//  STATE
+// ─────────────────────────────────
+var g_salaryId   = null;
+var g_salaryData = null;
+var g_histLoaded = false;
+var g_histOpen   = false;
+
+
+// ═════════════════════════════════
+//  API 1 — Salary Summary
+// ═════════════════════════════════
+
+function loadSalarySummary() {
+  var month = document.getElementById("salaryMonthPicker").value;
+
+  document.getElementById("salaryLoader").style.display   = "block";
+  document.getElementById("salaryContent").style.display  = "none";
+  document.getElementById("stateNoRecord").style.display  = "none";
+  document.getElementById("stateHasRecord").style.display = "none";
+
+  // Show create form (with optional error)
+  function showCreate(errMsg) {
+    document.getElementById("salaryLoader").style.display   = "none";
+    document.getElementById("salaryContent").style.display  = "block";
+    document.getElementById("stateNoRecord").style.display  = "block";
+    document.getElementById("stateHasRecord").style.display = "none";
+    var cErr = document.getElementById("cErr");
+    if (errMsg) { cErr.textContent = errMsg; cErr.style.display = "block"; }
+    else { cErr.style.display = "none"; }
+  }
+
+  fetch(BASE + "/api/nurse/salary/summary/" + NURSE_ID + "?month=" + month,
+    { headers: authHdr() }
+  )
+  .then(function(res) {
+    return res.json().then(function(json) {
+      return { status: res.status, ok: res.ok, json: json };
+    });
+  })
+  .then(function(r) {
+    if (!r.ok) {
+      // 404 = no record yet, show create form silently
+      var msg = r.status === 404
+        ? null
+        : ("⚠️ Error " + r.status + ": " + (r.json.detail || "Unknown"));
+      showCreate(msg);
+      return;
+    }
+
+    var d = r.json.data;
+    g_salaryData = d;
+    g_salaryId   = d.salary_record_id;
+
+    // Fill left side
+    document.getElementById("sTotalDays").textContent   = d.total_days;
+    document.getElementById("sPresentDays").textContent = d.present_days;
+    document.getElementById("sAbsentDays").textContent  = d.absent_days;
+    document.getElementById("sBasic").textContent = rupee(d.basic_salary);
+    document.getElementById("sDed").textContent   = rupee(d.deductions);
+    document.getElementById("sAdv").textContent   = rupee(d.advance_taken);
+    document.getElementById("sNet").textContent   = rupee(d.net_salary);
+
+    // Duty breakdown
+    var dbs = document.getElementById("dutyBreakdown");
+    if (d.duty_breakdown && d.duty_breakdown.length) {
+      var rows = d.duty_breakdown.map(function(dt) {
+        return '<tr style="font-size:12px">' +
+          '<td class="py-1 ps-0">' + (dt.duty_type||"—") + '/' + (dt.shift||"—") + '</td>' +
+          '<td class="py-1 text-muted">' + dt.days + 'd × ' + rupee(dt.price_perday) + '</td>' +
+          '<td class="py-1 text-end fw-semibold pe-0">' + rupee(dt.salary) + '</td>' +
+          '</tr>';
+      }).join("");
+      dbs.innerHTML =
+        '<p class="text-secondary fw-bold text-uppercase mb-1" style="font-size:10px;letter-spacing:1px">Duty Breakdown</p>' +
+        '<table class="table table-sm mb-3"><tbody>' + rows + '</tbody></table>';
+    } else {
+      dbs.innerHTML = "";
+    }
+
+    // Show right side
+    document.getElementById("salaryLoader").style.display  = "none";
+    document.getElementById("salaryContent").style.display = "block";
+
+    if (!d.salary_record_id) {
+      showCreate(null);
+    } else {
+      document.getElementById("stateNoRecord").style.display  = "none";
+      document.getElementById("stateHasRecord").style.display = "block";
+      fillPaySection(d);
+    }
+
+    // KPI
+    document.getElementById("kpiPending").textContent = rupee(d.pending_amount);
+  })
+  .catch(function(err) {
+    showCreate("❌ Server se connect nahi ho pa raha: " + err.message);
+  });
+}
+
+
+function fillPaySection(d) {
+  var pct = d.net_salary > 0
+    ? Math.min((d.total_paid / d.net_salary) * 100, 100) : 0;
+
+  document.getElementById("pNet").textContent     = rupee(d.net_salary);
+  document.getElementById("pPaid").textContent    = rupee(d.total_paid);
+  document.getElementById("pPending").textContent = rupee(d.pending_amount);
+  document.getElementById("pBar").style.width     = pct + "%";
+  document.getElementById("pPct").textContent     = Math.round(pct) + "%";
+  document.getElementById("payMax").textContent   = rupee(d.pending_amount);
+  document.getElementById("payAmt").value         = "";
+  document.getElementById("payAmt").max           = d.pending_amount;
+  document.getElementById("payErr").style.display = "none";
+
+  var st = document.getElementById("pStatus");
+  if (d.is_fully_paid) {
+    st.innerHTML = '<div class="alert alert-success py-2 text-center fw-semibold mb-0">✅ Salary Fully Paid</div>';
+    document.getElementById("payFormBox").style.display = "none";
+  } else {
+    st.innerHTML = '<div class="alert alert-warning py-2 text-center fw-semibold mb-0">⏳ Pending: ' + rupee(d.pending_amount) + '</div>';
+    document.getElementById("payFormBox").style.display = "block";
+  }
+
+  var sb = document.getElementById("pSlipBox");
+  if (d.payslip_pdf) {
+    document.getElementById("pSlipLink").href = d.payslip_pdf;
+    sb.style.display = "block";
+  } else {
+    sb.style.display = "none";
+  }
+
+  document.getElementById("uBasic").value = d.basic_salary  || 0;
+  document.getElementById("uDed").value   = d.deductions    || 0;
+  document.getElementById("uAdv").value   = d.advance_taken || 0;
+  document.getElementById("uPreview").style.display = "none";
+  document.getElementById("uErr").style.display     = "none";
+}
+
+function setFullAmt() {
+  if (g_salaryData)
+    document.getElementById("payAmt").value = g_salaryData.pending_amount;
+}
+
+function updateCreatePreview() {
+  var b = parseFloat(document.getElementById("cBasic").value) || 0;
+  var d = parseFloat(document.getElementById("cDed").value)   || 0;
+  var a = parseFloat(document.getElementById("cAdv").value)   || 0;
+  if (b > 0) {
+    document.getElementById("cNetVal").textContent        = rupee(Math.max(b-d-a,0));
+    document.getElementById("cNetPreview").style.display = "block";
+  } else {
+    document.getElementById("cNetPreview").style.display = "none";
+  }
+}
+
+
+// ═════════════════════════════════
+//  API 2 — Create Salary
+// ═════════════════════════════════
+
+function submitCreate() {
+  var month = document.getElementById("salaryMonthPicker").value;
+  var basic = parseFloat(document.getElementById("cBasic").value) || 0;
+  var ded   = parseFloat(document.getElementById("cDed").value)   || 0;
+  var adv   = parseFloat(document.getElementById("cAdv").value)   || 0;
+  var errEl = document.getElementById("cErr");
+  var spin  = document.getElementById("cSpin");
+
+  errEl.style.display = "none";
+  spin.style.display  = "inline-block";
+
+  fetch(BASE + "/api/nurse/salary/create", {
+    method : "POST",
+    headers: authHdr(),
+    body   : JSON.stringify({
+      nurse_id: NURSE_ID, month: month,
+      basic_salary: basic, deductions: ded, advance_taken: adv
+    })
+  })
+  .then(function(res) { return res.json().then(function(j) { return {ok:res.ok, j:j}; }); })
+  .then(function(r) {
+    spin.style.display = "none";
+    if (!r.ok) { errEl.textContent = r.j.detail || "Error creating record"; errEl.style.display = "block"; return; }
+    showToast("✅ Salary record create ho gaya!");
+    g_histLoaded = false;
+    loadSalarySummary();
+  })
+  .catch(function(err) {
+    spin.style.display = "none";
+    errEl.textContent = "Server error: " + err.message;
+    errEl.style.display = "block";
+  });
+}
+
+
+// ═════════════════════════════════
+//  API 3 — Pay Salary
+// ═════════════════════════════════
+
+function submitPay() {
+  var amount = parseFloat(document.getElementById("payAmt").value);
+  var errEl  = document.getElementById("payErr");
+  var spin   = document.getElementById("paySpin");
+
+  if (!amount || amount <= 0) {
+    errEl.textContent = "Amount daalo (0 se zyada hona chahiye)";
+    errEl.style.display = "block"; return;
+  }
+  if (g_salaryData && amount > g_salaryData.pending_amount) {
+    errEl.textContent = "Max " + rupee(g_salaryData.pending_amount) + " de sakte ho";
+    errEl.style.display = "block"; return;
+  }
+
+  errEl.style.display = "none";
+  spin.style.display  = "inline-block";
+
+  fetch(BASE + "/api/nurse/salary/pay/" + g_salaryId, {
+    method : "PUT",
+    headers: authHdr(),
+    body   : JSON.stringify({ amount_paid: amount })
+  })
+  .then(function(res) { return res.json().then(function(j) { return {ok:res.ok, j:j}; }); })
+  .then(function(r) {
+    spin.style.display = "none";
+    if (!r.ok) {
+      errEl.textContent = (r.j.detail && r.j.detail.message) || r.j.detail || "Payment failed";
+      errEl.style.display = "block"; return;
+    }
+    showToast("✅ Payment ho gayi! Salary slip generate ho rahi hai...");
+    g_histLoaded = false;
+    loadSalarySummary();
+    if (g_histOpen) loadHistory();
+  })
+  .catch(function(err) {
+    spin.style.display = "none";
+    errEl.textContent = "Server error: " + err.message;
+    errEl.style.display = "block";
+  });
+}
+
+
+// ═════════════════════════════════
+//  API 4 — Update Salary
+// ═════════════════════════════════
+
+function toggleUpdate() {
+  var f = document.getElementById("updateBox");
+  f.style.display = f.style.display === "none" ? "block" : "none";
+}
+
+function updateUPreview() {
+  var b = parseFloat(document.getElementById("uBasic").value) || 0;
+  var d = parseFloat(document.getElementById("uDed").value)   || 0;
+  var a = parseFloat(document.getElementById("uAdv").value)   || 0;
+  document.getElementById("uNetVal").textContent        = rupee(Math.max(b-d-a,0));
+  document.getElementById("uPreview").style.display = "block";
+}
+
+function submitUpdate() {
+  var basic = parseFloat(document.getElementById("uBasic").value) || 0;
+  var ded   = parseFloat(document.getElementById("uDed").value)   || 0;
+  var adv   = parseFloat(document.getElementById("uAdv").value)   || 0;
+  var errEl = document.getElementById("uErr");
+  var spin  = document.getElementById("uSpin");
+
+  errEl.style.display = "none";
+  spin.style.display  = "inline-block";
+
+  fetch(BASE + "/api/nurse/salary/update/" + g_salaryId, {
+    method : "PUT",
+    headers: authHdr(),
+    body   : JSON.stringify({ basic_salary: basic, deductions: ded, advance_taken: adv })
+  })
+  .then(function(res) { return res.json().then(function(j) { return {ok:res.ok, j:j}; }); })
+  .then(function(r) {
+    spin.style.display = "none";
+    if (!r.ok) { errEl.textContent = r.j.detail || "Update failed"; errEl.style.display = "block"; return; }
+    showToast("✅ Salary record update ho gaya!");
+    document.getElementById("updateBox").style.display = "none";
+    loadSalarySummary();
+  })
+  .catch(function(err) {
+    spin.style.display = "none";
+    errEl.textContent = "Server error: " + err.message;
+    errEl.style.display = "block";
+  });
+}
+
+
+// ═════════════════════════════════
+//  API 6 — Salary History
+// ═════════════════════════════════
+
+function toggleHistory() {
+  g_histOpen = !g_histOpen;
+  document.getElementById("historySection").style.display = g_histOpen ? "block" : "none";
+  document.getElementById("histToggleText").textContent   = g_histOpen ? "Hide History" : "Show History";
+  if (g_histOpen && !g_histLoaded) loadHistory();
+}
+
+function loadHistory() {
+  document.getElementById("histLoader").style.display = "block";
+  document.getElementById("histTable").style.display  = "none";
+
+  fetch(BASE + "/api/nurse/salary/all/" + NURSE_ID, { headers: authHdr() })
+  .then(function(res) { return res.json().then(function(j) { return {ok:res.ok, status:res.status, j:j}; }); })
+  .then(function(r) {
+    if (!r.ok || !r.j.success) {
+      var msg = r.status === 404
+        ? "Koi salary history nahi mili abhi tak."
+        : (r.j.detail || "Error loading history");
+      document.getElementById("histLoader").innerHTML =
+        '<div class="alert alert-warning mx-3 my-2">ℹ️ ' + msg + '</div>';
+      return;
+    }
+    var d = r.j.data;
+    g_histLoaded = true;
+
+    document.getElementById("hEarned").textContent  = rupee(d.summary.total_earned);
+    document.getElementById("hPaid").textContent    = rupee(d.summary.total_paid);
+    document.getElementById("hPending").textContent = rupee(d.summary.total_pending);
+
+    if (!d.history.length) {
+      document.getElementById("histLoader").innerHTML =
+        '<p class="text-center text-muted py-3">Koi salary history nahi hai abhi.</p>';
+      return;
+    }
+
+    document.getElementById("histBody").innerHTML = d.history.map(function(r) {
+      return '<tr>' +
+        '<td class="ps-3 fw-semibold">' + r.month + '</td>' +
+        '<td>' + rupee(r.net_salary) + '</td>' +
+        '<td class="text-success fw-semibold">' + rupee(r.total_paid) + '</td>' +
+        '<td class="text-danger fw-semibold">' + rupee(r.pending_amount) + '</td>' +
+        '<td>' + (r.is_fully_paid
+          ? '<span class="badge bg-success">✅ Paid</span>'
+          : '<span class="badge bg-warning text-dark">⏳ Pending</span>') + '</td>' +
+        '<td class="text-center pe-3">' + (r.payslip_pdf
+          ? '<a href="' + r.payslip_pdf + '" target="_blank" class="btn btn-sm btn-outline-success">📄 Download</a>'
+          : '<span class="text-muted" style="font-size:12px">—</span>') + '</td>' +
+        '</tr>';
+    }).join("");
+
+    document.getElementById("histLoader").style.display = "none";
+    document.getElementById("histTable").style.display  = "block";
+  })
+  .catch(function(err) {
+    document.getElementById("histLoader").innerHTML =
+      '<div class="alert alert-danger mx-3 my-2">Server error: ' + err.message + '</div>';
+  });
+}
+
+
+// ═════════════════════════════════
+//  LIVE LOCATION
+// ═════════════════════════════════
+
+var map = L.map("liveMap").setView([20.5937, 78.9629], 5);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+var mapMarker = null;
+
+function fetchLiveLocation() {
+  fetch("/nurse/" + NURSE_ID + "/location-track", {
+    headers: { "Authorization": "Bearer " + getToken() }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.active) { setStatus("OFFLINE", false); return; }
+    document.getElementById("lastUpdated").innerText =
+      new Date(data.updated_at).toLocaleTimeString();
+    setStatus("LIVE", true);
+    if (!mapMarker) {
+      mapMarker = L.marker([data.latitude, data.longitude]).addTo(map);
+      map.setView([data.latitude, data.longitude], 16);
+    } else {
+      mapMarker.setLatLng([data.latitude, data.longitude]);
+    }
+  })
+  .catch(function(e) { setStatus("ERROR", false); });
+}
+
+function setStatus(text, live) {
+  var b = document.getElementById("liveStatus");
+  b.innerText   = text;
+  b.className   = "badge " + (live ? "bg-success" : "bg-secondary");
+}
+
+fetchLiveLocation();
+setInterval(fetchLiveLocation, 10000);
+
+
+// ═════════════════════════════════
+//  CHART
+// ═════════════════════════════════
+
+new Chart(document.getElementById("attendanceChart"), {
+  type: "bar",
+  data: {
+    labels  : {{ chart_labels | safe }},
+    datasets: [{
+      label          : "Attendance",
+      data           : {{ chart_values | safe }},
+      backgroundColor: "rgba(46,134,222,0.6)",
+      borderColor    : "rgba(26,60,107,1)",
+      borderWidth    : 1,
+      borderRadius   : 4,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales : { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+
+
+// ═════════════════════════════════
+//  INIT
+// ═════════════════════════════════
+
+// DOMContentLoaded ya seedha call — dono safe hain
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", function() { loadSalarySummary(); });
+} else {
+  loadSalarySummary();
+}
+
+</script>
 {% endblock %}

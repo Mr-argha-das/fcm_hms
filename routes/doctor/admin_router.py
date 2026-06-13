@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.params import Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from core.dependencies import admin_required
-from models import DoctorProfile, DoctorVisit, PatientProfile, User
-
+from models import DoctorProfile, DoctorVisit, HospitalModel, PatientProfile, User
+from bson import ObjectId
 router = APIRouter(prefix="/admin/doctor", tags=["Admin-Doctor"])
 
 @router.post("/approve")
@@ -31,16 +31,15 @@ def assign_patient(
 
 @router.post("/create-new")
 def create_doctor(
-    name :  str | None = Form(None), 
+    name: str | None = Form(None),
     phone: str = Form(...),
     email: str | None = Form(None),
     specialization: str | None = Form(None),
     registration_number: str | None = Form(None),
     experience_years: int | None = Form(None),
-    available: bool = Form(True)
+    available: bool = Form(True),
+    hospital: str | None = Form(None),   # 🔥 ADD THIS
 ):
-    print("AVAILABLE:", name )
-
     # 🔍 Check existing user
     if User.objects(phone=phone).first():
         raise HTTPException(400, "Phone already registered")
@@ -50,10 +49,17 @@ def create_doctor(
         role="DOCTOR",
         name=name,
         phone=phone,
+        password_hash=phone,
         email=email,
         is_active=True,
         created_at=datetime.utcnow()
-    ).save()
+    )
+
+    # 🔥 Hospital set on USER
+    if hospital:
+        user.hospital = HospitalModel.objects(id=hospital).first()
+
+    user.save()
 
     # 🧑‍⚕️ Create Doctor Profile
     doctor = DoctorProfile(
@@ -75,18 +81,28 @@ def update_doctor(
     specialization: str = Form(...),
     registration_number: str = Form(...),
     experience_years: int = Form(...),
-    available: bool = Form(...)
+    available: bool = Form(...),
+    hospital: str = Form(None),
 ):
     doctor = DoctorProfile.objects(id=doctor_id).first()
     if not doctor:
         raise HTTPException(404, "Doctor not found")
 
+    # doctor profile update
     doctor.update(
         set__specialization=specialization,
         set__registration_number=registration_number,
         set__experience_years=experience_years,
         set__available=available
     )
+
+    # 🔥 hospital update (USER MODEL)
+    if hospital:
+        doctor.user.hospital = HospitalModel.objects(id=hospital).first()
+    else:
+        doctor.user.hospital = None
+
+    doctor.user.save()
 
     return RedirectResponse(
         url=f"/admin/doctors/{doctor_id}",

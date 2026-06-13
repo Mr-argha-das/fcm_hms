@@ -41,9 +41,10 @@ def mark_complaint_in_progress(complaint_id: str):
 
 class ComplaintBody(BaseModel):
     message : str
+    complaint_type : str = None
 @router.post("/create")
 def create_complaint(message: ComplaintBody, admin=Depends(get_current_user)):
-    comp = Complaint(raised_by=admin, message=message.message)
+    comp = Complaint(raised_by=admin, message=message.message, complaint_Type=message.complaint_type).save()
     comp.save()
     return {"message": "Complaint created", "id": str(comp.id)}
 @router.get("/my-complaints")

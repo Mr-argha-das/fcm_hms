@@ -20,16 +20,18 @@
 
     <!-- SIDEBAR -->
     {% include "admin/partials/sidebar.html" %}
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- MAIN -->
     <div class="main">
       <!-- TOP BAR -->
       <div class="topbar !-mt-3 !mb-4">
         {% block topbar %}
-        <input
+        <!-- <input
           class="bg-white px-2.5 py-2.5 border border-gray-50/20 rounded-xl w-96 shadow-sm"
-          placeholder="Search patients, nurses, doctors"
-        />
+          placeholder="Search Hospital name"
+        /> -->
+        <span></span>
 
         <!-- <img src="../../media/logos/wecare_header.png" class="h-12" /> -->
         <div
@@ -42,6 +44,10 @@
 
       <!-- PAGE CONTENT -->
       {% block content %}{% endblock %}
+
+      <script>
+        lucide.createIcons();
+      </script>
     </div>
     <script src="https://cdn.tailwindcss.com"></script>
 

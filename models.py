@@ -1,7 +1,16 @@
 
 from datetime import datetime , time
+from pstats import StatsProfile
 from xml.dom.minidom import Document
 from mongoengine import *
+
+class HospitalModel(Document):
+    name = StringField(required=True)
+    aname = StringField(required=False)  # authority name
+    acontact = StringField(required=False)  # authority contact
+    address = StringField(required=True)
+    branch = StringField(required=True)
+
 
 class User(Document):
     token_version = IntField(default=0)
@@ -14,15 +23,19 @@ class User(Document):
     phone = StringField(required=True, unique=True)
     other_number = StringField(required=False)
     email = EmailField()
-    password_hash = StringField(default="$pbkdf2-sha256$29000$v1fqnbMWQqi1dg4hhJAyJg$i/NU8Lx6vm7TXh5pitQrPvFLS47wHbb8wtKArKmn.NE")     # Admin / Doctor
+    password_hash = StringField()     # Admin / Doctor
     otp_verified = BooleanField(default=False)
     
      # ⭐ ADD THIS
     otp_session = StringField()
     is_active = BooleanField(default=True)
     last_login = DateTimeField()
-
+    token = StringField(required=True, default="No_token")
     created_at = DateTimeField(default=datetime.utcnow)
+    hospital = ReferenceField(HospitalModel, required=False)
+    police_verification_file = StringField(required=False)
+    admin_role_name = StringField(required=False)
+    admin_permissions = ListField(StringField(), default=list)
 
 class AboutUs(Document):
     name = StringField()
@@ -44,24 +57,32 @@ class NurseProfile(Document):
     aadhaar_back = StringField()
     aadhaar_number = StringField()
     aadhaar_verified = BooleanField(default=False)
-
+    aadharData = DictField(required=False)
     qualification_docs = ListField(StringField())
     experience_docs = ListField(StringField())
-
+    experience_letter=StringField(required=False)
+    medical_docs = ListField(StringField(required=False))
     profile_photo = StringField()
     digital_signature = StringField()
     digital_signature_verify = BooleanField(default=False)
-
+    payslips = ListField(StringField(), default=list)
     joining_date = DateField()
     resignation_date = DateField()
-
-
+    account_holder_name = StringField(required=False)
+    bank_name = StringField(required=False)
+    branch_name = StringField(required=False)
+    account_number = StringField(required=False)
+    ifsc_code = StringField(required=False)
+    upi_id = StringField(required=False)
+    experience_letters = StringField(required=False)
     verification_status = StringField(
         choices=["PENDING", "APPROVED", "REJECTED"],
         default="PENDING"
     )
+    police = ListField(StringField(), default=list)
+    
     police_verification_status = StringField(
-        choices=["PENDING", "CLEAR", "FAILED"],
+    choices=["PENDING", "VERIFIED", "FAILED"],
         default="PENDING"
     )
     created_by = StringField(default="ADMIN", required=True)
@@ -81,14 +102,23 @@ class NurseDuty(Document):
 
     duty_type = StringField(choices=["10HR", "12HR", "24HR", "FLEX"])
     shift = StringField(choices=["DAY", "NIGHT"])
-    ward = StringField(required=True)
-    room =  StringField(required=True)
+    dutyLocation = StringField(
+        choices=["HOME", "HOSPITAL"],
+        required=True
+    )
+
+    ward = StringField()
+    room_no = StringField()
+    address = StringField()
+
     duty_start = DateTimeField()
     duty_end = DateTimeField()
 
     check_in = DateTimeField()
     check_out = DateTimeField()
     gps_location = PointField()
+    duration_days = IntField()
+    price_perday = FloatField()
     is_active = BooleanField(default=True)
     
     
@@ -110,6 +140,8 @@ class NurseSalary(Document):
     advance_taken = FloatField(default=0)
     is_paid = BooleanField(default=False)
     payslip_pdf = StringField()
+    paid_amount = FloatField(default=0)
+    payslip_pdf
 
     created_at = DateTimeField(default=datetime.utcnow)
 
@@ -125,9 +157,11 @@ class NurseConsent(Document):
 
     # 🔹 Salary (ADMIN CONTROLLED)
     salary_type = StringField(
-        choices=["DAILY", "MONTHLY"],
+
         required=True
     )
+    experience_letter = StringField(required=False)
+    paySlip = ListField(StringField(), default=list)
     salary_amount = FloatField(required=True)
     payment_mode = StringField(
         choices=["CASH", "BANK", "UPI"],
@@ -181,22 +215,31 @@ class DoctorVisit(Document):
     created_at = DateTimeField(default=datetime.utcnow)
 
 class PatientProfile(Document):
-    user = ReferenceField(User, required=True)
+
+    user = ReferenceField("User", required=True)
     age = IntField()
     gender = StringField()
     medical_history = StringField()
-    assigned_doctor = ReferenceField(DoctorProfile)
+    assigned_doctor = ReferenceField("DoctorProfile")
+    assigned_caretaker = ListField(ReferenceField("NurseProfile"), default=list)
+
     address = StringField()
+    city = StringField()
+    state = StringField()
+    pincode = StringField()
+
     service_start = DateField()
     service_end = DateField()
 
-    # ✅ NEW FIELD (multiple documents)
+    adharcard = StringField()
+
     documents = ListField(StringField(), default=list)
 
 class PatientDailyNote(Document):
     patient = ReferenceField(PatientProfile)
     nurse = ReferenceField(NurseProfile)
 
+    title = StringField(default="Daily Note")
     note = StringField()
     created_at = DateTimeField(default=datetime.utcnow)
 
@@ -307,7 +350,7 @@ class PatientInvoice(Document):
 
 class Complaint(Document):
     raised_by = ReferenceField(User)
-
+    complaint_Type = StringField(choices=["Staff Behavior", "Late Arrival", "Service Issue", "Billing Issue", "Equipment Issue", "Other"], default="Other")
     message = StringField()
     status = StringField(choices=["OPEN", "IN_PROGRESS", "RESOLVED"], default="OPEN")
 
@@ -366,7 +409,7 @@ class NurseVisit(Document):
     address = StringField()
 
     visit_type = StringField(
-        choices=["ROUTINE", "MEDICATION", "EMERGENCY", "FOLLOW_UP", "OTHER"],
+       
     )
 
     notes = StringField()
@@ -510,3 +553,53 @@ class PatientBill(Document):
 #     bill_month = StringField()
 
 #     created_at = DateTimeField(default=datetime.utcnow)
+
+
+
+
+
+class EquipmentTable(Document):
+    title = StringField(required=True)
+    image = StringField(required=True)
+    price = FloatField(default=0 , required=False)
+
+
+class UserEquipmentRequest(Document):
+    patient = ReferenceField("PatientProfile", required=True)
+    equipment = ReferenceField(EquipmentTable, required=True)
+    status = BooleanField(default=False)
+    day_duration = IntField(default=1)
+    price_per_day = FloatField(default=0)
+
+class UserJoiningFees(Document):
+    amount = IntField(required=True, default=99)
+
+
+class AllPaymentsHistory(Document):
+    user = ReferenceField("User", required=True)
+    amount = ReferenceField(UserJoiningFees, required=True)
+    status = StringField(
+        choices=["created", "success", "failed"],
+        default="created"
+    )
+    order_id = StringField(required=True)
+    payment_id = StringField()
+
+
+
+
+class Lead(Document):
+    name = StringField(required=True)
+    phone = StringField(required=True)
+    gender = StringField()
+    age = IntField()
+    city = StringField(required=True)
+    address = StringField(required=True)
+    service = StringField(required=True)
+    source = StringField(required=True)
+    notes = StringField()
+
+    status = StringField(default="NEW")  # NEW / CONTACTED / CONVERTED
+
+    created_at = DateTimeField()
+    

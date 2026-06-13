@@ -9,11 +9,12 @@ from bson import ObjectId
 
 from core.dependencies import get_current_user
 from models import (
-    AboutUs, DoctorProfile, NurseLiveLocation, NurseProfile, NurseDuty, NurseAttendance,
+    AboutUs, DoctorProfile, Lead, NurseLiveLocation, NurseProfile, NurseDuty, NurseAttendance,
     NurseSalary, NurseConsent, NurseVisit, PatientProfile, User, PatientVitals, PatientDailyNote, PatientMedication
 )
 
 from routes.auth.schemas import NurseConsentRequest, NurseVisitCreate
+from routes.nurse.schemas import LeadCreateRequest
 from .utils import ensure_consent_active, ensure_duty_time
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -25,18 +26,12 @@ import calendar
 from core.utils.files import with_domain
 
 IST = ZoneInfo("Asia/Kolkata")
+print("Current IST time:", datetime.now(IST))
 
 def ist_now():
     return datetime.now(IST)
 
-# BASE_URL = "https://wecarehhcs.in"
 
-# def with_domain(path: str | None):
-#     if not path:
-#         return None
-#     if path.startswith("http"):
-#         return path
-#     return f"{BASE_URL}{path}"
 
 class NurseCreateRequest(BaseModel):
     phone: str = Field(..., example="9876543210")
@@ -62,6 +57,12 @@ class NurseCreateRequest(BaseModel):
         None,
         example="uploads/documents/aadhaar_back.jpg"
     )
+
+    medical_docs: List[str] = Field(
+        default_factory=list,
+        example=["uploads/documents/medical_report.pdf"]
+    )
+
     qualification_docs: List[str] = Field(
         default_factory=list,
         example=["uploads/documents/gnm_certificate.pdf"]
@@ -133,8 +134,10 @@ class NurseSelfSignupRequest(BaseModel):
     phone: str = Field(..., example="9876543210")
     other_number: str = Field(..., example="9876543210")
     name: str = Field(..., example="Sruti Das")
+    password_hash:str = Field(...,example="pass")
     father_name: Optional[str] = Field(None, example="Ram Das")
     email: Optional[EmailStr] = Field(None, example="sruti@gmail.com")
+
     # -------- NURSE PROFILE --------
     nurse_type: str = Field(
         ...,
@@ -145,17 +148,27 @@ class NurseSelfSignupRequest(BaseModel):
     aadhaar_front: Optional[str] = None
     aadhaar_back: Optional[str] = None
     qualification_docs: List[str] = Field(default_factory=list)
+    medical_docs: List[str] = Field(default_factory=list)
     experience_docs: List[str] = Field(default_factory=list)
+    police: List[str] = Field(default_factory=list)
     profile_photo: Optional[str] = None
     digital_signature: Optional[str] = None
     joining_date: Optional[date] = None
+    account_holder_name: Optional[str] = None
+    account_number: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    branch_name: Optional[str] = None
+    bank_name: Optional[str] = None
+    upi_id: Optional[str] = None
+
+   
+
 
 
 
 @router.get("/about-us-get")
 def get_about_us():
     about = AboutUs.objects.first()
-    # print(about.to_json())
     # 🔥 if no data → return default empty
     if not about:
         return {
@@ -178,53 +191,90 @@ def get_about_us():
 @router.post("/self-signup", response_model=NurseResponse)
 def nurse_self_signup(payload: NurseSelfSignupRequest):
 
-    # ❌ Duplicate check
-    if User.objects(phone=payload.phone).first():
-        raise HTTPException(400, "Phone number already registered")
+    try:
+        existing_user = User.objects(phone=payload.phone).first()
 
-    # 1️⃣ Create USER
-    user = User(
-        role="NURSE",
-        phone=payload.phone,
-        other_number=payload.other_number,
-        email=payload.email,
-        name=payload.name,
-        father_name=payload.father_name,
-        is_active=False,          # 🔥 ADMIN approval needed
-        otp_verified=False
-    ).save()
+        # ============================================================
+        # 🔁 EXISTING USER
+        # ============================================================
+        if existing_user:
+            nurse = NurseProfile.objects(user=existing_user).first()
 
-    # 2️⃣ Create NURSE PROFILE
-    nurse = NurseProfile(
-        user=user,
-        nurse_type=payload.nurse_type,
-        aadhaar_front=payload.aadhaar_front,
-        aadhaar_back=payload.aadhaar_back,
-        qualification_docs=payload.qualification_docs,
-        experience_docs=payload.experience_docs,
-        profile_photo=payload.profile_photo,
-        digital_signature=payload.digital_signature,
-        joining_date=payload.joining_date,
-        verification_status="PENDING",
-        police_verification_status="PENDING",
-        created_by="SELF"
-    ).save()
+            # 🔥 FIX: ensure nurse exists
+            if not nurse:
+                nurse = NurseProfile(
+                    user=existing_user,
+                    nurse_type=payload.nurse_type,
+                    verification_status="PENDING",
+                    police_verification_status="PENDING",
+                    created_by="SELF"
+                ).save()
 
-    return NurseResponse(
-        nurse_id=str(nurse.id),
-        user_id=str(user.id),
-        verification_status=nurse.verification_status
-    )
+            return NurseResponse(
+                nurse_id=str(nurse.id),
+                user_id=str(existing_user.id),
+                verification_status=nurse.verification_status
+            )
 
+        # ============================================================
+        # 🆕 CREATE USER
+        # ============================================================
+        user = User(
+            role="NURSE",
+            phone=payload.phone,
+            other_number=payload.other_number,
+            email=payload.email,
+            name=payload.name,
+            password_hash=payload.phone,
+            father_name=payload.father_name,
+            is_active=False,
+            otp_verified=False
+        ).save()
 
-# 
-@router.get("/self-signup/me", response_model=NurseSelfSignupRequest)
+        experience_file = payload.experience_docs[0] if payload.experience_docs else ""
+
+        # ============================================================
+        # 🧾 CREATE NURSE
+        # ============================================================
+        nurse = NurseProfile(
+            user=user,
+            nurse_type=payload.nurse_type,
+            aadhaar_front=payload.aadhaar_front,
+            aadhaar_back=payload.aadhaar_back,
+            qualification_docs=payload.qualification_docs,
+            experience_letters=experience_file,
+            profile_photo=payload.profile_photo,
+            digital_signature=payload.digital_signature,
+            joining_date=payload.joining_date,
+            verification_status="PENDING",
+            police_verification_status="PENDING",
+            medical_docs=payload.medical_docs,
+            created_by="SELF",
+            account_holder_name=payload.account_holder_name,
+            account_number=payload.account_number,
+            ifsc_code=payload.ifsc_code,
+            branch_name=payload.branch_name,
+            bank_name=payload.bank_name,
+            upi_id=payload.upi_id
+        ).save()
+
+        return NurseResponse(
+            nurse_id=str(nurse.id),
+            user_id=str(user.id),
+            verification_status=nurse.verification_status
+        )
+
+    except Exception as e:
+        print(f"❌ Signup Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
+@router.get("/rzp_live_SBbgiyIPp35rea", response_model=NurseSelfSignupRequest)
 def get_my_profile(current_user: User = Depends(get_current_user)):
 
     nurse = NurseProfile.objects(user=current_user).first()
     if not nurse:
         raise HTTPException(404, "Profile not found")
 
+    print(nurse.profile_photo)
     return {
         # USER
         "phone": current_user.phone,
@@ -232,8 +282,9 @@ def get_my_profile(current_user: User = Depends(get_current_user)):
         "name": current_user.name,
         "father_name": current_user.father_name,
         "email": current_user.email,
-
+        "password_hash": current_user.password_hash,
         # PROFILE
+        "police": nurse.police,
         "nurse_type": nurse.nurse_type,
         "aadhaar_number": nurse.aadhaar_number,
         "qualification_docs": nurse.qualification_docs,
@@ -241,7 +292,9 @@ def get_my_profile(current_user: User = Depends(get_current_user)):
         "profile_photo": nurse.profile_photo,
         "digital_signature": nurse.digital_signature,
         "joining_date": nurse.joining_date,
+
     }
+
 
 @router.put("/self-signup/update")
 def update_my_profile(
@@ -254,19 +307,19 @@ def update_my_profile(
 
     # 🔹 update user
     current_user.update(
-        set__phone=payload.phone,
         set__other_number=payload.other_number,
         set__name=payload.name,
         set__father_name=payload.father_name,
         set__email=payload.email,
+      
     )
 
     # 🔹 update nurse
     nurse.update(
         set__nurse_type=payload.nurse_type,
-        set__aadhaar_number=payload.aadhaar_number,
         set__qualification_docs=payload.qualification_docs,
         set__experience_docs=payload.experience_docs,
+        set__police=payload.police,
         set__profile_photo=payload.profile_photo,
         set__digital_signature=payload.digital_signature,
         set__joining_date=payload.joining_date,
@@ -304,20 +357,14 @@ async def create_nurse(payload: NurseCreateRequest , request: Request):
     raw_body = await request.body()
     print("🔵 RAW REQUEST BODY:", raw_body)
     try:
-        # 🔍 RAW BODY (as sent by client)
-
-        # 🔍 Parsed payload (after Pydantic validation)
-        # print("🟢 PARSED PAYLOAD:", payload.dict())
-
-        # 🔹 Duplicate phone check
         if User.objects(phone=payload.phone).first():
             raise HTTPException(status_code=400, detail="Phone number already registered")
-        
 
         # 🔹 Create User
         user = User(
             role="NURSE",
             phone=payload.phone,
+            password_hash=payload.phone,
             other_number=payload.other_number,
             email=payload.email,
             name=payload.name,
@@ -332,6 +379,7 @@ async def create_nurse(payload: NurseCreateRequest , request: Request):
             user=user,
             nurse_type=payload.nurse_type,
             aadhaar_number=payload.aadhaar_number,
+            medical_docs=payload.medical_docs,
             qualification_docs=payload.qualification_docs,
             experience_docs=payload.experience_docs,
             profile_photo=payload.profile_photo,
@@ -495,6 +543,7 @@ def duty_check_out(user=Depends(get_current_user)):
 def my_salary(user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
     return NurseSalary.objects(nurse=nurse)
+
 @router.post("/salary/advance-request")
 def advance_request(amount: float, user=Depends(get_current_user)):
     nurse = NurseProfile.objects(user=user).first()
@@ -660,7 +709,7 @@ def update_location(
     NurseLiveLocation.objects(nurse=nurse).update_one(
         set__latitude=payload["latitude"],
         set__longitude=payload["longitude"],
-        set__updated_at=datetime.utcnow(),
+        set__updated_at=ist_now(),
         upsert=True
     )
 
@@ -759,7 +808,6 @@ def get_nurse_patients(user=Depends(get_current_user)):
 
 @router.get("/patients/{patient_id}")
 def get_patient_dashboard(patient_id: str, user=Depends(get_current_user)):
-
     if user.role != "NURSE":
         raise HTTPException(403, "Access denied")
 
@@ -835,7 +883,15 @@ class VitalsPayload(BaseModel):
     other: Optional[str] = None
     
 class DailyNotePayload(BaseModel):
+    title: Optional[str] = None
     note: str
+
+class MedicationPayload(BaseModel):
+    medicine_name: str
+    dosage: Optional[str] = None
+    timing: Optional[List[str]] = Field(default_factory=list)
+    duration_days: Optional[int] = None
+    notes: Optional[List[str]] = Field(default_factory=list)
 
 
 @router.post("/patients/{patient_id}/vital-details")
@@ -877,7 +933,7 @@ def create_vitals(
         # 🔹 NOTES
         other=payload.other,
 
-        recorded_at=datetime.utcnow()
+        recorded_at=ist_now()
     )
 
     vitals.save()
@@ -977,8 +1033,9 @@ def add_daily_note(
     PatientDailyNote(
         patient=patient,
         nurse=nurse,
+        title=(payload.title or "Daily Note").strip() or "Daily Note",
         note=payload.note,
-        created_at=datetime.utcnow()
+        created_at=ist_now()
     ).save()
 
     return {"message": "Note saved"}
@@ -996,6 +1053,7 @@ def get_notes(patient_id: str, user=Depends(get_current_user)):
 
     return [
         {
+            "title": n.title or "Daily Note",
             "note": n.note,
             "created_at": n.created_at
         }
@@ -1019,6 +1077,38 @@ def get_medications(patient_id: str, user=Depends(get_current_user)):
         }
         for m in meds
     ]
+
+@router.post("/patients/{patient_id}/medications")
+def add_medication(
+    patient_id: str,
+    payload: MedicationPayload,
+    user=Depends(get_current_user)
+):
+    if user.role != "NURSE":
+        raise HTTPException(403, "Access denied")
+
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    medicine_name = payload.medicine_name.strip()
+    if not medicine_name:
+        raise HTTPException(400, "Medicine name is required")
+
+    med = PatientMedication(
+        patient=patient,
+        medicine_name=medicine_name,
+        dosage=(payload.dosage or "").strip(),
+        timing=payload.timing or [],
+        duration_days=payload.duration_days,
+        notes=payload.notes or []
+    )
+    med.save()
+
+    return {
+        "message": "Medication saved successfully",
+        "medication_id": str(med.id)
+    }
 
 
 # @router.get("/nurse/visits")
@@ -1526,8 +1616,8 @@ def consent_status(user=Depends(get_current_user)):
             "aadhaar_verified": nurse.aadhaar_verified
         }
 
-    # ❌ Condition 2: Police verification must be CLEAR
-    if nurse.police_verification_status != "CLEAR":
+    # ❌ Condition 2: Police verification must be VERIFIED
+    if nurse.police_verification_status != "VERIFIED":
         return {
             "signed": False,
             "reason": "POLICE_VERIFICATION_PENDING",
@@ -1549,7 +1639,7 @@ def consent_status(user=Depends(get_current_user)):
         "signed": True,
         "status": "SIGNED",
         "signed_at": consent.signed_at,
-        "police_verified": "CLEAR",
+        "police_verified": "VERIFIED",
         "aadhaar_verified": True
     }
 
@@ -1590,7 +1680,7 @@ def log_visit(nurse_id: str, payload: dict):
         ward=payload.get("ward"),
         room_no=payload.get("room_no", ""),
         visit_type=payload["visit_type"],
-        visit_time=datetime.utcnow(),
+        visit_time=ist_now(),
         created_by=nurse.user
     )
     visit.save()
@@ -1666,6 +1756,8 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
             "experience_docs": [with_domain(p) for p in nurse.experience_docs],
               # ✅ NEW FIELDS ADDED
             "digital_signature": with_domain(nurse.digital_signature),
+            "experience_files": [with_domain(p) for p in nurse.experience_docs],
+            # "payslips": [with_domain(p) for p in nurse.payslips]
         },
 
         "kpi": {
@@ -1695,5 +1787,58 @@ def my_nurse_profile(current_user=Depends(get_current_user), month: str = None):
                 "patient_id": str(v.patient.id),
                 "visit_time": v.visit_time.strftime("%Y-%m-%d %H:%M")
             } for v in visits
+        ]
+    }
+
+
+@router.post("/lead/create")
+def create_lead(data: LeadCreateRequest):
+
+    try:
+        lead = Lead(
+            name=data.name,
+            phone=data.phone,
+            gender=data.gender,
+            age=data.age,
+            city=data.city,
+            address=data.address,
+            service=data.service,
+            source=data.source,
+            notes=data.notes,
+            created_at=datetime.utcnow()
+        )
+
+        lead.save()
+
+        return {
+            "success": True,
+            "message": "Lead created successfully",
+            "data": {
+                "id": str(lead.id),
+                "name": lead.name
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.get("/lead/all")
+def get_all_leads():
+    leads = Lead.objects().order_by("-created_at")
+
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": str(l.id),
+                "name": l.name,
+                "phone": l.phone,
+                "city": l.city,
+                "service": l.service,
+                "source": l.source,
+                "created_at": l.created_at.strftime("%d %b %Y")
+            }
+            for l in leads
         ]
     }

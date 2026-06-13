@@ -1,0 +1,240 @@
+{% extends "admin/base.html" %}
+{% block title %}Add Lead / Enquiry{% endblock %}
+
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+  <h4>Add New Lead / Patient Enquiry</h4>
+  <p class="text-muted">Fill basic details to create new enquiry</p>
+</div>
+
+<!-- ================= FORM ================= -->
+<form id="leadForm">
+
+  <div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+    <h5 class="mb-3">Basic Details</h5>
+
+    <div class="row">
+
+      <!-- Patient Name -->
+      <div class="col-md-4 mb-3">
+        <label>Patient Name *</label>
+        <input type="text" class="form-control" id="name" required />
+      </div>
+
+      <!-- Mobile -->
+      <div class="col-md-4 mb-3">
+        <label>Mobile Number *</label>
+        <input type="text" class="form-control" id="phone" required />
+      </div>
+
+      <!-- Gender -->
+      <div class="col-md-4 mb-3">
+        <label>Gender</label>
+        <select class="form-select" id="gender">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+        </select>
+      </div>
+
+      <!-- Age -->
+      <div class="col-md-4 mb-3">
+        <label>Age</label>
+        <input type="number" class="form-control" id="age" />
+      </div>
+
+      <!-- City -->
+      <div class="col-md-4 mb-3">
+        <label>City *</label>
+        <input type="text" class="form-control" id="city" required />
+      </div>
+
+      <!-- Address -->
+      <div class="col-md-4 mb-3">
+        <label>Address *</label>
+        <input type="text" class="form-control" id="address" required />
+      </div>
+
+      <!-- Service -->
+      <div class="col-md-4 mb-3">
+        <label>Service *</label>
+        <select class="form-select" id="service" required>
+          <option value="">Select Service</option>
+          <option>Nursing</option>
+          <option>ICU</option>
+          <option>Caretaker</option>
+        </select>
+      </div>
+
+      <!-- Source -->
+      <div class="col-md-4 mb-3">
+        <label>Source *</label>
+        <select class="form-select" id="source" required>
+          <option value="">Select Source</option>
+          <option>Call</option>
+          <option>WhatsApp</option>
+          <option>Website</option>
+          <option>Reference</option>
+        </select>
+      </div>
+
+      <!-- Notes -->
+      <div class="col-md-12 mb-3">
+        <label>Notes</label>
+        <textarea class="form-control" id="notes" rows="3"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= SUBMIT ================= -->
+  <div class="bg-card p-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+    <button type="button" class="btn btn-success" onclick="submitLead()">
+      ➕ Create Lead
+    </button>
+  </div>
+
+</form>
+
+<!-- ================= SEARCH + TABLE ================= -->
+<div class="bg-card p-3 mt-3 border border-gray-50/20 rounded-2xl shadow-soft4">
+
+  <div class="d-flex justify-content-between mb-3">
+    <h5>All Leads</h5>
+
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search..."
+      class="form-control"
+      style="width:250px"
+      onkeyup="filterLeads()"
+    />
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th>Mobile</th>
+          <th>City</th>
+          <th>Service</th>
+          <th>Source</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+
+      <tbody id="leadTable"></tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+async function submitLead() {
+
+  const payload = {
+    name: document.getElementById("name").value,
+    phone: document.getElementById("phone").value,
+    gender: document.getElementById("gender").value,
+    age: document.getElementById("age").value,
+    city: document.getElementById("city").value,
+    address: document.getElementById("address").value,
+    service: document.getElementById("service").value,
+    source: document.getElementById("source").value,
+    notes: document.getElementById("notes").value
+  };
+
+  // Basic validation
+  if (!payload.name || !payload.phone || !payload.city || !payload.address || !payload.service || !payload.source) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  try {
+    const res = await fetch("/nurse/lead/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("token")
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.detail || "Failed to create lead");
+      return;
+    }
+
+    alert("✅ Lead created successfully");
+    window.location.reload();
+
+  } catch (err) {
+    alert("Server error");
+  }
+}
+</script>
+
+<script>
+
+async function loadLeads() {
+  try {
+    const res = await fetch("/nurse/lead/all", {
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    const data = await res.json();
+
+    const table = document.getElementById("leadTable");
+    table.innerHTML = "";
+
+    data.data.forEach(l => {
+      table.innerHTML += `
+        <tr class="lead-row">
+          <td>${l.name}</td>
+          <td>${l.phone}</td>
+          <td>${l.city}</td>
+          <td>${l.service}</td>
+          <td>${l.source}</td>
+          <td>${l.created_at}</td>
+        </tr>
+      `;
+    });
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+
+// 🔍 SEARCH
+function filterLeads() {
+  const input = document.getElementById("searchInput").value.toLowerCase();
+  const rows = document.querySelectorAll(".lead-row");
+
+  rows.forEach(row => {
+    const text = row.innerText.toLowerCase();
+    row.style.display = text.includes(input) ? "" : "none";
+  });
+}
+
+
+// 🔁 PAGE LOAD
+document.addEventListener("DOMContentLoaded", () => {
+  loadLeads();
+});
+
+</script>
+
+{% endblock %}

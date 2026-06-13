@@ -1,56 +1,290 @@
 import json
+import traceback
 from typing import Optional , List
 from urllib import request
+from datetime import datetime, timedelta,date
+
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException ,Request
 from core.dependencies import get_current_user
 from models import (
-    Medicine, NurseDuty, NurseProfile, PatientProfile, PatientDailyNote,
-    PatientVitals, PatientMedication, RelativeAccess, User
+    DoctorProfile, EquipmentTable, HospitalModel, Medicine, NurseDuty, NurseProfile, PatientProfile, PatientDailyNote,
+    PatientVitals, PatientMedication, RelativeAccess, StaffProfile, User, UserEquipmentRequest
 )
-from datetime import datetime
-from mongoengine.errors import NotUniqueError
+
+from mongoengine.errors import NotUniqueError ,ValidationError
 from pydantic import BaseModel, EmailStr
+from routes.auth.schemas import EquipmentCreate, EquipmentRequestCreate, EquipmentRequestUpdate, EquipmentUpdate
+
+from zoneinfo import ZoneInfo
 
 router = APIRouter(prefix="/patient", tags=["Patient"])
 
+equipment_router = APIRouter(prefix="/equipment")
+
+class PatientCreateRequest(BaseModel):
+    name: str
+    phone: str
+
+    father_name: Optional[str] = None
+    other_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    medical_history: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+
+    service_start: Optional[date] = None
+    service_end: Optional[date] = None
+
+    hospital: Optional[str] = None
+    assigned_doctor: Optional[str] = None
+
+    documents: List[str] = []
+    assigned_caretaker : Optional[List[str]] = []
+    adharcard : Optional[str] = None
+       # 🔥 IMPORTANT
+
 @router.post("/create")
-def create_patient(payload: dict):
+async def create_patient(
+    payload: PatientCreateRequest,
+    request: Request
+):
+    print("🟢 CREATE PATIENT PAYLOAD:", payload)
+    raw_body = await request.body()
+    print("🔵 RAW REQUEST BODY:", raw_body)
+
     try:
+        # ❌ duplicate phone check
+        if User.objects(phone=payload.phone).first():
+            raise HTTPException(
+                status_code=400,
+                detail="Phone number already registered"
+            )
+
+        # 🔹 Create USER
         user = User(
             role="PATIENT",
-            name=payload["name"],
-            father_name=payload.get("father_name"),
-            phone=payload["phone"],
-            other_number=payload.get("other_number"),
-            email=payload.get("email"),
-        ).save()
-
-        patient = PatientProfile(
-            user=user,
-            age=payload.get("age"),
-            gender=payload.get("gender"),
-            medical_history=payload.get("medical_history"),
-            address=payload.get("address"),
-            service_start=payload.get("service_start"),
-            service_end=payload.get("service_end"),
-            assigned_doctor=payload.get("assigned_doctor"),
-            documents=payload.get("documents", [])   # ✅ HERE
-        ).save()
-
-        return {"success": True, "patient_id": str(patient.id)}
-
-    except NotUniqueError:
-        raise HTTPException(status_code=400, detail="Phone already registered")
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
+            name=payload.name,
+            father_name=payload.father_name,
+            phone=payload.phone,
+            password_hash=payload.phone,
+            other_number=payload.other_number,
+            email=payload.email,
+            otp_verified=True,
+            is_active=True
         )
 
-    return {"message": "Patient registered", "id": str(patient.id)}
+        # 🏥 Hospital (safe)
+        if payload.hospital:
+            user.hospital = HospitalModel.objects.get(
+                id=ObjectId(payload.hospital)
+            )
+
+        user.save()
+
+        # 🔹 Create PATIENT PROFILE
+        patient = PatientProfile(
+            user=user,
+            age=payload.age,
+            gender=payload.gender,
+            medical_history=payload.medical_history,
+            address=payload.address,
+            service_start=payload.service_start,
+            service_end=payload.service_end,
+            documents=payload.documents or [],
+            city=payload.city,
+            state=payload.state,
+            pincode=payload.pincode,
+            assigned_caretaker=[
+                NurseProfile.objects.get(id=ObjectId(nurse_id))  for nurse_id in (payload.assigned_caretaker or [])  ],
+                adharcard=payload.adharcard
+        )
+
+        # 👨‍⚕️ Assign doctor (safe)
+        if payload.assigned_doctor:
+            patient.assigned_doctor = DoctorProfile.objects.get(
+                id=ObjectId(payload.assigned_doctor)
+            )
+
+        patient.save()
+
+        return {
+            "success": True,
+            "patient_id": str(patient.id),
+            "user_id": str(user.id)
+        }
+
+    # 🔴 Mongo validation error
+    except ValidationError as e:
+        print("ValidationError:", e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # 🔴 Duplicate phone/email
+    except NotUniqueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Phone already registered"
+        )
+
+    # 🔴 FastAPI raised error
+    except HTTPException as e:
+        raise e
+
+    # 🔴 Unknown crash
+    except Exception as e:
+        print("Unhandled Exception:", e)
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while creating patient"
+        )
+
+# @router.post("/create")
+# def create_patient(payload: dict):
+#     try:
+#         user = User(
+#             role="PATIENT",
+#             name=payload["name"],
+#             father_name=payload.get("father_name"),
+#             phone=payload["phone"],
+#             password_hash=payload["phone"],
+#             other_number=payload.get("other_number"),
+#             email=payload.get("email"),
+#             hospital=HospitalModel.objects.get(id=ObjectId(payload.get("hospital")))
+#         ).save()
+
+#         patient = PatientProfile(
+#             user=user,
+#             age=payload.get("age"),
+#             gender=payload.get("gender"),
+#             medical_history=payload.get("medical_history"),
+#             address=payload.get("address"),
+#             service_start=payload.get("service_start"),
+#             service_end=payload.get("service_end"),
+#             assigned_doctor=payload.get("assigned_doctor"),
+#             documents=payload.get("documents", [])   # ✅ HERE
+#         ).save()
+
+#         return {"success": True, "patient_id": str(patient.id)}
+
+#     except NotUniqueError:
+#         raise HTTPException(status_code=400, detail="Phone already registered")
+
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500,
+#             detail=str(e)
+#         )
+
+#     return {"message": "Patient registered", "id": str(patient.id)}
+
+
+class PatientUpdatePayload(BaseModel):
+    # 🔹 USER
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    other_number: Optional[str] = None
+    email: Optional[str] = None
+
+    # 🔹 PATIENT
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    medical_history: Optional[str] = None
+    address: Optional[str] = None
+    service_start: Optional[str] = None
+    service_end: Optional[str] = None
+
+    hospital: Optional[str] = None
+    assigned_doctor: Optional[str] = None
+    documents: Optional[List[str]] = None
+  
+    assigned_caretaker : Optional[List[str]] = None
+    adharcard : Optional[str] = None
+    city : Optional[str] = None
+    state : Optional[str] = None
+    pincode : Optional[str] = None
+
+
+@router.put("/{patient_id}/edit")
+def update_patient(patient_id: str, payload: PatientUpdatePayload):
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    user = patient.user
+
+    # ===== USER UPDATE =====
+    if payload.name is not None:
+        user.name = payload.name
+
+    if payload.phone is not None:
+        exists = User.objects(phone=payload.phone, id__ne=user.id).first()
+        if exists:
+            raise HTTPException(status_code=400, detail="Phone already exists")
+        user.phone = payload.phone
+
+    if payload.other_number is not None:
+        user.other_number = payload.other_number
+
+    if payload.email is not None:
+        user.email = payload.email
+
+    # 🔥 HOSPITAL UPDATE (FIXED)
+    if payload.hospital is not None:
+        user.hospital = HospitalModel.objects(id=payload.hospital).first()
+
+    user.save()
+
+    # ===== PATIENT UPDATE =====
+    for field in ["age", "gender", "medical_history", "address", "documents"]:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(patient, field, value)
+
+    if payload.service_start:
+        patient.service_start = datetime.strptime(payload.service_start, "%Y-%m-%d")
+
+    if payload.service_end:
+        patient.service_end = datetime.strptime(payload.service_end, "%Y-%m-%d")
+
+    if payload.assigned_doctor:
+        patient.assigned_doctor = DoctorProfile.objects(
+            id=payload.assigned_doctor
+        ).first()
+
+    patient.save()
+
+   
+
+    if payload.assigned_caretaker:
+       patient.assigned_caretaker = [
+        NurseProfile.objects(id=nurse_id).first()
+        for nurse_id in payload.assigned_caretaker
+    ]
+
+    if payload.adharcard:
+        patient.adharcard = payload.adharcard
+
+    if payload.city:
+        patient.city = payload.city
+
+    if payload.state:
+        patient.state = payload.state
+
+    if payload.pincode:
+        patient.pincode = payload.pincode
+
+    patient.save()
+    return {
+        "success": True,
+        "message": "Patient updated successfully"
+    }
 
 @router.post("/{patient_id}/add-document")
 def add_patient_document(patient_id: str, path: str):
@@ -88,6 +322,7 @@ def update_patient_document(
         "success": True,
         "documents": patient.documents
     }
+
 @router.delete("/{patient_id}/delete-document")
 def delete_patient_document(
     patient_id: str,
@@ -157,10 +392,12 @@ def my_profile(user=Depends(get_current_user)):
 def daily_notes(user=Depends(get_current_user)):
     patient = PatientProfile.objects(user=user).first()
     return PatientDailyNote.objects(patient=patient)
+
 @router.get("/vitals/history")
 def vitals_history(user=Depends(get_current_user)):
     patient = PatientProfile.objects(user=user).first()
     return PatientVitals.objects(patient=patient)
+
 @router.get("/medication/list")
 def medication_list(user=Depends(get_current_user)):
     patient = PatientProfile.objects(user=user).first()
@@ -182,6 +419,7 @@ def add_note(
         nurse=nurse,
         note=note
     ).save()
+
 @router.post("/nurse/patient/vitals/add")
 def add_vitals(
     patient_id: str,
@@ -257,6 +495,45 @@ def get_patient_care(patient_id: str):
         "vitals": vitals,
     }
 
+# @router.post("/{patient_id}/assign-nurse")
+# def assign_nurse_duty(patient_id: str, payload: dict):
+#     patient = PatientProfile.objects(id=patient_id).first()
+#     nurse = NurseProfile.objects(id=payload.get("nurse_id")).first()
+
+#     if not patient:
+#         raise HTTPException(status_code=404, detail="Patient not found")
+
+#     if not nurse:
+#         raise HTTPException(status_code=404, detail="Nurse not found")
+
+#     # 🔥 deactivate previous duties for this patient
+#     NurseDuty.objects(
+#         patient=patient,
+#         is_active=True
+#     ).update(set__is_active=False)
+
+#     # ✅ SAFE STRING CAST (VERY IMPORTANT)
+#     ward = payload.get("ward")
+#     room = payload.get("room")
+
+#     NurseDuty(
+#         patient=patient,
+#         nurse=nurse,
+#         ward=str(ward) if ward is not None else "",
+#         room=str(room) if room is not None else "",
+#         duty_type=payload.get("duty_type"),
+#         shift=payload.get("shift"),
+#         duty_start=datetime.fromisoformat(payload.get("duty_start")),
+#         duty_end=datetime.fromisoformat(payload.get("duty_end")),
+#         is_active=True,
+#     ).save()
+
+#     return {
+#         "success": True,
+#         "message": "Nurse assigned successfully"
+#     }
+
+
 @router.post("/{patient_id}/assign-nurse")
 def assign_nurse_duty(patient_id: str, payload: dict):
     patient = PatientProfile.objects(id=patient_id).first()
@@ -264,31 +541,42 @@ def assign_nurse_duty(patient_id: str, payload: dict):
 
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-
     if not nurse:
         raise HTTPException(status_code=404, detail="Nurse not found")
 
-    # 🔥 deactivate previous duties for this patient
+    # 🔥 deactivate previous active duties
     NurseDuty.objects(
         patient=patient,
         is_active=True
     ).update(set__is_active=False)
 
-    # ✅ SAFE STRING CAST (VERY IMPORTANT)
-    ward = payload.get("ward")
-    room = payload.get("room")
-
-    NurseDuty(
+    duty_location = payload.get("dutyLocation")  # HOME / HOSPITAL
+    
+    duty = NurseDuty(
         patient=patient,
         nurse=nurse,
-        ward=str(ward) if ward is not None else "",
-        room=str(room) if room is not None else "",
+
         duty_type=payload.get("duty_type"),
         shift=payload.get("shift"),
+        dutyLocation=duty_location,
+
+        # 🏥 hospital fields
+        ward=payload.get("ward") if duty_location == "HOSPITAL" else None,
+        room_no=payload.get("room_no") if duty_location == "HOSPITAL" else None,
+
+        # 🏠 home field
+        address=payload.get("address") if duty_location == "HOME" else None,
+
         duty_start=datetime.fromisoformat(payload.get("duty_start")),
         duty_end=datetime.fromisoformat(payload.get("duty_end")),
+        duration_days=payload.get("duration_days", 0),
+        price_perday=payload.get("price_perday", 0.0),
+        check_in=None,
+        check_out=None,
         is_active=True,
-    ).save()
+    )
+
+    duty.save()
 
     return {
         "success": True,
@@ -313,6 +601,8 @@ def add_daily_note(patient_id: str, payload: dict):
     ).save()
 
     return {"success": True, "message": "Daily note added"}
+
+
 @router.post("/{patient_id}/vitals")
 def add_patient_vitals(patient_id: str, payload: dict):
     patient = PatientProfile.objects(id=patient_id).first()
@@ -329,12 +619,12 @@ def add_patient_vitals(patient_id: str, payload: dict):
     ).save()
 
     return {"success": True, "message": "Vitals recorded"}
+
 @router.get("/nurses/list")
 def list_nurses():
     nurses = NurseProfile.objects(
         verification_status="APPROVED"
     )
-
     return [
         {
             "id": str(n.id),
@@ -496,11 +786,25 @@ def serialize_duty(duty):
             "phone": duty.nurse.user.phone,
         }
     }
+
+
+
+def to_ist(dt):
+    if not dt:
+        return None
+
+    # 🔥 agar timezone missing hai (naive datetime)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+
+    return dt.astimezone(ZoneInfo("Asia/Kolkata"))
+
 def serialize_note(n):
     return {
         "id": str(n.id),
+        "title": getattr(n, "title", None) or "Daily Note",
         "note": n.note,
-        "time": n.created_at,
+        "time": to_ist(n.created_at).strftime("%d %b %Y %I:%M %p"),
         "nurse_name": n.nurse.user.name if n.nurse else None,
     }
 
@@ -529,14 +833,6 @@ def serialize_vital(v):
     }
 
 
-# def serialize_medication(m):
-#     return {
-#         "medicine": m.medicine_name,
-#         "dosage": m.dosage,
-#         "timing": m.timing,
-#         "duration": m.duration_days,
-#         "price": m.price,
-#     }
 
 def serialize_medication(m):
     return {
@@ -576,6 +872,7 @@ def serialize_patient(patient):
         "father_name": user.father_name,
         "phone": user.phone,
         "other_number": user.other_number,
+        "password_hash":user.password_hash,
         "email": user.email,
 
         # PATIENT FIELDS
@@ -651,6 +948,7 @@ class PatientProfileUpdate(BaseModel):
     phone: str
     other_number: str
     email: EmailStr
+    password_hash : str
 
     age: int
     gender: str
@@ -677,6 +975,7 @@ def update_patient_profile(
     user.phone = payload.phone
     user.other_number = payload.other_number
     user.email = payload.email
+    user.password_hash = payload.password_hash
     user.save()
 
     # PATIENT
@@ -690,4 +989,228 @@ def update_patient_profile(
     return {
         "success": True,
         "message": "Profile updated successfully"
+    }
+
+
+@equipment_router.get("/equipment-getall")
+def get_all_equipment():
+
+    equipments = EquipmentTable.objects()
+
+    data = [
+        {
+            "id": str(e.id),
+            "title": e.title,
+            "price": e.price,
+          
+        }
+        for e in equipments
+    ]
+
+    return data
+
+@equipment_router.post("/create-equipment")
+def create_equipment(payload: EquipmentCreate):
+
+    equipment = EquipmentTable(
+        title=payload.title,
+        image="ddadsa",
+        price=payload.price
+    ).save()
+
+    return {
+        "message": "Equipment created successfully",
+        "id": str(equipment.id)
+    }
+
+
+@equipment_router.get("/equipment-get/{equipment_id}")
+def get_single_equipment(equipment_id: str):
+
+    equipment = EquipmentTable.objects(id=equipment_id).first()
+
+    if not equipment:
+        raise HTTPException(404, "Equipment not found")
+
+    return {
+        "id": str(equipment.id),
+        "title": equipment.title,
+        "image": equipment.image
+    }
+
+@equipment_router.put("/equipment-update/{equipment_id}")
+def update_equipment(equipment_id: str, payload: EquipmentUpdate):
+
+    equipment = EquipmentTable.objects(id=equipment_id).first()
+
+    if not equipment:
+        raise HTTPException(404, "Equipment not found")
+
+    if payload.title is not None:
+        equipment.title = payload.title
+    
+    if payload.price is not None:
+        equipment.price = payload.price  
+
+    if payload.image is not None:
+        equipment.image = payload.image
+
+    equipment.save()
+
+    return {"message": "Equipment updated successfully"}
+
+@equipment_router.delete("/equipment-delete/{equipment_id}")
+def delete_equipment(equipment_id: str):
+
+    equipment = EquipmentTable.objects(id=equipment_id).first()
+
+    if not equipment:
+        raise HTTPException(404, "Equipment not found")
+
+    equipment.delete()
+
+    return {"message": "Equipment deleted successfully"}
+
+@equipment_router.post("/request-equipment")
+def create_request(payload: EquipmentRequestCreate,user=Depends(get_current_user)):
+
+    patient = PatientProfile.objects(user=user).first()
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    equipment = EquipmentTable.objects(id=payload.equipment_id).first()
+    if not equipment:
+        raise HTTPException(404, "Equipment not found")
+
+    # prevent duplicate request
+    existing = UserEquipmentRequest.objects(
+        patient=patient,
+        equipment=equipment
+    ).first()
+
+    if existing:
+        raise HTTPException(400, "Request already exists")
+
+    req = UserEquipmentRequest(
+        patient=patient,
+        equipment=equipment
+    ).save()
+
+    return {
+        "message": "Equipment request created",
+        "id": str(req.id)
+    }
+
+@equipment_router.get("/request-equipment/all")
+def get_all_requests():
+
+    requests = UserEquipmentRequest.objects.select_related()
+
+    data = []
+
+    for r in requests:
+        data.append({
+            "id": str(r.id),
+            "patient_id": str(r.patient.id),
+            "patient_name": getattr(r.patient.user, "name", ""),
+            "patient_phone": getattr(r.patient.user, "phone", ""),
+            "ward": str(r.patient.address),
+            "equipment_id": str(r.equipment.id),
+            "equipment_title": r.equipment.title,
+            "equipment_image": r.equipment.image,
+            "equipment_price": r.equipment.price,
+            "request_time": r.created_at,
+    
+            "status": r.status
+        })
+    print(data)
+
+    return data
+
+@equipment_router.get("/request-equipment/patient/{patient_id}")
+def get_patient_requests(patient_id: str):
+
+    requests = UserEquipmentRequest.objects(patient=patient_id).select_related()
+
+    data = []
+
+    for r in requests:
+        data.append({
+            "id": str(r.id),
+            "equipment_title": r.equipment.title,
+            "equipment_image": r.equipment.image,
+            "status": r.status
+        })
+
+    return data
+
+@equipment_router.put("/request-equipment/approve/{request_id}")
+def update_request(request_id: str, payload: EquipmentRequestUpdate):
+
+    req = UserEquipmentRequest.objects(id=request_id).first()
+
+    if not req:
+        raise HTTPException(404, "Request not found")
+
+    if payload.status is not None:
+        req.status = payload.status
+
+    req.save()
+
+    return {"message": "Request updated successfully"}
+
+@equipment_router.delete("/request-equipment/delete/{request_id}")
+def delete_request(request_id: str):
+
+    req = UserEquipmentRequest.objects(id=request_id).first()
+
+    if not req:
+        raise HTTPException(404, "Request not found")
+
+    req.delete()
+
+    return {"message": "Request deleted"}
+
+class EquipmentRow(BaseModel):
+    equipment_id: str
+    day_duration: int
+    price_per_day: float
+
+class AssignEquipmentSchema(BaseModel):
+    patient_id: str
+    equipments: List[EquipmentRow]
+
+
+@router.post("/assign-equipment")
+async def assign_equipment(data: AssignEquipmentSchema):
+
+    patient = PatientProfile.objects(id=data.patient_id).first()
+
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    created = []
+
+    for row in data.equipments:
+
+        equipment = EquipmentTable.objects(id=row.equipment_id).first()
+
+        if not equipment:
+            continue
+
+        req = UserEquipmentRequest(
+            patient=patient,
+            equipment=equipment,
+            status=True,
+            day_duration=row.day_duration,
+            price_per_day=row.price_per_day
+        )
+
+        req.save()
+
+        created.append(str(req.id))
+
+    return {
+        "success": True,
+        "assigned": created
     }

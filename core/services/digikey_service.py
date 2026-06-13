@@ -3,6 +3,9 @@ import base64
 import httpx
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+import pytz
+
+ist = pytz.timezone("Asia/Kolkata")
 
 load_dotenv()
 
@@ -22,7 +25,7 @@ async def get_access_token():
     global _cached_token, _token_expiry
 
     # return cached if valid
-    if _cached_token and _token_expiry and datetime.utcnow() < _token_expiry:
+    if _cached_token and _token_expiry and datetime.now(ist) < _token_expiry:
         return _cached_token
 
     creds = f"{CLIENT_ID}:{CLIENT_SECRET}"
@@ -48,7 +51,7 @@ async def get_access_token():
     _cached_token = response["access_token"]
     expires_in = response.get("expires_in", 1800)
 
-    _token_expiry = datetime.utcnow() + timedelta(seconds=expires_in - 60)
+    _token_expiry = datetime.now(ist) + timedelta(seconds=expires_in - 60)
 
     return _cached_token
 

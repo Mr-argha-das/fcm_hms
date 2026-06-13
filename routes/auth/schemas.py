@@ -7,6 +7,7 @@ class SendOTPRequest(BaseModel):
 class VerifyOTPRequest(BaseModel):
     phone: str
     otp: str
+    token : str
 
 class PasswordLoginRequest(BaseModel):
     phone: str
@@ -63,3 +64,45 @@ class NurseCreateWithConsentRequest(BaseModel):
                  # 1–31
 class SignatureUpdateSchema(BaseModel):
     signature_path: str
+
+class EquipmentRequestCreate(BaseModel):
+    equipment_id: str
+
+
+class EquipmentRequestUpdate(BaseModel):
+    status: Optional[bool] = None
+
+
+class EquipmentResponse(BaseModel):
+    id: str
+    patient_id: str
+    equipment_id: str
+    equipment_title: str
+    equipment_image: str
+    status: bool
+
+class EquipmentCreate(BaseModel):
+    title: str
+    price: float
+
+
+class EquipmentUpdate(BaseModel):
+    title: Optional[str] = None
+
+    price : Optional[float] = None
+
+
+class EquipmentResponse(BaseModel):
+    id: str
+    title: str
+
+class HospitalCreate(BaseModel):
+    name: str
+    aname: Optional[str] = None
+    acontact: Optional[str] = None
+    address: str
+    branch: str
+
+
+class HospitalResponse(HospitalCreate):
+    id: str

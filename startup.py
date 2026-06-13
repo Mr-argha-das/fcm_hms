@@ -25,7 +25,8 @@ def create_default_admin():
         role="ADMIN",
         phone=DEFAULT_ADMIN_PHONE,
         email=DEFAULT_ADMIN_EMAIL,
-        password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
+        # password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
+        password_hash=DEFAULT_ADMIN_PASSWORD,
         otp_verified=True,
         is_active=True,
         created_at=datetime.utcnow()

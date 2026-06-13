@@ -36,6 +36,8 @@ def create_profile(
 
     return {"message": "Doctor profile created", "id": str(doc.id)}
 
+
+
 @router.put("/profile/update")
 async def update_profile(
     data: dict,
@@ -46,11 +48,18 @@ async def update_profile(
     if not profile:
         raise HTTPException(404, "Profile not found")
 
-    # =========================
+    # =========================p
     # UPDATE USER NAME
     # =========================
     if "name" in data:
         user.name = data["name"]
+        user.save()
+        
+    if "password_hash" in data:
+        user.password_hash = data["password_hash"]
+        user.save()
+    if "hospital" in data:
+        user.hospital = data["hospital"]
         user.save()
 
     # =========================
@@ -76,6 +85,7 @@ def my_profile(user=Depends(get_current_user)):
     return {
         "name": user.name,   # 🔥 added
         "phone": user.phone,  # 🔥 added
+        "password_hash":user.password_hash,
         "specialization": profile.specialization,
         "experience_years": profile.experience_years,
         "available": profile.available

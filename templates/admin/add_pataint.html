@@ -1,57 +1,53 @@
-{% extends "admin/base.html" %} {% block title %}Add Patient{% endblock %} {%
-block content %}
+{% extends "admin/base.html" %}
+{% block title %}Create Patient{% endblock %}
+{% block content %}
 
-<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h4 class="text-md">Add New Patient</h4>
-  <p class="text-muted text-sm">Register patient for home / hospital care</p>
+<div class="card p-3 mb-4">
+  <h4>Create Patient</h4>
+  <p class="text-muted">Patient registration</p>
 </div>
 
-<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <!-- ================= BASIC DETAILS ================= -->
-  <h5 class="mb-3 text-md font-semibold underline">Basic Details:</h5>
-  <div class="row g-3 mb-4">
-    <div class="col-md-4">
-      <label class="form-label">Service Start Date</label>
-      <input id="service_start" type="date" class="form-control" />
+<form id="patientForm" class="card p-4">
+
+  <!-- hidden -->
+  <input type="hidden" id="documents" />
+
+  <h5 class="mb-3">Basic Details</h5>
+  <div class="row">
+
+    <div class="col-md-4 mb-3">
+      <label>Name *</label>
+      <input class="form-control" id="name" required />
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Service End Date</label>
-      <input id="service_end" type="date" class="form-control" />
+    <div class="col-md-4 mb-3">
+      <label>Father Name</label>
+      <input class="form-control" id="father_name" />
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Patient Name</label>
-      <input id="name" class="form-control" placeholder="Full name" />
+    <div class="col-md-4 mb-3">
+      <label>Phone *</label>
+      <input class="form-control" id="phone" required />
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Primary Phone</label>
-      <input id="phone" class="form-control" placeholder="10 digit mobile" />
+    <div class="col-md-4 mb-3">
+      <label>Emergency Phone</label>
+      <input class="form-control" id="other_number" />
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Alternate / Emergency Number</label>
-      <input id="other_number" class="form-control" />
+    <div class="col-md-4 mb-3">
+      <label>Email</label>
+      <input class="form-control" id="email" />
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Email</label>
-      <input id="email" class="form-control" />
-    </div>
-  </div>
-
-  <!-- ================= PERSONAL DETAILS ================= -->
-  <h5 class="mb-3 text-md font-semibold underline">Personal Details:</h5>
-  <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <label class="form-label">Age</label>
-      <input id="age" type="number" class="form-control" />
+    <div class="col-md-4 mb-3">
+      <label>Age</label>
+      <input type="number" class="form-control" id="age" />
     </div>
 
-    <div class="col-md-3">
-      <label class="form-label">Gender</label>
-      <select id="gender" class="form-select">
+    <div class="col-md-4 mb-3">
+      <label>Gender</label>
+      <select class="form-control" id="gender">
         <option value="">Select</option>
         <option>Male</option>
         <option>Female</option>
@@ -59,198 +55,421 @@ block content %}
       </select>
     </div>
 
-    <div class="col-md-6">
-      <label class="form-label">Medical History</label>
-      <textarea id="medical_history" class="form-control"></textarea>
+    <div class="col-md-4 mb-3">
+      <label>Hospital</label>
+      <select class="form-control" id="hospital">
+        <option value="">Select Hospital</option>
+        {% for h in hospitals %}
+        <option value="{{ h.id }}">{{ h.name }} ({{ h.branch }})</option>
+        {% endfor %}
+      </select>
     </div>
 
-    <!-- ================= PATIENT DOCUMENTS ================= -->
-    <h5 class="mb-3 text-md font-semibold underline">Patient Documents:</h5>
-
-    <div class="row g-3 mb-4">
-      <div class="col-md-6">
-        <label class="form-label">Upload Documents (PDF / Image)</label>
-        <input
-          id="documents"
-          type="file"
-          class="form-control"
-          multiple
-          accept=".pdf,.jpg,.jpeg,.png"
-        />
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Uploaded Files</label>
-        <ul id="uploadedDocs" class="text-sm text-muted"></ul>
-      </div>
+    <div class="col-md-4 mb-3">
+      <label>Service Start Date</label>
+      <input type="date" class="form-control" id="service_start" />
     </div>
 
-    <!-- ================= ADDRESS ================= -->
-    <div class="col-md-12">
-      <label class="form-label">Address</label>
-      <textarea
-        id="address"
+    <div class="col-md-4 mb-3">
+      <label>Service End Date</label>
+      <input type="date" class="form-control" id="service_end" />
+    </div>
+
+     <div class="col-md-4 mb-3">
+      <label>City *</label>
+      <input class="form-control" id="city" required />
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>State *</label>
+      <input class="form-control" id="state" required />
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Pincode *</label>
+      <input class="form-control" id="pincode" required />
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Documents</label>
+      <input
+        type="file"
+        multiple
         class="form-control"
-        rows="2"
-        placeholder="Full home / hospital address"
-      ></textarea>
+        onchange="uploadMultipleFiles(this)"
+      />
     </div>
-  </div>
+    <div class="col-md-4 mb-3">
+  <label>Aadhar Card</label>
+  <input
+    type="file"
+    class="form-control"
+    onchange="uploadAadhar(this)"
+  />
+  <input type="hidden" id="adharcard" />
+</div>
 
-  <!-- ================= SERVICE DETAILS ================= -->
-  <h5 class="mb-3 text-md font-semibold underline">Service Details:</h5>
-  <div class="row g-3 mb-4">
-    <div class="col-md-4">
-      <label class="form-label">Assign Doctor</label>
-      <select id="doctor" class="form-select">
+    <div class="col-md-12 mb-3">
+      <label>Address</label>
+      <textarea class="form-control" id="address"></textarea>
+    </div>
+
+    <div class="col-md-12 mb-3">
+      <label>Medical History</label>
+      <textarea class="form-control" id="medical_history"></textarea>
+    </div>
+
+
+
+    <div class="col-md-6 mb-3">
+      <label>Assign Doctor</label>
+      <select class="form-control" id="assigned_doctor">
         <option value="">Not Assigned</option>
-        {% for doc in doctors %}
-        <option value="{{ doc.id }}">
-          {{ doc.user.name }} ({{ doc.specialization }})
+        {% for d in doctors %}
+        <option value="{{ d.id }}">
+          Dr. {{ d.user.name }} ({{ d.specialization }})
         </option>
         {% endfor %}
       </select>
     </div>
+    <div class="col-md-6 mb-3">
+      <label>Role</label>
+      <select id="assigned_caretaker" class="form-select">
+        {% for n in nurses %}
+        <option value="{{ n.id }}">
+          {{ n.user.name }} ({{ n.nurse_type }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
   </div>
 
-  <!-- ================= ACTION ================= -->
   <div class="text-end">
-    <button
-      type="button"
-      class="btn bg-green-600 text-white hover:bg-green-700 px-4"
-      onclick="createPatient()"
-    >
-      Save Patient
-    </button>
+    <button class="btn btn-success px-4">Create Patient</button>
   </div>
+</form>
+
+<!-- EQUIPMENT MODAL -->
+<div id="equipmentPopup" class="popup-overlay">
+
+  <div class="popup-card">
+
+    <div class="popup-header">
+      <h5>Assign Equipment</h5>
+      <button onclick="skipEquipment()">✕</button>
+    </div>
+
+    <div class="popup-body">
+
+    <table class="table table-bordered">
+
+    <thead>
+    <tr>
+  <th>Equipment</th>
+  <th>Price / Day</th>
+  <th>Days</th>
+  <th>Monthly</th>
+  <th width="80">Action</th>
+</tr>
+    </thead>
+
+    <tbody id="equipmentRows"></tbody>
+
+    </table>
+
+    <button type="button" class="btn btn-sm btn-primary" onclick="addRow()">
+    + Add Row
+    </button>
+
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-secondary" onclick="skipEquipment()">Skip</button>
+      <button class="btn btn-success" onclick="submitEquipment()">Submit</button>
+    </div>
+
+  </div>
+
 </div>
 
-<!-- ================= GLOBAL API ================= -->
+<style>
+.popup-overlay{
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.5);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.popup-card{
+  background:white;
+  width:700px;
+  max-height:80vh;
+  overflow:auto;
+  border-radius:10px;
+  padding:20px;
+}
+
+.popup-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+.popup-footer{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:20px;
+}
+</style>
 <script>
-  /* ================= AUTH & GUARD ================= */
-  function headers() {
-    return {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + localStorage.getItem("token"),
-    };
-  }
 
-  function guard() {
-    if (!localStorage.getItem("token")) {
-      window.location.href = "/admin/login";
-    }
-  }
+  
+const FILE_API = "/upload/file";
+const CREATE_API = "/patient/create";
+let equipmentOptions = [];
 
-  guard();
+/* ---------- FILE UPLOAD ---------- */
+async function uploadMultipleFiles(input) {
+  const paths = [];
+  for (const file of input.files) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", "documents");
 
-  /* ================= DOCUMENT UPLOAD ================= */
-  let uploadedDocuments = [];
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const docInput = document.getElementById("documents");
-    if (!docInput) return;
-
-    docInput.addEventListener("change", async function (e) {
-      const files = e.target.files;
-      if (!files.length) return;
-
-      for (let file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("folder", "patient_docs");
-
-        try {
-          const res = await fetch("/upload/file", {
-            method: "POST",
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
-            },
-            body: formData,
-          });
-
-          const data = await res.json();
-
-          if (res.ok && data.success) {
-            uploadedDocuments.push(data.path);
-
-            const li = document.createElement("li");
-            li.className = "flex justify-between items-center";
-
-            li.innerHTML = `
-              <span>${data.path.split("/").pop()}</span>
-              <button class="btn btn-sm btn-danger ms-2">✕</button>
-            `;
-
-            // ❌ remove document
-            li.querySelector("button").onclick = () => {
-              uploadedDocuments = uploadedDocuments.filter(
-                (p) => p !== data.path,
-              );
-              li.remove();
-            };
-
-            document.getElementById("uploadedDocs").appendChild(li);
-          } else {
-            alert("File upload failed");
-          }
-        } catch (err) {
-          console.error("Upload error:", err);
-          alert("Document upload failed");
-        }
-      }
-
-      // reset input so same file can be uploaded again if needed
-      e.target.value = "";
+    const res = await fetch(FILE_API, {
+      method: "POST",
+      headers: { Authorization: headers().Authorization },
+      body: fd
     });
+
+    const data = await res.json();
+    if (res.ok) paths.push(data.path);
+  }
+  document.getElementById("documents").value = JSON.stringify(paths);
+}
+
+async function uploadAadhar(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("folder", "aadhar");
+
+  const res = await fetch(FILE_API, {
+    method: "POST",
+    headers: { Authorization: headers().Authorization },
+    body: fd
   });
 
-  /* ================= CREATE PATIENT ================= */
-  async function createPatient() {
-    const payload = {
-      name: document.getElementById("name").value.trim(),
-      phone: document.getElementById("phone").value.trim(),
-      other_number:
-        document.getElementById("other_number").value.trim() || null,
-      email: document.getElementById("email").value.trim() || null,
-      age: document.getElementById("age").value || null,
-      gender: document.getElementById("gender").value || null,
-      medical_history: document.getElementById("medical_history").value || null,
-      address: document.getElementById("address").value.trim() || null,
-      service_start: document.getElementById("service_start").value || null,
-      service_end: document.getElementById("service_end").value || null,
-      assigned_doctor: document.getElementById("doctor").value || null,
+  const data = await res.json();
 
-      // 🔥 documents
-      documents: uploadedDocuments,
-    };
-
-    console.log("📦 Payload:", payload);
-
-    if (!payload.name || !payload.phone) {
-      alert("Name and phone are required");
-      return;
-    }
-
-    try {
-      const res = await fetch("/patient/create", {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        alert("✅ Patient added successfully!");
-        window.location.href = "/admin/patients";
-      } else {
-        alert(data.detail || "Failed to add patient");
-      }
-    } catch (err) {
-      console.error("Create patient error:", err);
-      alert("Something went wrong");
-    }
+  if (res.ok) {
+    document.getElementById("adharcard").value = data.path;
   }
+}
+
+/* ---------- SUBMIT ---------- */
+document.getElementById("patientForm").onsubmit = async (e) => {
+  e.preventDefault();
+
+  const payload = {
+  name: document.getElementById("name").value.trim(),
+  phone: document.getElementById("phone").value.trim(),
+  father_name: document.getElementById("father_name").value || null,
+  other_number: document.getElementById("other_number").value || null,
+  email: document.getElementById("email").value || null,
+  age: document.getElementById("age").value || null,
+  gender: document.getElementById("gender").value || null,
+  city: document.getElementById("city").value || null,
+  state: document.getElementById("state").value || null,
+  pincode: document.getElementById("pincode").value || null,
+  address: document.getElementById("address").value || null,
+  medical_history: document.getElementById("medical_history").value || null,
+  service_start: document.getElementById("service_start").value || null,
+  service_end: document.getElementById("service_end").value || null,
+  hospital: document.getElementById("hospital").value || null,
+  assigned_doctor: document.getElementById("assigned_doctor").value || null,
+  assigned_caretaker: document.getElementById("assigned_caretaker").value
+    ? [document.getElementById("assigned_caretaker").value]
+    : [],
+  documents: document.getElementById("documents").value
+    ? JSON.parse(document.getElementById("documents").value)
+    : [],
+  adharcard: document.getElementById("adharcard").value || null
+};
+
+  console.log("📦 PAYLOAD:", payload);
+
+const res = await fetch(CREATE_API, {
+  method: "POST",
+  headers: {
+    ...headers(),
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(payload)
+});
+
+  const data = await res.json();
+
+if (res.ok) {
+
+  createdPatientId = data.patient_id; // patient id
+
+  await loadEquipments();
+
+document.getElementById("equipmentPopup").style.display = "flex";
+} else {
+    alert(data.detail || "Error creating patient");
+  }
+};
+
+
+async function loadEquipments(){
+
+  const res = await fetch("/equipment/equipment-getall");
+  const data = await res.json();
+
+  equipmentOptions = data;
+
+  document.getElementById("equipmentRows").innerHTML = "";
+
+  addRow(); // default row
+
+}
+function equipmentDropdown(){
+
+  let options = `<option value="">Select Equipment</option>`;
+
+  equipmentOptions.forEach(e=>{
+    options += `<option value="${e.id}">${e.title}</option>`;
+  });
+
+  return options;
+}
+
+function getEquipmentPrice(equipmentId){
+  const selected = equipmentOptions.find((e) => e.id === equipmentId);
+  return selected ? Number(selected.price || 0) : 0;
+}
+
+function onEquipmentChange(selectEl){
+  const row = selectEl.closest("tr");
+  const priceInput = row.querySelector(".price-input");
+  priceInput.value = getEquipmentPrice(selectEl.value).toFixed(2);
+}
+
+function addRow(){
+
+  const row = `
+  <tr>
+
+    <td>
+      <select class="form-control equipment-select" onchange="onEquipmentChange(this)">
+        ${equipmentDropdown()}
+      </select>
+    </td>
+
+    <td>
+      <input type="number"
+        class="form-control price-input"
+        value="0"
+        min="0"
+        step="0.01"
+      >
+    </td>
+
+    <td>
+      <input type="number"
+        class="form-control duration-input"
+        value="1"
+        min="1"
+      >
+    </td>
+
+    <td>
+      <input type="number"
+        class="form-control monthly-input"
+        value="0"
+        min="0"
+      >
+    </td>
+
+    <td class="text-center">
+      <button class="btn btn-danger btn-sm"
+        onclick="removeRow(this)">
+        ✕
+      </button>
+    </td>
+
+  </tr>
+  `;
+
+  document
+    .getElementById("equipmentRows")
+    .insertAdjacentHTML("beforeend", row);
+}
+function removeRow(btn){
+  btn.closest("tr").remove();
+}
+function skipEquipment(){
+  document.getElementById("equipmentPopup").style.display = "none";
+  window.location.href = "/admin/patients";
+}
+
+async function submitEquipment(){
+
+  const rows = document.querySelectorAll("#equipmentRows tr");
+
+  const equipments = [];
+
+  rows.forEach(r => {
+
+    const eq = r.querySelector(".equipment-select").value;
+    const price = parseFloat(r.querySelector(".price-input").value) || 0;
+    const days = r.querySelector(".duration-input").value;
+
+    if(eq){
+      equipments.push({
+        equipment_id: eq,
+        day_duration: parseInt(days),
+        price_per_day: price
+      });
+    }
+
+  });
+
+  if(equipments.length === 0){
+    alert("Select at least one equipment");
+    return;
+  }
+
+  await fetch("/patient/assign-equipment",{
+    method:"POST",
+    headers:{
+      ...headers(),
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      patient_id: createdPatientId,
+      equipments: equipments
+    })
+  });
+
+  alert("Equipment assigned");
+
+  window.location.href="/admin/patients";
+
+}
+
 </script>
 
 {% endblock %}

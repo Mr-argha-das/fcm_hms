@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
+from datetime import datetime, timedelta, timezone
 
 SECRET_KEY = "dasddonebchbercuerobwsasexoiuygbdaue"
 ALGORITHM = "HS256"
@@ -20,9 +21,9 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_access_token(data: dict, token_version: int):
     to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-
+ 
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
     to_encode.update({
         "exp": expire,
         "tv": token_version   # 🔥 token version add

@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "healthcare-hms",
+  "private_key_id": "1fdc42c427aeff4b852abadcaea5c586f07fb414",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDI3G3Urb+mU+pt\ndCPSO2nJuAVPjcX0ubxUvYHQu27W7s7S8rY9wZdif2a6URdtlrxLEwajEC8mr2UP\npGrGFIjbCNOrVRuHO0+mh7evhMRCOGd2OjXazD4uXFO8Rfh6mSVMDAIaxO8QzTnX\n7Rm+QJC7emOC0zsxlFS85EFPTALJCTWf4w/+orNsM8bAeYzPX/xFp8f8HSPQDGJb\n2bfOUcfk3R87PzGOaLT+NKuPzM2WrDFO+bx/IXzjNhbxt3lJsdHACulrhWd2lpE6\ne1k9K2fg5yAmvMYli1Ihp13ZNt0SwQ8+go7vuAdKt1ifyXh5m40SY2oM084zKeLd\n33enkBgpAgMBAAECggEAEv4s8IBhb+Pdde4WeQmfLjDVZ7lbL5HkigrFXKxshaxd\nKDtFGj/VBb5QQ2vpkDZBpcOty/t6yeip4LnGUuacLkH+aeQJT1c/Z9rLdrBSMoTM\n27QTZZYMhyu5y0K+hTE4AqHcDRX0GR2ey5ki5weJ6ABhqnw4y65f+OCIgGwKk2G9\nYcMcLIF+pJdHUY900ccBVzULreT662nCXrBTgyKLVpkOOkES3Lw07IWmlxjPl46z\nfm/8J12wmGvQUfRDPagPcxH9dnJjWNsCErO38GcehnZGKTbNAQrV0BNBlSIpXHnr\n/SN2cL6OvH/2lliFcC7hHQTL/vyIcDbYP0u4OmJFZQKBgQD+f56uV6OBAuCiUZ0W\nsx86+iaRoM9LuzK/wokIChKv49BcyWOjmjMgQpQGvzAABpLRsxorGeP4bdyPlJ9S\nD6BSXX8luxZ9HB7npoFwPA+LNXUHpRmUSfMMH46u/JyvFeylrxnI1zupVIxCQstI\n6U+5WkECy6j+UU42ThFXHyrTVwKBgQDKC8xWGe+TUmaabAUi5tiQybEYfeUWu6IU\n7WTrmy6CP5PPZ0UOZUXUfGYkzf5O4+fXHSehSRK4tht9ygv//EF0WYWrdprgzPcG\nag4LCfz3AG3lzGklDt4YCJRMMlTsUbXyiu3aCjvcndv5eX4XaMpZJ+Hq1jv6xdaI\nU6ijEbDAfwKBgFGTeLqrjtZYpMaC4JaZHeaarmg5opjEzXSYF7KDABBvNqe3Sf/z\n+nVZwfcTq4Amm0MqZLXyG5fTJ0LCwfrc1WfxXkMq3/+EVwer4IuoRNc7cGLd8gAN\nYCG/r825XUPmBC/rm5k8HHyfhEHtBRo+5vYjzvjlbSrvxuEzTu2dKO4LAoGAf/Kk\nvcnC24qNCzFot0d00YvIKHhhQNoltBb5l/I3q6fTVL5TDuC3Le5xSNFiQFc3FBSU\naiC6SFqaYjg3DS6TzLh8W67KOZ3SuS8kIX17wnd1INcnpp4ZqyKTtwUQnm7ISAYO\nxctBSV52VS/I1842hespt+tfJFlwl/hSjKHBSsUCgYEA4zPRkAXDTE4J317e5A79\nQSUpkSOagKyhlwS+2rdsQBFloNbfehgIYSoJnVGVUD7KwAsKg5RPRtna5AE4FV4W\nGPrZladmLYdA89/vR++Zri0sAO85cqaAYIcGLTeW+/A3Ph5sleHJZRZ4mM6T+8bN\nucsXAp9mHDr8FOJkhXTZ70U=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@healthcare-hms.iam.gserviceaccount.com",
+  "client_id": "105346960815462454937",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40healthcare-hms.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

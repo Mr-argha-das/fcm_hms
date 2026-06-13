@@ -5,13 +5,20 @@ content %}
   <!-- HEADER -->
   <div class="d-flex p-3 justify-content-between align-items-center">
     <h5 class="mb-0 text-md">Doctors</h5>
-
+    <input
+    type="text"
+    id="doctorSearch"
+    placeholder="Search doctor..."
+    class="form-control form-control-sm"
+    style="width:200px"
+    onkeyup="filterDoctors()"
+  />
     <div class="d-flex gap-2">
       <button
-        class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
+        class="bg-success -500 text-white px-3 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
         onclick="window.location.href = '/admin/create/doctor'"
       >
-        ➕ Add Doctor
+        Add Doctor
       </button>
     </div>
   </div>
@@ -31,7 +38,7 @@ content %}
 
     <tbody>
       {% if doctors %} {% for doctor in doctors %}
-      <tr>
+      <tr class="doctor-row">
         <!-- NAME -->
         <td>
           <span class="capitalize"> {{ doctor.user.name }} </span>
@@ -60,21 +67,24 @@ content %}
         <!-- ACTIONS -->
         <td class="text-center">
           <button
-            class="btn btn-sm btn-outline-primary"
+            class="btn btn-sm hover:bg-yellow-100"
             title="View Details"
             onclick="window.location.href='/admin/doctors/{{ doctor.id }}'"
           >
-            👁️
-          </button>
+                     <i data-lucide="eye" class="w-5 h-5 text-yellow-600"></i>
+
+        </button>
+        <!-- 👁️ -->
 
           <button
-            class="btn btn-sm btn-outline-warning"
+            class="btn btn-sm hover:bg-yellow-100"
             title="Edit"
             onclick="window.location.href='/admin/doctors/{{ doctor.id }}/edit'"
           >
-            ✏️
-          </button>
-
+           <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
+        </button>
+        <!-- ✏️ -->
+          <!-- 
           {% if doctor.available %}
           <button class="btn btn-sm btn-outline-danger" title="Deactivate">
             🚫
@@ -83,7 +93,7 @@ content %}
           <button class="btn btn-sm btn-outline-success" title="Activate">
             ✅
           </button>
-          {% endif %}
+          {% endif %} -->
         </td>
       </tr>
       {% endfor %} {% else %}
@@ -94,5 +104,20 @@ content %}
     </tbody>
   </table>
 </div>
+<script>
+function filterDoctors() {
+  const input = document.getElementById("doctorSearch").value.toLowerCase();
+  const rows = document.querySelectorAll(".doctor-row");
 
+  rows.forEach(row => {
+    const text = row.innerText.toLowerCase();
+
+    if (text.includes(input)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+</script>
 {% endblock %}

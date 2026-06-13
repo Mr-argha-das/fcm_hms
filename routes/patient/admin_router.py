@@ -6,6 +6,8 @@ router = APIRouter(prefix="/admin/patient", tags=["Admin-Patient"])
 @router.get("/{patient_id}")
 def get_patient(patient_id: str, admin=Depends(admin_required)):
     return PatientProfile.objects(id=patient_id).first()
+
+
 @router.put("/update")
 def update_patient(
     patient_id: str,
@@ -18,4 +20,6 @@ def update_patient(
     patient.gender = gender
     patient.save()
     return {"message": "Patient updated"}
+
+
 

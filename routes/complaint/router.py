@@ -4,10 +4,11 @@ from models import Complaint
 
 router = APIRouter(prefix="/complaint", tags=["Complaint"])
 @router.post("/create")
-def create_complaint(message: str, user=Depends(get_current_user)):
+def create_complaint(message: str, complaint_type: str = None, user=Depends(get_current_user)):
     comp = Complaint(
         raised_by=user,
         message=message,
+        complaint_type=complaint_type,
         status="OPEN"
     ).save()
     return {"message": "Complaint submitted"}

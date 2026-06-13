@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Payments History{% endblock %}
+
+{% block content %}
+<div class="bg-card  rounded-2xl shadow-soft">
+
+  <div class="flex p-3 justify-between items-center ">
+    <h2 class="text-md">Payments History</h2>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="table  align-middle text-sm">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>User</th>
+          <th>Phone</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Order ID</th>
+          <th>Payment ID</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>{{ loop.index }}</td>
+
+          <td>
+            {{ p.user.name if p.user else "-" }} <br>
+            <small class="text-muted">{{ p.user.role if p.user else "" }}</small>
+          </td>
+
+          <td>{{ p.user.phone if p.user else "-" }}</td>
+
+          <td>
+            ₹{{ p.amount.amount if p.amount else "0" }}
+          </td>
+
+          <td>
+            {% if p.status == "success" %}
+              <span class="badge bg-success">Success</span>
+            {% elif p.status == "failed" %}
+              <span class="badge bg-danger">Failed</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Created</span>
+            {% endif %}
+          </td>
+
+          <td>{{ p.order_id }}</td>
+          <td>{{ p.payment_id or "-" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted">
+            No payments found
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

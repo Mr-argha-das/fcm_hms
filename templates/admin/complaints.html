@@ -36,6 +36,7 @@ block content %}
       <tr>
         <th>Name</th>
         <th>Phone</th>
+        <th>Complaint Type</th>
         <th>Role</th>
         <th>Message</th>
         <th>Date</th>
@@ -51,6 +52,7 @@ block content %}
 
         <td>{{ c.raised_by.name if c.raised_by else "Unknown" }}</td>
         <td>{{ c.raised_by.phone if c.raised_by else "Unknown" }}</td>
+        <td>{{ c.complaint_Type if c.complaint_Type else "N/A" }}</td>
         <!-- ROLE -->
         <td>
           <span class="badge bg-info text-dark">

@@ -16,7 +16,7 @@ content %}
     </div>
   </div> -->
 
-  <div class="d-flex p-3 justify-content-between align-items-center">
+  <div class="d-flex p-3 justify-content-between align-items-center flex-wrap gap-2">
     <div>
       <h5 class="mb-0 text-md">Patients</h5>
       <div class="text-sm text-muted mt-1">
@@ -24,8 +24,15 @@ content %}
         Discharged: {{ discharged_patients }}
       </div>
     </div>
-
-    <div class="d-flex flex-wrap gap-2">
+    <input
+    type="text"
+    id="patientSearch"
+    placeholder="Search patient..."
+    class="form-control form-control-sm"
+    style="width:200px"
+    onkeyup="filterPatients()"
+  />
+    <div class="d-flex gap-2 flex-wrap">
       <a
         href="/admin/patients"
         class="btn btn-sm {% if status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}"
@@ -45,10 +52,10 @@ content %}
         Discharged
       </a>
       <button
-        class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
+        class="bg-success -500 text-white px-2 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
         onclick="location.href = '/admin/create/patient'"
       >
-        ➕ Add Patient
+        Add Patient
       </button>
     </div>
   </div>
@@ -58,28 +65,31 @@ content %}
     <table class="table table-hover overflow-auto align-middle">
       <thead class="table-light">
         <tr>
-          <th class="min-w-40">Name</th>
-          <th>Age</th>
+          <th class="min-w-80">Patient Name</th>
+          <!-- <th>Age</th> -->
           <th>Gender</th>
-          <th>Mobile</th>
+          <th>Age</th>
+          <th class="min-w-32">Mobile</th>
           <th class="min-w-40">Doctor</th>
           <th class="min-w-96">Address / Ward</th>
           <th>Status</th>
-          <th class="text-center">Actions</th>
+          <th class="text-center min-w-32">Actions</th>
         </tr>
       </thead>
 
       <tbody>
         {% if patients %} {% for patient in patients %}
-        <tr>
+        <tr class="patient-row">
           <!-- NAME -->
           <td>{{ patient.user.name or "Self Registered Patient" }}</td>
 
           <!-- AGE -->
-          <td>{{ patient.age or "-" }}</td>
+          <!-- <td>{{ patient.age or "-" }}</td> -->
 
           <!-- GENDER -->
           <td>{{ patient.gender or "-" }}</td>
+          <!-- AGE -->
+          <td>{{ patient.age or "-" }}</td>
 
           <!-- MOBILE -->
           <td>{{ patient.user.phone }}</td>
@@ -105,19 +115,21 @@ content %}
           </td>
 
           <!-- ACTIONS -->
-          <td class="text-center flex gap-2">
+          <td class="text-center flex items-center justify-center gap-0 min-w-32">
             <a
               href="/admin/patient/{{ patient.id }}/view"
-              class="btn btn-sm btn-outline-secondary"
-            >
-              👁️
+                          class="btn btn-sm hover:bg-yellow-100">
+                          <!-- class="btn btn-sm btn-outline-secondary" -->
+        <i data-lucide="eye" class="w-5 h-5 text-yellow-600"></i>
             </a>
 
             <a
               href="/admin/patient/{{ patient.id }}/care"
-              class="btn btn-sm btn-outline-warning"
-            >
-              ✏️
+                          class="btn btn-sm hover:bg-yellow-100"
+
+              >
+              <!-- class="btn btn-sm btn-outline-warning" -->
+              <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
             </a>
 
             {% if not patient.service_end %}
@@ -140,35 +152,49 @@ content %}
     </table>
   </div>
 </div>
-
 <script>
-  function authHeaders() {
-    return {
-      Authorization: "Bearer " + localStorage.getItem("token"),
-    };
-  }
+function filterPatients() {
+  const input = document.getElementById("patientSearch").value.toLowerCase();
+  const rows = document.querySelectorAll(".patient-row");
 
-  async function dischargePatient(patientId) {
-    if (!confirm("Discharge this patient?")) return;
+  rows.forEach(row => {
+    const text = row.innerText.toLowerCase();
 
-    try {
-      const res = await fetch(`/admin/patient/${patientId}/discharge`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        alert("Patient discharged successfully");
-        window.location.reload();
-      } else {
-        alert(data.detail || "Failed to discharge patient");
-      }
-    } catch (err) {
-      console.error("Discharge error:", err);
-      alert("Something went wrong");
+    if (text.includes(input)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
     }
-  }
-</script>
+  });
+}
 
+function authHeaders() {
+  return {
+    Authorization: "Bearer " + localStorage.getItem("token"),
+  };
+}
+
+async function dischargePatient(patientId) {
+  if (!confirm("Discharge this patient?")) return;
+
+  try {
+    const res = await fetch(`/admin/patient/${patientId}/discharge`, {
+      method: "POST",
+      headers: authHeaders(),
+      credentials: "same-origin",
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      alert("Patient discharged successfully");
+      window.location.reload();
+    } else {
+      alert(data.detail || "Failed to discharge patient");
+    }
+  } catch (err) {
+    console.error("Discharge error:", err);
+    alert("Something went wrong");
+  }
+}
+</script>
 {% endblock %}

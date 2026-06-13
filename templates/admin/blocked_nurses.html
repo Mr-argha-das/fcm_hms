@@ -1,0 +1,143 @@
+{% extends "admin/base.html" %} {% block title %}Blocked Nurses{% endblock %}
+{% block content %}
+
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
+  <div class="d-flex p-3 justify-content-between align-items-center">
+    <div>
+      <h5 class="mb-0 text-md">Blocked Nurses</h5>
+      <small class="text-muted">
+        Only nurse profiles with inactive status are listed here
+      </small>
+    </div>
+    <form method="get" class="d-flex gap-2">
+      <input
+        type="text"
+        name="search"
+        value="{{ search }}"
+        placeholder="Search by name, phone, email"
+        class="form-control"
+        style="min-width: 260px"
+      />
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        Search
+      </button>
+      {% if search %}
+      <a href="/admin/nurses/blocked" class="btn btn-outline-secondary btn-sm">
+        Clear
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Staff Name</th>
+        <th>Role / Type</th>
+        <th>Aadhar Verification</th>
+        <th>Police Verification</th>
+        <th>Agreement Signature</th>
+        <th>Availability Status</th>
+        <th class="text-center !min-w-[200px">Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if nurses %} {% for nurse in nurses %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {% if nurse.profile_photo %}
+            <img
+              src="https://wecarehhcs.in{{ nurse.profile_photo }}"
+              style="width: 36px; height: 36px; border-radius: 50%"
+            />
+            {% else %}
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+              "
+            >
+              👩‍⚕️
+            </div>
+            {% endif %}
+
+            <div class="flex flex-col">
+              <div class="fw-semibold">{{ nurse.user.name }}</div>
+              <small class="text-muted">{{ nurse.user.phone }}</small>
+            </div>
+          </div>
+        </td>
+
+        <td>
+          <span class="badge bg-info text-dark">{{ nurse.nurse_type }}</span>
+        </td>
+
+        <td>
+          {% if nurse.aadhaar_verified == true %}
+          <span class="badge bg-success">Verified</span>
+          {% elif nurse.aadhaar_verified == false %}
+          <span class="badge bg-danger">Not Verified</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+
+        <td>
+          {% if nurse.police_verification_status == "VERIFIED" %}
+          <span class="badge bg-success">VERIFIED</span>
+          {% elif nurse.police_verification_status == "FAILED" %}
+          <span class="badge bg-danger">Failed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+
+        <td>
+          {% if nurse.digital_signature_verify %}
+          <span class="badge bg-success">Signed</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Unsigned</span>
+          {% endif %}
+        </td>
+
+        <td>
+          <span class="badge bg-secondary">Inactive</span>
+        </td>
+
+        <td class="text-center">
+          <button
+            class="btn btn-sm hover:bg-yellow-100"
+            title="View Details"
+            onclick="window.location.href='/admin/nurses/{{ nurse.id }}'"
+          >
+            <i data-lucide="eye" class="w-5 h-5 text-yellow-600"></i>
+          </button>
+
+          <a
+            href="/admin/nurses/{{ nurse.id }}/edit"
+            class="btn btn-sm hover:bg-yellow-100"
+          >
+            <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %} {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+          No blocked nurses found
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

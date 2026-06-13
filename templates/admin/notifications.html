@@ -1,75 +1,142 @@
 {% extends "admin/base.html" %} {% block title %}Notifications{% endblock %} {%
 block content %}
 
-<!-- PAGE HEADER -->
-<div class="bg-card p-3 mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h5 class="mb-1">🔔 Notifications</h5>
-  <p class="text-muted mb-0">System notification history</p>
+<div class="bg-card  rounded-2xl shadow-soft p-4 ">
+  <h2 class="text-md font-medium mb-4">Send Push Notification</h2>
+
+  <!-- ROLE SELECT -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Role</label>
+      <select id="roleSelect" class="form-select">
+        <option value="ALL">All Users</option>
+        <option value="NURSE">Nurse</option>
+        <option value="DOCTOR">Doctor</option>
+        <option value="PATIENT">Patient</option>
+        <option value="STAFF">Staff</option>
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn bg-sky-600 hover:bg-sky-700  text-white w-100" onclick="loadUsers()">
+        Show User
+      </button>
+    </div>
+  </div>
+
+  <!-- USERS LIST -->
+  <div
+    class="border rounded-3 p-3 mb-4"
+    style="max-height: 280px; overflow: auto"
+  >
+    <div class="d-flex justify-content-between mb-2">
+      <strong>Users</strong>
+      <button class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+        Select All
+      </button>
+    </div>
+
+    <div id="usersBox"></div>
+  </div>
+
+  <!-- TITLE -->
+  <div class="mb-3">
+    <label class="form-label">Notification Title</label>
+    <input id="title" class="form-control" placeholder="Notification Title" />
+  </div>
+
+  <!-- BODY -->
+  <div class="mb-3">
+    <label class="form-label">Message</label>
+    <textarea id="body" class="form-control" rows="3"></textarea>
+  </div>
+
+  <!-- SEND BUTTON -->
+  <button class="btn btn-primary" onclick="sendNotification()">
+    Send Push Notification
+  </button>
+
+    <button class="btn btn-success" >
+    Send To Whatsapp
+  </button>
 </div>
 
-<!-- NOTIFICATION HISTORY -->
-<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
-  <h6 class="mb-3 px-3 pt-3">Recent Notifications</h6>
+{% endblock %} {% block scripts %}
 
-  <table class="table table-hover align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>Title</th>
-        <th>Message</th>
-        <th>Sent To</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th class="text-center">Actions</th>
-      </tr>
-    </thead>
+<script>
+  let selectedUsers = [];
 
-    <tbody>
-      {% if notifications %} {% for n in notifications %}
-      <tr>
-        <!-- TITLE -->
-        <td>{{ n.title }}</td>
+  // ✅ load users by role
+  async function loadUsers() {
+    selectedUsers = [];
 
-        <!-- MESSAGE -->
-        <td class="text-muted">
-          {{ n.message[:60] }}{% if n.message|length > 60 %}...{% endif %}
-        </td>
+    const role = document.getElementById("roleSelect").value;
 
-        <!-- SENT TO (SAFE) -->
-        <td>
-          <span class="badge bg-info text-dark"> {{ n.role }} </span>
-        </td>
+    const res = await fetch(`/admin/users-notification?role=${role}`);
+    const users = await res.json();
 
-        <!-- DATE -->
-        <td>{{ n.created_at.strftime("%d %b %Y") }}</td>
+    const box = document.getElementById("usersBox");
+    box.innerHTML = "";
 
-        <!-- STATUS -->
-        <td>
-          {% if n.is_read %}
-          <span class="badge bg-secondary">Read</span>
-          {% else %}
-          <span class="badge bg-success">Sent</span>
-          {% endif %}
-        </td>
+    users.forEach((u) => {
+      box.innerHTML += `
+      <div class="form-check mb-1">
+        <input class="form-check-input"
+          type="checkbox"
+          value="${u.id}"
+          onchange="toggleUser(this)">
+        <label class="form-check-label">
+          ${u.name || "No Name"} (${u.phone}) - ${u.role}
+        </label>
+      </div>
+    `;
+    });
+  }
 
-        <!-- ACTION -->
-        <td class="text-center">
-          <button
-            class="btn btn-sm btn-outline-primary"
-            title="View Notification"
-          >
-            👁️
-          </button>
-        </td>
-      </tr>
-      {% endfor %} {% else %}
-      <tr>
-        <td colspan="6" class="text-center text-muted">
-          No notifications found
-        </td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
+  // ✅ toggle user
+  function toggleUser(el) {
+    if (el.checked) {
+      selectedUsers.push(el.value);
+    } else {
+      selectedUsers = selectedUsers.filter((id) => id !== el.value);
+    }
+  }
+
+  // ✅ select all
+  function selectAll() {
+    document.querySelectorAll("#usersBox input").forEach((c) => {
+      c.checked = true;
+      if (!selectedUsers.includes(c.value)) {
+        selectedUsers.push(c.value);
+      }
+    });
+  }
+
+  // ✅ send notification
+  async function sendNotification() {
+    const title = document.getElementById("title").value;
+    const body = document.getElementById("body").value;
+    const role = document.getElementById("roleSelect").value;
+
+    if (!title || !body) {
+      alert("Title & body required");
+      return;
+    }
+
+    await fetch("/admin/send-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        body,
+        role,
+        user_ids: selectedUsers.length ? selectedUsers : null,
+        send_all: selectedUsers.length === 0,
+      }),
+    });
+
+    alert("✅ Notification sent successfully");
+  }
+</script>
 
 {% endblock %}

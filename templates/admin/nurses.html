@@ -6,14 +6,32 @@ content %}
   <div class="d-flex p-3 justify-content-between align-items-center">
     <h5 class="mb-0 text-md">Nurses</h5>
     <div class="d-flex gap-2">
+      <form method="get" class="d-flex gap-2">
+        <input
+          type="text"
+          name="search"
+          value="{{ search }}"
+          placeholder="Search by name, phone, email"
+          class="form-control"
+          style="min-width: 260px"
+        />
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          Search
+        </button>
+        {% if search %}
+        <a href="/admin/nurses" class="btn btn-outline-secondary btn-sm">
+          Clear
+        </a>
+        {% endif %}
+      </form>
       <!-- <a href="/admin/consent" class="btn btn-sm btn-outline-secondary">
         📄 Nurse Consent
       </a> -->
       <button
-        class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
+        class="bg-success -500 text-white px-3 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
         onclick="window.location.href = '/admin/create/nurse'"
       >
-        ➕ Add Nurse
+        Add Nurse
       </button>
     </div>
   </div>
@@ -22,13 +40,13 @@ content %}
   <table class="table table-hover align-middle">
     <thead class="table-light">
       <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Addhaar</th>
-        <th>Police</th>
-        <th>Signaure</th>
-        <th>Status</th>
-        <th class="text-center !min-w-[200px">Actions</th>
+        <th>Staff Name</th>
+        <th>Role / Type</th>
+        <th>Aadhar Verification </th>
+        <th>Police Verification</th>
+        <th>Agreement Signature</th>
+        <th>Avaibility Status</th>
+        <th class="text-center !min-w-[200px">Action</th>
       </tr>
     </thead>
 
@@ -62,8 +80,8 @@ content %}
             {% endif %}
 
             <div class="flex flex-col">
-              <div class="fw-semibold">{{ nurse.user.phone }}</div>
-              <small class="text-muted">{{ nurse.user.name }}</small>
+              <div class="fw-semibold">{{ nurse.user.name }}</div>
+              <small class="text-muted">{{ nurse.user.phone }}</small>
             </div>
           </div>
         </td>
@@ -86,8 +104,8 @@ content %}
 
         <!-- POLICE -->
         <td>
-          {% if nurse.police_verification_status == "CLEAR" %}
-          <span class="badge bg-success">Cleared</span>
+          {% if nurse.police_verification_status == "VERIFIED" %}
+          <span class="badge bg-success">VERIFIED</span>
           {% elif nurse.police_verification_status == "FAILED" %}
           <span class="badge bg-danger">Failed</span>
           {% else %}
@@ -117,18 +135,18 @@ content %}
         <td class="text-center">
           <!-- <div class="flex"> -->
           <button
-            class="btn btn-sm btn-outline-primary"
+            class="btn btn-sm hover:bg-yellow-100"
             title="View Details"
             onclick="window.location.href='/admin/nurses/{{ nurse.id }}'"
           >
-            👁️
+           <i data-lucide="eye" class="w-5 h-5 text-yellow-600"></i>
           </button>
 
           <a
             href="/admin/nurses/{{ nurse.id }}/edit"
-            class="btn btn-sm btn-outline-warning"
+            class="btn btn-sm hover:bg-yellow-100"
           >
-            ✏️
+            <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
           </a>
           <!-- <a
             class="btn btn-sm btn-outline-warning"
@@ -137,7 +155,7 @@ content %}
             🗑️
           </a> -->
 
-          {% if nurse.user.is_active %}
+          <!-- {% if nurse.user.is_active %}
           <button class="btn btn-sm btn-outline-danger" title="Deactivate">
             🚫
           </button>
@@ -145,13 +163,13 @@ content %}
           <button class="btn btn-sm btn-outline-success" title="Activate">
             ✅
           </button>
-          {% endif %}
+          {% endif %} -->
           <!-- </div> -->
         </td>
       </tr>
       {% endfor %} {% else %}
       <tr>
-        <td colspan="6" class="text-center text-muted">No nurses found</td>
+        <td colspan="7" class="text-center text-muted">No nurses found</td>
       </tr>
       {% endif %}
     </tbody>
