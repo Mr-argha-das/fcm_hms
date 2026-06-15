@@ -23,20 +23,20 @@ templates.env.globals["get_admin_menu"] = get_admin_menu
 def ensure_patient_profiles_for_registered_users():
     for patient_user in User.objects(role="PATIENT"):
         if not PatientProfile.objects(user=patient_user).first():
-            PatientProfile(user=patient_user).save()
+            PatientProfile(user=patient_user, created_by="SELF").save()
 
 
-def completed_patient_users(hospital_id: str | None = None):
-    query = User.objects(
+def admin_patient_filter(hospital_id: str | None = None):
+    patient_users = User.objects(
         role="PATIENT",
         name__exists=True,
         name__nin=["", None],
     ).only("id")
 
     if hospital_id:
-        query = query.filter(hospital=hospital_id)
+        patient_users = patient_users.filter(hospital=hospital_id)
 
-    return query
+    return Q(created_by__ne="SELF") & Q(user__in=patient_users)
 
 
 
@@ -195,16 +195,16 @@ def dashboard(
     # ======================
     # KPI
     # ======================
-    patient_filter = {"user__in": completed_patient_users(hospital_id)}
+    patient_filter = admin_patient_filter(hospital_id)
 
     total_patients = PatientProfile.objects(
-        **patient_filter
+        patient_filter
     ).count()
 
     discharged_patients = PatientProfile.objects(
+        patient_filter,
         service_end__exists=True,
-        service_end__ne=None,
-        **patient_filter
+        service_end__ne=None
     ).count()
 
     total_nurses = NurseProfile.objects(
@@ -298,9 +298,9 @@ def dashboard(
         next_day = current_day + timedelta(days=1)
 
         count = PatientProfile.objects(
+            patient_filter,
             service_start__gte=current_day.date(),
-            service_start__lt=next_day.date(),
-            **patient_filter
+            service_start__lt=next_day.date()
         ).count()
 
         chart_labels.append(current_day.strftime("%d %b"))
@@ -677,32 +677,32 @@ def patients(
 ):
     ensure_patient_profiles_for_registered_users()
 
-    patient_filter = {"user__in": completed_patient_users()}
+    patient_filter = admin_patient_filter()
 
-    total_patients = PatientProfile.objects(**patient_filter).count()
+    total_patients = PatientProfile.objects(patient_filter).count()
     active_patients = PatientProfile.objects(
-        service_end=None,
-        **patient_filter
+        patient_filter,
+        service_end=None
     ).count()
     discharged_patients = PatientProfile.objects(
+        patient_filter,
         service_end__exists=True,
-        service_end__ne=None,
-        **patient_filter
+        service_end__ne=None
     ).count()
 
     if status == "active":
         patients_qs = PatientProfile.objects(
-            service_end=None,
-            **patient_filter
+            patient_filter,
+            service_end=None
         ).select_related()
     elif status == "discharged":
         patients_qs = PatientProfile.objects(
+            patient_filter,
             service_end__exists=True,
-            service_end__ne=None,
-            **patient_filter
+            service_end__ne=None
         ).select_related()
     else:
-        patients_qs = PatientProfile.objects(**patient_filter).select_related()
+        patients_qs = PatientProfile.objects(patient_filter).select_related()
 
     return templates.TemplateResponse(
         "admin/patients.html",

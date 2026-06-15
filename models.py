@@ -217,6 +217,10 @@ class DoctorVisit(Document):
 class PatientProfile(Document):
 
     user = ReferenceField("User", required=True)
+    created_by = StringField(
+        choices=["ADMIN", "SELF"],
+        default="ADMIN"
+    )
     age = IntField()
     gender = StringField()
     medical_history = StringField()

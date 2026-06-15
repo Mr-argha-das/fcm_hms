@@ -34,7 +34,7 @@ TEST_OTP = "123456"
 
 def ensure_patient_profile(user: User) -> None:
     if user.role == "PATIENT" and not PatientProfile.objects(user=user).first():
-        PatientProfile(user=user).save()
+        PatientProfile(user=user, created_by="SELF").save()
 
 # @router.post("/send-otp")
 # def send_otp(data: SendOTPRequest):

@@ -91,6 +91,7 @@ async def create_patient(
         # 🔹 Create PATIENT PROFILE
         patient = PatientProfile(
             user=user,
+            created_by="ADMIN",
             age=payload.age,
             gender=payload.gender,
             medical_history=payload.medical_history,
