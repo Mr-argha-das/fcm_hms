@@ -1,110 +1,376 @@
-{% extends "admin/base.html" %} {% block title %}Billing{% endblock %} {% block
-content %}
+{% extends "admin/base.html" %}
+{% block title %}Patient Billing{% endblock %}
 
-<!-- BILLING CARD -->
-<div class="card mb-4">
-  <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Billing</h5>
-
-    <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-secondary">📄 View Invoices</button>
-
-      <button class="btn btn-sm btn-primary">➕ Create Invoice</button>
-    </div>
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <div>
+    <h1 class="text-xl font-semibold text-slate-800">Patient Billing</h1>
+    <p class="text-sm text-slate-500">Generate bills and manage payment history</p>
   </div>
+  <button
+    type="button"
+    onclick="loadBillingHistory()"
+    class="btn btn-outline-primary btn-sm flex items-center gap-2"
+  >
+    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+    Refresh
+  </button>
+</div>
 
-  <!-- CREATE INVOICE FORM (UI SAME – backend later) -->
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label">Patient ID</label>
-      <input type="text" class="form-control" placeholder="Enter Patient ID" />
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label">Invoice Amount (₹)</label>
-      <input type="number" class="form-control" placeholder="Enter Amount" />
-    </div>
-
-    <div class="col-md-4 d-flex align-items-end">
-      <button class="btn btn-success w-100">💾 Generate Invoice</button>
-    </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+  <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
+    <p class="text-sm text-slate-500">Total Billed</p>
+    <p id="totalBilled" class="text-2xl font-semibold text-slate-800">₹ {{ "%.2f"|format(total_billed) }}</p>
+  </div>
+  <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
+    <p class="text-sm text-slate-500">Total Paid</p>
+    <p id="totalPaid" class="text-2xl font-semibold text-emerald-600">₹ {{ "%.2f"|format(total_paid) }}</p>
+  </div>
+  <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
+    <p class="text-sm text-slate-500">Outstanding</p>
+    <p id="totalDue" class="text-2xl font-semibold text-rose-600">₹ {{ "%.2f"|format(total_due) }}</p>
   </div>
 </div>
 
-<!-- INVOICE LIST -->
-<div class="card">
-  <h6 class="mb-3">Recent Invoices</h6>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+  <section class="xl:col-span-1 bg-white border border-slate-100 rounded-lg shadow-sm">
+    <div class="px-4 py-3 border-b border-slate-100">
+      <h2 class="font-semibold text-slate-800">Generate Bill</h2>
+    </div>
 
-  <table class="table table-hover align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>Invoice ID</th>
-        <th>Patient</th>
-        <th>Amount</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th class="text-center">Actions</th>
-      </tr>
-    </thead>
+    <div class="p-4 space-y-4">
+      <div>
+        <label class="form-label">Patient</label>
+        <select id="billingPatient" class="form-select">
+          <option value="">Select patient</option>
+          {% for patient in patients %}
+          <option value="{{ patient.id }}">
+            {{ patient.user.name or "-" }} ({{ patient.user.phone }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <tbody>
-      {% if invoices %} {% for inv in invoices %}
-      <tr>
-        <!-- INVOICE ID -->
-        <td>{{ inv.id }}</td>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Discount</label>
+          <input id="billingDiscount" type="number" min="0" value="0" class="form-control" />
+        </div>
+        <div>
+          <label class="form-label">Extra Charges</label>
+          <input id="billingExtra" type="number" min="0" value="0" class="form-control" />
+        </div>
+      </div>
 
-        <!-- PATIENT -->
-        <td>
-          {{ inv.patient.user.phone if inv.patient and inv.patient.user else
-          "Unknown" }}
-        </td>
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-700">Additional Items</h3>
+        <button type="button" onclick="addBillingItem()" class="btn btn-sm btn-outline-secondary">
+          Add Item
+        </button>
+      </div>
 
-        <!-- AMOUNT -->
-        <td>₹ {{ inv.total_amount }}</td>
+      <div id="billingItems" class="space-y-3"></div>
 
-        <!-- DATE -->
-        <td>{{ inv.created_at.strftime("%d %b %Y") }}</td>
+      <button
+        id="generateBillButton"
+        type="button"
+        onclick="generatePatientBill()"
+        class="btn btn-success w-100"
+      >
+        Generate Bill
+      </button>
+    </div>
+  </section>
 
-        <!-- STATUS -->
-        <td>
-          {% if inv.status == "PAID" %}
-          <span class="badge bg-success">Paid</span>
-          {% elif inv.status == "PARTIAL" %}
-          <span class="badge bg-warning text-dark">Partial</span>
-          {% else %}
-          <span class="badge bg-danger">Due</span>
-          {% endif %}
-        </td>
+  <section class="xl:col-span-2 bg-white border border-slate-100 rounded-lg shadow-sm">
+    <div class="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+      <h2 class="font-semibold text-slate-800">Billing History</h2>
+      <div class="flex flex-wrap gap-2">
+        <input
+          id="billingSearch"
+          class="form-control form-control-sm"
+          style="width: 190px"
+          placeholder="Patient, phone, invoice"
+          oninput="renderBillingHistory()"
+        />
+        <select
+          id="billingStatus"
+          class="form-select form-select-sm"
+          style="width: 130px"
+          onchange="loadBillingHistory()"
+        >
+          <option value="">All Status</option>
+          <option value="UNPAID">Unpaid</option>
+          <option value="PAID">Paid</option>
+        </select>
+        <input
+          id="downloadGst"
+          type="number"
+          min="0"
+          max="100"
+          value="18"
+          class="form-control form-control-sm"
+          title="GST percentage for GST PDF"
+          style="width: 80px"
+        />
+      </div>
+    </div>
 
-        <!-- ACTIONS -->
-        <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary" title="View Invoice">
-            👁️
-          </button>
-
-          {% if inv.invoice_pdf %}
-          <a
-            href="{{ inv.invoice_pdf }}"
-            class="btn btn-sm btn-outline-secondary"
-            title="Download PDF"
-          >
-            ⬇️
-          </a>
-          {% endif %} {% if inv.status != "PAID" %}
-          <button class="btn btn-sm btn-outline-success" title="Mark as Paid">
-            💰
-          </button>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %} {% else %}
-      <tr>
-        <td colspan="6" class="text-center text-muted">No invoices found</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
+    <div class="overflow-x-auto">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Invoice</th>
+            <th>Patient</th>
+            <th>Date</th>
+            <th>Items</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>PDF</th>
+            <th>Payment</th>
+          </tr>
+        </thead>
+        <tbody id="billingHistory">
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+  let billingHistoryData = [];
+
+  function billingItemTemplate() {
+    return `
+      <div class="billing-item border border-slate-200 rounded-lg p-3">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-semibold text-slate-500">BILL ITEM</span>
+          <button type="button" class="text-rose-600" onclick="this.closest('.billing-item').remove()" title="Remove">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <input class="form-control form-control-sm item-title mb-2" placeholder="Service or item name" />
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <input type="date" class="form-control form-control-sm item-start" onchange="updateBillingItem(this)" />
+          <input type="date" class="form-control form-control-sm item-till" onchange="updateBillingItem(this)" />
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <input type="number" min="1" value="1" class="form-control form-control-sm item-qty" placeholder="Qty" onchange="updateBillingItem(this)" />
+          <input type="number" min="0" class="form-control form-control-sm item-price" placeholder="Price" onchange="updateBillingItem(this)" />
+          <select class="form-select form-select-sm item-gst" onchange="updateBillingItem(this)">
+            <option value="0">GST 0%</option>
+            <option value="5">GST 5%</option>
+            <option value="12">GST 12%</option>
+            <option value="18">GST 18%</option>
+          </select>
+          <input class="form-control form-control-sm item-total" placeholder="Total" readonly />
+        </div>
+        <input type="hidden" class="item-days" />
+      </div>
+    `;
+  }
+
+  function addBillingItem() {
+    document.getElementById("billingItems").insertAdjacentHTML("beforeend", billingItemTemplate());
+    lucide.createIcons();
+  }
+
+  function updateBillingItem(element) {
+    const item = element.closest(".billing-item");
+    const start = item.querySelector(".item-start").value;
+    const till = item.querySelector(".item-till").value;
+    let days = 0;
+
+    if (start && till) {
+      days = Math.floor((new Date(till) - new Date(start)) / 86400000) + 1;
+      days = days > 0 ? days : 0;
+    }
+
+    const quantity = Number(item.querySelector(".item-qty").value) || 1;
+    const unitPrice = Number(item.querySelector(".item-price").value) || 0;
+    const gst = Number(item.querySelector(".item-gst").value) || 0;
+    const base = (days || 1) * quantity * unitPrice;
+
+    item.querySelector(".item-days").value = days || "";
+    item.querySelector(".item-total").value = (base + base * gst / 100).toFixed(2);
+  }
+
+  function collectBillingItems() {
+    return [...document.querySelectorAll(".billing-item")].map(item => ({
+      title: item.querySelector(".item-title").value.trim(),
+      start_date: item.querySelector(".item-start").value || null,
+      till_date: item.querySelector(".item-till").value || null,
+      days: Number(item.querySelector(".item-days").value) || null,
+      quantity: Number(item.querySelector(".item-qty").value) || 1,
+      unit_price: Number(item.querySelector(".item-price").value) || 0,
+      gst_percent: Number(item.querySelector(".item-gst").value) || 0,
+    })).filter(item => item.title && item.unit_price > 0);
+  }
+
+  async function generatePatientBill() {
+    const patientId = document.getElementById("billingPatient").value;
+    if (!patientId) {
+      alert("Select a patient");
+      return;
+    }
+
+    const button = document.getElementById("generateBillButton");
+    button.disabled = true;
+    button.textContent = "Generating...";
+
+    try {
+      const response = await fetch("/billing/admin/billing/generate", {
+        method: "POST",
+        headers: headers(),
+        credentials: "same-origin",
+        body: JSON.stringify({
+          patient_id: patientId,
+          discount: Number(document.getElementById("billingDiscount").value) || 0,
+          extra_charges: Number(document.getElementById("billingExtra").value) || 0,
+          other_items: collectBillingItems(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to generate bill");
+
+      alert(`${data.message}\nInvoice: ${data.invoice_no}\nTotal: ₹ ${Number(data.grand_total).toFixed(2)}`);
+      document.getElementById("billingItems").innerHTML = "";
+      document.getElementById("billingDiscount").value = 0;
+      document.getElementById("billingExtra").value = 0;
+      await Promise.all([loadBillingHistory(), loadBillingSummary()]);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Generate Bill";
+    }
+  }
+
+  async function loadBillingHistory() {
+    const status = document.getElementById("billingStatus").value;
+    const url = status ? `/billing/admin/bills?status=${status}` : "/billing/admin/bills";
+
+    try {
+      const response = await fetch(url, {
+        headers: headers(),
+        credentials: "same-origin",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to load billing history");
+      billingHistoryData = data;
+      renderBillingHistory();
+    } catch (error) {
+      document.getElementById("billingHistory").innerHTML = `
+        <tr><td colspan="8" class="text-center text-danger py-4">${error.message}</td></tr>
+      `;
+    }
+  }
+
+  async function loadBillingSummary() {
+    try {
+      const response = await fetch("/billing/admin/bills", {
+        headers: headers(),
+        credentials: "same-origin",
+      });
+      const bills = await response.json();
+      if (!response.ok) return;
+
+      const total = bills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+      const paid = bills
+        .filter(bill => bill.status === "PAID")
+        .reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+
+      document.getElementById("totalBilled").textContent = `₹ ${total.toFixed(2)}`;
+      document.getElementById("totalPaid").textContent = `₹ ${paid.toFixed(2)}`;
+      document.getElementById("totalDue").textContent = `₹ ${(total - paid).toFixed(2)}`;
+    } catch (_) {
+      // Server-rendered totals remain visible if refresh fails.
+    }
+  }
+
+  function renderBillingHistory() {
+    const query = document.getElementById("billingSearch").value.trim().toLowerCase();
+    const rows = billingHistoryData.filter(bill => {
+      const text = `${bill.invoice_no} ${bill.patient_name} ${bill.phone}`.toLowerCase();
+      return text.includes(query);
+    });
+
+    const tbody = document.getElementById("billingHistory");
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No billing records found</td></tr>`;
+      return;
+    }
+
+    const gst = Math.max(0, Math.min(100, Number(document.getElementById("downloadGst").value) || 0));
+    tbody.innerHTML = rows.map(bill => `
+      <tr>
+        <td><span class="font-medium">${bill.invoice_no}</span></td>
+        <td>
+          <div class="font-medium">${bill.patient_name}</div>
+          <div class="text-xs text-muted">${bill.phone}</div>
+        </td>
+        <td>${bill.date}</td>
+        <td>${bill.item_count}</td>
+        <td class="font-medium">₹ ${Number(bill.amount).toFixed(2)}</td>
+        <td>
+          <span class="badge ${bill.status === "PAID" ? "bg-success" : "bg-danger"}">${bill.status}</span>
+          ${bill.payment_mode ? `<div class="text-xs text-muted mt-1">${bill.payment_mode}</div>` : ""}
+        </td>
+        <td class="whitespace-nowrap">
+          <a class="btn btn-sm btn-outline-secondary" target="_blank"
+             href="/billing/admin/billing/${bill.bill_id}/download">Basic</a>
+          <a class="btn btn-sm btn-outline-primary" target="_blank"
+             href="/billing/admin/billing/${bill.bill_id}/download?gst_percent=${gst}">GST</a>
+        </td>
+        <td>
+          ${bill.status === "PAID" ? `<span class="text-sm text-success">Paid</span>` : `
+            <div class="flex gap-1">
+              <select id="mode-${bill.bill_id}" class="form-select form-select-sm" style="width:90px">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="BANK">Bank</option>
+                <option value="CARD">Card</option>
+              </select>
+              <button class="btn btn-sm btn-success" onclick="markBillingPaid('${bill.bill_id}')">Pay</button>
+            </div>
+          `}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function markBillingPaid(billId) {
+    if (!confirm("Mark this bill as paid?")) return;
+    const paymentMode = document.getElementById(`mode-${billId}`).value;
+
+    try {
+      const response = await fetch(
+        `/billing/admin/billing/mark-paid?bill_id=${billId}&payment_mode=${paymentMode}`,
+        {
+          method: "POST",
+          headers: headers(),
+          credentials: "same-origin",
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to update payment");
+      alert(data.message);
+      await Promise.all([loadBillingHistory(), loadBillingSummary()]);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  document.getElementById("downloadGst").addEventListener("input", renderBillingHistory);
+  document.addEventListener("DOMContentLoaded", () => {
+    const patientFromUrl = new URLSearchParams(window.location.search).get("patient_id");
+    if (patientFromUrl) document.getElementById("billingPatient").value = patientFromUrl;
+    Promise.all([loadBillingHistory(), loadBillingSummary()]);
+  });
+</script>
 {% endblock %}

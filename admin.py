@@ -799,15 +799,36 @@ def relatives(request: Request):
 # BILLING
 # -------------------------
 @router.get("/billing", response_class=HTMLResponse)
-def billing(request: Request):
+def billing(
+    request: Request,
+    user=Depends(role_required(["ADMIN"]))
+):
+    patients_qs = (
+        PatientProfile.objects(admin_patient_filter())
+        .order_by("user")
+        .select_related()
+    )
 
-    invoices_qs = PatientInvoice.objects.order_by("-created_at")
+    total_billed = sum(
+        bill.grand_total or 0 for bill in PatientBill.objects.only("grand_total")
+    )
+    total_paid = sum(
+        bill.grand_total or 0
+        for bill in PatientBill.objects(status="PAID").only("grand_total")
+    )
+    total_due = sum(
+        bill.grand_total or 0
+        for bill in PatientBill.objects(status__ne="PAID").only("grand_total")
+    )
 
     return templates.TemplateResponse(
         "admin/billing.html",
         {
             "request": request,
-            "invoices": invoices_qs
+            "patients": patients_qs,
+            "total_billed": round(total_billed, 2),
+            "total_paid": round(total_paid, 2),
+            "total_due": round(total_due, 2),
         }
     )
 

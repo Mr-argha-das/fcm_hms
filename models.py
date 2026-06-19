@@ -519,6 +519,7 @@ class BillItem(EmbeddedDocument):
 
 class PatientBill(Document):
     patient = ReferenceField("PatientProfile", required=True)
+    invoice = ReferenceField("PatientInvoice")
 
     items = EmbeddedDocumentListField(BillItem)
 
@@ -533,6 +534,8 @@ class PatientBill(Document):
 
     status = StringField(default="UNPAID")
     pdf = StringField()
+    payment_mode = StringField()
+    paid_at = DateTimeField()
 
     created_by = ReferenceField("User")
     bill_month = StringField()

@@ -20,6 +20,18 @@ import os
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
 
+def get_bill_invoice(bill):
+    if getattr(bill, "invoice", None):
+        return bill.invoice
+
+    invoice = PatientInvoice.objects(
+        patient=bill.patient,
+        total_amount=bill.grand_total
+    ).order_by("-created_at").first()
+
+    return invoice
+
+
 # =====================================================
 # PDF GENERATOR
 # =====================================================
@@ -175,7 +187,7 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
 
 
     # 🔥 INVOICE NUMBER
-    invoice = PatientInvoice.objects(patient=bill.patient).order_by("-created_at").first()
+    invoice = get_bill_invoice(bill)
     invoice_no_str = invoice.invoice_no if invoice else "-"
 
 
@@ -786,8 +798,11 @@ async def generate_bill(
     # =================================================
     # 💰 TOTALS
     # =================================================
-    discount = data.get("discount", 0)
-    extra = data.get("extra_charges", 0)
+    if not items:
+        raise HTTPException(400, "Add at least one billable item")
+
+    discount = max(float(data.get("discount", 0) or 0), 0)
+    extra = max(float(data.get("extra_charges", 0) or 0), 0)
 
     grand_total = max(sub_total - discount + extra, 0)
 
@@ -808,7 +823,7 @@ async def generate_bill(
     # =================================================
     # 🧾 CREATE INVOICE
     # =================================================
-    invoice_no = "INV-" + datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    invoice_no = "INV-" + datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
 
     invoice = PatientInvoice(
         patient=patient,
@@ -820,6 +835,8 @@ async def generate_bill(
     )
 
     invoice.save()
+    bill.invoice = invoice
+    bill.save()
 
     return {
         "message": "Bill generated successfully",
@@ -972,6 +989,7 @@ async def generate_bill(
 def download_bill_pdf(
     bill_id: str,
     gst_percent: float = Query(0, ge=0, le=100),
+    admin=Depends(admin_required),
 ):
     bill = PatientBill.objects(id=bill_id).first()
     if not bill:
@@ -1006,7 +1024,7 @@ def download_bill_pdf(
 @router.get("/admin/patient/{patient_id}/bills")
 def get_patient_bills(
     patient_id: str,
-    # admin=Depends(admin_required)
+    admin=Depends(admin_required)
 ):  
     bills = PatientBill.objects(patient=patient_id).order_by("-id")
 
@@ -1015,12 +1033,53 @@ def get_patient_bills(
     for b in bills:
         bill_date = getattr(b, "created_at", None)
         date_str = bill_date.strftime("%d-%m-%Y") if bill_date else "-"
+        invoice = get_bill_invoice(b)
 
         response.append({
             "bill_id": str(b.id),
+            "invoice_no": invoice.invoice_no if invoice else "-",
             "date": date_str,
             "amount": float(b.grand_total),
-            "status": b.status
+            "status": b.status,
+            "payment_mode": b.payment_mode,
+            "paid_at": b.paid_at.isoformat() if b.paid_at else None,
+        })
+
+    return response
+
+
+@router.get("/admin/bills")
+def get_all_bills(
+    patient_id: str | None = None,
+    status: str | None = Query(None, pattern="^(UNPAID|PAID)$"),
+    admin=Depends(admin_required)
+):
+    filters = {}
+    if patient_id:
+        filters["patient"] = patient_id
+    if status:
+        filters["status"] = status
+
+    bills = PatientBill.objects(**filters).order_by("-created_at").select_related()
+    response = []
+
+    for bill in bills:
+        invoice = get_bill_invoice(bill)
+        patient = bill.patient
+        user = patient.user if patient else None
+
+        response.append({
+            "bill_id": str(bill.id),
+            "invoice_no": invoice.invoice_no if invoice else "-",
+            "patient_id": str(patient.id) if patient else None,
+            "patient_name": user.name if user and user.name else "-",
+            "phone": user.phone if user else "-",
+            "date": bill.created_at.strftime("%d-%m-%Y") if bill.created_at else "-",
+            "amount": float(bill.grand_total or 0),
+            "status": bill.status,
+            "payment_mode": bill.payment_mode,
+            "paid_at": bill.paid_at.isoformat() if bill.paid_at else None,
+            "item_count": len(bill.items or []),
         })
 
     return response
@@ -1032,7 +1091,7 @@ def get_patient_bills(
 @router.post("/admin/billing/mark-paid")
 def mark_bill_paid(
     bill_id: str,
-    payment_mode: str = "CASH",
+    payment_mode: str = Query("CASH", pattern="^(CASH|UPI|BANK|CARD)$"),
     admin=Depends(admin_required)
 ):
     bill = PatientBill.objects(id=bill_id).first()
@@ -1042,15 +1101,28 @@ def mark_bill_paid(
     if bill.status == "PAID":
         return {"message": "Bill already paid"}
 
+    paid_at = datetime.utcnow()
     bill.status = "PAID"
+    bill.payment_mode = payment_mode.upper()
+    bill.paid_at = paid_at
     bill.save()
+
+    invoice = get_bill_invoice(bill)
+    if invoice:
+        if not bill.invoice:
+            bill.invoice = invoice
+            bill.save()
+        invoice.status = "PAID"
+        invoice.paid_amount = bill.grand_total
+        invoice.due_amount = 0
+        invoice.save()
 
     return {
         "message": "Bill marked as PAID",
         "bill_id": str(bill.id),
         "amount": bill.grand_total,
-        "payment_mode": payment_mode,
-        "paid_at": datetime.utcnow()
+        "payment_mode": bill.payment_mode,
+        "paid_at": paid_at
     }
 
 
@@ -1058,7 +1130,7 @@ def mark_bill_paid(
 # DELETE ALL BILLS
 # =====================================================
 @router.delete("/admin/billing/delete-all")
-def delete_all_bills():
+def delete_all_bills(admin=Depends(admin_required)):
     bills = PatientBill.objects()
     count = bills.count()
     bills.delete()
