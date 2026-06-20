@@ -34,13 +34,22 @@
 
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
   <section class="xl:col-span-1 bg-white border border-slate-100 rounded-lg shadow-sm">
-    <div class="px-4 py-3 border-b border-slate-100">
+    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
       <h2 class="font-semibold text-slate-800">Generate Bill</h2>
+      <a href="/admin/create/patient" class="btn btn-sm btn-outline-primary">
+        Add Patient
+      </a>
     </div>
 
     <div class="p-4 space-y-4">
       <div>
         <label class="form-label">Patient</label>
+        <input
+          id="patientSearchInput"
+          class="form-control mb-2"
+          placeholder="Search patient by name or phone"
+          oninput="filterBillingPatients()"
+        />
         <select id="billingPatient" class="form-select">
           <option value="">Select patient</option>
           {% for patient in patients %}
@@ -155,9 +164,10 @@
           </button>
         </div>
         <input class="form-control form-control-sm item-title mb-2" placeholder="Service or item name" />
-        <div class="grid grid-cols-2 gap-2 mb-2">
+        <div class="grid grid-cols-3 gap-2 mb-2">
           <input type="date" class="form-control form-control-sm item-start" onchange="updateBillingItem(this)" />
           <input type="date" class="form-control form-control-sm item-till" onchange="updateBillingItem(this)" />
+          <input type="number" class="form-control form-control-sm item-days" placeholder="Days" readonly />
         </div>
         <div class="grid grid-cols-4 gap-2">
           <input type="number" min="1" value="1" class="form-control form-control-sm item-qty" placeholder="Qty" onchange="updateBillingItem(this)" />
@@ -170,7 +180,6 @@
           </select>
           <input class="form-control form-control-sm item-total" placeholder="Total" readonly />
         </div>
-        <input type="hidden" class="item-days" />
       </div>
     `;
   }
@@ -178,6 +187,19 @@
   function addBillingItem() {
     document.getElementById("billingItems").insertAdjacentHTML("beforeend", billingItemTemplate());
     lucide.createIcons();
+  }
+
+  function filterBillingPatients() {
+    const query = document.getElementById("patientSearchInput").value.trim().toLowerCase();
+    const select = document.getElementById("billingPatient");
+
+    [...select.options].forEach((option, index) => {
+      if (index === 0) return;
+      option.hidden = !option.text.toLowerCase().includes(query);
+    });
+
+    const selected = select.options[select.selectedIndex];
+    if (selected && selected.hidden) select.value = "";
   }
 
   function updateBillingItem(element) {

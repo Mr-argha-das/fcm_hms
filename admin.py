@@ -734,7 +734,7 @@ def discharge_patient(
 
     return {
         "success": True,
-        "message": "Patient discharged successfully",
+        "message": "Patient closed successfully",
         "service_end": patient.service_end.isoformat()
     }
 

@@ -14,6 +14,7 @@ class AdminModule:
 ADMIN_MODULES = [
     AdminModule("dashboard", "Dashboard", "/admin/dashboard", "layout-dashboard", ("/admin/dashboard",)),
     AdminModule("users", "Admin Users", "/admin/users", "shield-check", ("/admin/users", "/admin/user-list")),
+    AdminModule("billing", "Billing", "/admin/billing", "receipt-indian-rupee", ("/admin/billing", "/billing/admin")),
     AdminModule("hospital", "Hospital", "/admin/hospital", "hospital", ("/admin/hospital", "/hospital")),
     AdminModule("about", "About Us", "/admin/about", "info", ("/admin/about", "/admin/about-us-get", "/admin/get-update")),
     AdminModule("nurses", "Nurses", "/admin/nurses", "stethoscope", ("/admin/nurses", "/admin/nurse", "/admin/create/nurse", "/nurse/")),
@@ -29,7 +30,6 @@ ADMIN_MODULES = [
     AdminModule("salary", "Salary", "/admin/salary", "badge-indian-rupee", ("/admin/salary",), False),
     AdminModule("consent", "Consent", "/admin/consent", "file-check", ("/admin/consent",), False),
     AdminModule("relatives", "Relatives", "/admin/relatives", "users-round", ("/admin/relatives",), False),
-    AdminModule("billing", "Billing", "/admin/billing", "receipt-indian-rupee", ("/admin/billing", "/billing/admin")),
     AdminModule("staff", "Staff", "/admin/staff/manage", "user-cog", ("/admin/staff", "/staff")),
     AdminModule("leads", "Leads", "/admin/lead/create", "user-cog", ("/admin/lead", "/nurse/lead")),
     AdminModule("medicine", "Medicines", "/admin/medicine", "pill", ("/admin/medicine", "/md/admin/medicine")),

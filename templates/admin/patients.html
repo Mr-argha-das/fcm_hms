@@ -21,7 +21,7 @@ content %}
       <h5 class="mb-0 text-md">Patients</h5>
       <div class="text-sm text-muted mt-1">
         Total: {{ total_patients }} | Active: {{ active_patients }} |
-        Discharged: {{ discharged_patients }}
+        Closed: {{ discharged_patients }}
       </div>
     </div>
     <input
@@ -49,7 +49,7 @@ content %}
         href="/admin/patients?status=discharged"
         class="btn btn-sm {% if status == 'discharged' %}btn-primary{% else %}btn-outline-primary{% endif %}"
       >
-        Discharged
+        Closed
       </a>
       <button
         class="bg-success -500 text-white px-2 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
@@ -106,7 +106,7 @@ content %}
           <!-- STATUS -->
           <td>
             {% if patient.service_end %}
-            <span class="badge bg-success">Discharged</span>
+            <span class="badge bg-success">Closed</span>
             {% elif patient.assigned_doctor %}
             <span class="badge bg-info text-dark">Under Observation</span>
             {% else %}
@@ -135,8 +135,8 @@ content %}
             {% if not patient.service_end %}
             <button
               class="btn btn-sm btn-outline-danger"
-              title="Discharge"
-              onclick="dischargePatient('{{ patient.id }}')"
+              title="Close Patient"
+              onclick="closePatient('{{ patient.id }}')"
             >
               🏥
             </button>
@@ -174,8 +174,8 @@ function authHeaders() {
   };
 }
 
-async function dischargePatient(patientId) {
-  if (!confirm("Discharge this patient?")) return;
+async function closePatient(patientId) {
+  if (!confirm("Close this patient?")) return;
 
   try {
     const res = await fetch(`/admin/patient/${patientId}/discharge`, {
@@ -186,13 +186,13 @@ async function dischargePatient(patientId) {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      alert("Patient discharged successfully");
+      alert("Patient closed successfully");
       window.location.reload();
     } else {
       alert(data.detail || "Failed to discharge patient");
     }
   } catch (err) {
-    console.error("Discharge error:", err);
+    console.error("Close patient error:", err);
     alert("Something went wrong");
   }
 }

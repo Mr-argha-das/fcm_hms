@@ -13,6 +13,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
 import os
+import re
 
 
 import os
@@ -613,13 +614,13 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
 
 
 def generate_invoice_no():
-    last = PatientInvoice.objects.order_by("-created_at").first()
+    highest = 0
+    for invoice in PatientInvoice.objects.only("invoice_no"):
+        match = re.fullmatch(r"INV-(\d+)", invoice.invoice_no or "")
+        if match:
+            highest = max(highest, int(match.group(1)))
 
-    if not last:
-        return "INV-0001"
-
-    last_no = int(last.invoice_no.split("-")[1])
-    return f"INV-{last_no+1:04d}"
+    return f"INV-{highest + 1:02d}"
 # =====================================================
 # GENERATE BILL
 # =====================================================
@@ -823,7 +824,7 @@ async def generate_bill(
     # =================================================
     # 🧾 CREATE INVOICE
     # =================================================
-    invoice_no = "INV-" + datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+    invoice_no = generate_invoice_no()
 
     invoice = PatientInvoice(
         patient=patient,
