@@ -1,11 +1,14 @@
 import calendar
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+import os
+import uuid
 import json
 from typing import List, Optional
 from core.dependencies import admin_required, get_current_user , role_required
 from core.permissions import ADMIN_MODULES, get_admin_menu
-from fastapi import APIRouter, Request , Depends, HTTPException, Query
+from core.site_settings import get_site_settings
+from fastapi import APIRouter, Request , Depends, HTTPException, Query, UploadFile, File
 from fastapi.params import Form
 from pydantic import BaseModel
 
@@ -18,6 +21,26 @@ router = APIRouter(prefix="/admin", tags=["Admin Pages"])
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["get_admin_menu"] = get_admin_menu
+templates.env.globals["get_site_settings"] = get_site_settings
+
+
+def save_settings_upload(file: UploadFile | None, current_path: str | None) -> str | None:
+    if not file or not file.filename:
+        return current_path
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "png"
+    if ext not in {"jpg", "jpeg", "png", "webp"}:
+        raise HTTPException(400, "Only JPG, PNG or WEBP image files are allowed")
+
+    upload_dir = os.path.join("media", "settings")
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    file_path = os.path.join(upload_dir, filename)
+
+    with open(file_path, "wb") as out_file:
+        out_file.write(file.file.read())
+
+    return f"/media/settings/{filename}"
 
 
 def ensure_patient_profiles_for_registered_users():
@@ -64,6 +87,63 @@ def admin_login(request: Request):
     return templates.TemplateResponse(
         "admin/login.html",
         {"request": request}
+    )
+
+
+@router.get("/settings", response_class=HTMLResponse)
+def site_settings_page(request: Request, admin=Depends(admin_required)):
+    return templates.TemplateResponse(
+        "admin/settings.html",
+        {
+            "request": request,
+            "settings": get_site_settings(),
+        }
+    )
+
+
+@router.post("/settings", response_class=HTMLResponse)
+def update_site_settings(
+    request: Request,
+    company_name: str = Form(""),
+    address: str = Form(""),
+    phone: str = Form(""),
+    email: str = Form(""),
+    gst_number: str = Form(""),
+    bank_name: str = Form(""),
+    account_number: str = Form(""),
+    ifsc_code: str = Form(""),
+    pin_code: str = Form(""),
+    account_holder_name: str = Form(""),
+    upi_id: str = Form(""),
+    logo_file: UploadFile | None = File(None),
+    qr_file: UploadFile | None = File(None),
+    admin=Depends(admin_required),
+):
+    settings = get_site_settings()
+
+    settings.company_name = company_name.strip() or "We Care Home Healthcare"
+    settings.address = address.strip()
+    settings.phone = phone.strip()
+    settings.email = email.strip() or None
+    settings.gst_number = gst_number.strip()
+    settings.bank_name = bank_name.strip()
+    settings.account_number = account_number.strip()
+    settings.ifsc_code = ifsc_code.strip()
+    settings.pin_code = pin_code.strip()
+    settings.account_holder_name = account_holder_name.strip()
+    settings.upi_id = upi_id.strip()
+    settings.logo_path = save_settings_upload(logo_file, settings.logo_path)
+    settings.qr_path = save_settings_upload(qr_file, settings.qr_path)
+    settings.updated_at = datetime.utcnow()
+    settings.save()
+
+    return templates.TemplateResponse(
+        "admin/settings.html",
+        {
+            "request": request,
+            "settings": settings,
+            "success": "Settings updated successfully",
+        }
     )
 # @router.get("/login", response_class=HTMLResponse)
 # def admin_login(request: Request):

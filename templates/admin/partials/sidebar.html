@@ -1,4 +1,5 @@
 {% set role = request.state.user.role if request.state.user else None %}
+{% set site_settings = get_site_settings() %}
 
 <aside
   class="w-72 fixed bg-gradient-to-b from-sky-100 to-white top-0 left-0 bottom-0 overflow-y-auto min-h-screen bg-sidebar flex flex-col p-3 py-6"
@@ -9,7 +10,8 @@
     class="flex items-center justify-center gap-2 w-72 bg-sky-100 fixed -top-0 left-0 py-1 overflow-x-hidden"
   >
     <img
-      src="{{ request.url_for('media', path='logos/wecare_header.png') }}"
+      src="{{ site_settings.logo_path or request.url_for('media', path='logos/wecare_header.png') }}"
+      alt="{{ site_settings.company_name or 'Company' }}"
       class="h-24"
     />
   </div>

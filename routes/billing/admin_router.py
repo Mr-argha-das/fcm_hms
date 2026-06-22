@@ -1,5 +1,6 @@
 
 from core.paths import BASE_DIR
+from core.site_settings import get_site_settings, media_file_path
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import FileResponse
 from core.dependencies import admin_required, get_current_user
@@ -14,11 +15,17 @@ from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
 import os
 import re
+from xml.sax.saxutils import escape
 
 
 import os
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
+
+
+def pdf_text(value, default="-"):
+    text = str(value or default)
+    return escape(text).replace("\n", "<br/>")
 
 
 def get_bill_invoice(bill):
@@ -83,7 +90,8 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
     # 🟢 HEADER (FULL WIDTH LOGO + DETAILS)
     # =====================================================
 
-    logo_path = os.path.join(BASE_DIR, "media", "logos", "wecare_header.png")
+    site_settings = get_site_settings()
+    logo_path = media_file_path(site_settings.logo_path) or os.path.join(BASE_DIR, "media", "logos", "wecare_header.png")
 
     logo = ""
     if os.path.exists(logo_path):
@@ -97,15 +105,15 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
         alignment=TA_RIGHT
     )
 
+    company_lines = [
+        f"<b><font size=11>{pdf_text(site_settings.company_name, 'We Care Home Healthcare')}</font></b>",
+        pdf_text(site_settings.address, ""),
+        f"Phone no.: {pdf_text(site_settings.phone, '-')} | Email: {pdf_text(site_settings.email, '-')}",
+        f"{pdf_text(site_settings.company_name, 'We Care Home Healthcare')}: {pdf_text(site_settings.account_number, '-')}",
+        f"GST Number : {pdf_text(site_settings.gst_number, '-')}",
+    ]
     company_info = Paragraph(
-        """
-        <b><font size=11>We Care Home Healthcare</font></b><br/>
-       432/ 4th floor , Citygate Complex, NEW, Vasna Rd, Shantabag Society,<br/>
-         Ahmedabad,<br/>
-        Phone no.: 8432144275 | Email: wcare823@gmail.com<br/>
-        We Care Home healthcare: 8005220018003441<br/>
-        GST Number : 08BLGPN7084P1Z7
-        """,
+        "<br/>".join(line for line in company_lines if line and line != "<br/>"),
         header_style
     )
 
@@ -415,7 +423,7 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
     # 🟢 BANK DETAILS (LEFT SIDE CLEAN)
     # =====================================================
 
-    qr_path = os.path.join(BASE_DIR, "media", "logos", "upi_qr.jpeg")
+    qr_path = media_file_path(site_settings.qr_path) or os.path.join(BASE_DIR, "media", "logos", "upi_qr.jpeg")
 
     qr_img = ""
     if os.path.exists(qr_path):
@@ -439,13 +447,16 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
         )
     )
     
-    bank_info = Paragraph("""
-    Name: KOTAK MAHINDRA BANK<br/>
-    Account No.: 8432144275<br/>    
-    IFSC code: KKBK0002560<br/>
-    Pin code: 380015<br/>
-    Account Holder: We Care Home Health Care Services
-    """, bank_style)
+    bank_lines = [
+        f"Name: {pdf_text(site_settings.bank_name, '-')}",
+        f"Account No.: {pdf_text(site_settings.account_number, '-')}",
+        f"IFSC code: {pdf_text(site_settings.ifsc_code, '-')}",
+        f"Pin code: {pdf_text(site_settings.pin_code, '-')}",
+        f"Account Holder: {pdf_text(site_settings.account_holder_name, '-')}",
+    ]
+    if site_settings.upi_id:
+        bank_lines.append(f"UPI ID: {pdf_text(site_settings.upi_id)}")
+    bank_info = Paragraph("<br/>".join(bank_lines), bank_style)
 
     # 🔥 inner content table (QR + text)
     bank_content = Table(

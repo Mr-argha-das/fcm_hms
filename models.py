@@ -47,6 +47,27 @@ class AboutUs(Document):
 
     meta = {"collection": "about_us"}
 
+
+class SiteSettings(Document):
+    company_name = StringField(default="We Care Home Healthcare")
+    address = StringField(default="432/ 4th floor , Citygate Complex, NEW, Vasna Rd, Shantabag Society, Ahmedabad")
+    phone = StringField(default="8432144275")
+    email = EmailField(default="wcare823@gmail.com")
+    gst_number = StringField(default="08BLGPN7084P1Z7")
+    logo_path = StringField(default="/media/logos/wecare_header.png")
+    qr_path = StringField(default="/media/logos/upi_qr.jpeg")
+
+    bank_name = StringField(default="KOTAK MAHINDRA BANK")
+    account_number = StringField(default="8432144275")
+    ifsc_code = StringField(default="KKBK0002560")
+    pin_code = StringField(default="380015")
+    account_holder_name = StringField(default="We Care Home Health Care Services")
+    upi_id = StringField(default="")
+
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {"collection": "site_settings"}
+
     
 class NurseProfile(Document):
     user = ReferenceField(User, required=True)

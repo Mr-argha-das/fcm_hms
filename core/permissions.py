@@ -15,6 +15,7 @@ ADMIN_MODULES = [
     AdminModule("dashboard", "Dashboard", "/admin/dashboard", "layout-dashboard", ("/admin/dashboard",)),
     AdminModule("users", "Admin Users", "/admin/users", "shield-check", ("/admin/users", "/admin/user-list")),
     AdminModule("billing", "Billing", "/admin/billing", "receipt-indian-rupee", ("/admin/billing", "/billing/admin")),
+    AdminModule("settings", "Settings", "/admin/settings", "settings", ("/admin/settings",)),
     AdminModule("hospital", "Hospital", "/admin/hospital", "hospital", ("/admin/hospital", "/hospital")),
     AdminModule("about", "About Us", "/admin/about", "info", ("/admin/about", "/admin/about-us-get", "/admin/get-update")),
     AdminModule("nurses", "Nurses", "/admin/nurses", "stethoscope", ("/admin/nurses", "/admin/nurse", "/admin/create/nurse", "/nurse/")),

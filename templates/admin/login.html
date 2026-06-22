@@ -65,11 +65,13 @@
   </head>
 
   <body class="d-flex align-items-center justify-content-center vh-100">
+    {% set site_settings = get_site_settings() %}
     <div class="card shadow login-card p-4">
       <!-- ICON -->
       <div style="display: flex; width: 100%; justify-content: center">
         <img
-          src="{{ request.url_for('media', path='logos/wecare_header.png') }}"
+          src="{{ site_settings.logo_path or request.url_for('media', path='logos/wecare_header.png') }}"
+          alt="{{ site_settings.company_name or 'Company' }}"
           style="width: 200px"
         />
       </div>
