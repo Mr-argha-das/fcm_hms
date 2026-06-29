@@ -121,7 +121,7 @@ def update_site_settings(
 ):
     settings = get_site_settings()
 
-    settings.company_name = company_name.strip() or "We Care Home Healthcare"
+    settings.company_name = company_name.strip() or "sridevimatka"
     settings.address = address.strip()
     settings.phone = phone.strip()
     settings.email = email.strip() or None

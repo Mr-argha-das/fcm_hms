@@ -106,10 +106,10 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
     )
 
     company_lines = [
-        f"<b><font size=11>{pdf_text(site_settings.company_name, 'We Care Home Healthcare')}</font></b>",
+        f"<b><font size=11>{pdf_text(site_settings.company_name, 'sridevimatka')}</font></b>",
         pdf_text(site_settings.address, ""),
         f"Phone no.: {pdf_text(site_settings.phone, '-')} | Email: {pdf_text(site_settings.email, '-')}",
-        f"{pdf_text(site_settings.company_name, 'We Care Home Healthcare')}: {pdf_text(site_settings.account_number, '-')}",
+        f"{pdf_text(site_settings.company_name, 'sridevimatka')}: {pdf_text(site_settings.account_number, '-')}",
         f"GST Number : {pdf_text(site_settings.gst_number, '-')}",
     ]
     company_info = Paragraph(
