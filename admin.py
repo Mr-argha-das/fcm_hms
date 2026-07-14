@@ -278,7 +278,8 @@ def dashboard(
     patient_filter = admin_patient_filter(hospital_id)
 
     total_patients = PatientProfile.objects(
-        patient_filter
+        patient_filter,
+        service_end=None
     ).count()
 
     discharged_patients = PatientProfile.objects(
