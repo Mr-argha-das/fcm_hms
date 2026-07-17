@@ -599,6 +599,7 @@ class UserEquipmentRequest(Document):
     day_duration = IntField(default=1)
     price_per_day = FloatField(default=0)
     monthly_price = FloatField(default=0)
+    month_count = IntField(default=1)
 
 class UserJoiningFees(Document):
     amount = IntField(required=True, default=99)

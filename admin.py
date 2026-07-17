@@ -1279,11 +1279,12 @@ def view_patient_details(request: Request, patient_id: str):
             days        = eq_req.day_duration or 1
             assigned_price_per_day = eq_req.price_per_day or 0.0
             monthly_price = eq_req.monthly_price or 0.0
+            month_count = eq_req.month_count or 1
             price_per_day = assigned_price_per_day or equip.price or 0.0
             total_cost = (
                 days * assigned_price_per_day
                 if assigned_price_per_day > 0
-                else (monthly_price or (days * price_per_day))
+                else ((monthly_price * month_count) if monthly_price > 0 else (days * price_per_day))
             )
  
             total_equipment_cost += total_cost
@@ -1295,6 +1296,7 @@ def view_patient_details(request: Request, patient_id: str):
                 "price_per_day": price_per_day,
                 "assigned_price_per_day": assigned_price_per_day,
                 "monthly_price": monthly_price,
+                "month_count"  : month_count,
                 "days"         : days,
                 "total_cost"   : total_cost,
                 "status"       : eq_req.status,   # True/False (approved/pending)

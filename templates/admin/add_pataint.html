@@ -170,6 +170,7 @@
   <th>Price / Day</th>
   <th>Days</th>
   <th>Monthly</th>
+  <th>Months</th>
   <th width="80">Action</th>
 </tr>
     </thead>
@@ -406,6 +407,14 @@ function addRow(){
       >
     </td>
 
+    <td>
+      <input type="number"
+        class="form-control month-count-input"
+        value="1"
+        min="1"
+      >
+    </td>
+
     <td class="text-center">
       <button class="btn btn-danger btn-sm"
         onclick="removeRow(this)">
@@ -452,6 +461,7 @@ async function submitEquipment(){
     const eq = r.querySelector(".equipment-select").value;
     const price = parseFloat(r.querySelector(".price-input").value) || 0;
     const monthly = parseFloat(r.querySelector(".monthly-input").value) || 0;
+    const monthCount = parseInt(r.querySelector(".month-count-input").value) || 1;
     const days = r.querySelector(".duration-input").value;
 
     if(eq){
@@ -459,7 +469,8 @@ async function submitEquipment(){
         equipment_id: eq,
         day_duration: parseInt(days),
         price_per_day: price,
-        monthly_price: monthly
+        monthly_price: monthly,
+        month_count: monthCount
       });
     }
 

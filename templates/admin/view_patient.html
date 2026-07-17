@@ -360,7 +360,7 @@
               {% if eq.assigned_price_per_day > 0 %}
                 ₹{{ "%.0f"|format(eq.assigned_price_per_day) }} / day
               {% elif eq.monthly_price > 0 %}
-                ₹{{ "%.0f"|format(eq.monthly_price) }} / month
+                ₹{{ "%.0f"|format(eq.monthly_price) }} / month x {{ eq.month_count }}
               {% else %}
                 ₹{{ "%.0f"|format(eq.price_per_day) }} / day
               {% endif %}
@@ -378,6 +378,7 @@
               data-equipment-days="{{ eq.days }}"
               data-equipment-price="{{ eq.assigned_price_per_day }}"
               data-equipment-monthly="{{ eq.monthly_price }}"
+              data-equipment-month-count="{{ eq.month_count }}"
               onclick="openEquipmentEdit(this)"
             >
               Edit Price
@@ -526,6 +527,10 @@
         <div class="mb-2">
           <label class="form-label">Monthly Price</label>
           <input id="editEquipmentMonthly" type="number" min="0" step="0.01" class="form-control" oninput="clearEquipmentDaily(); updateEquipmentEditTotal()">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Month Count</label>
+          <input id="editEquipmentMonthCount" type="number" min="1" class="form-control" oninput="updateEquipmentEditTotal()">
         </div>
         <div class="text-sm fw-semibold">Total: ₹ <span id="editEquipmentTotal">0.00</span></div>
       </div>
@@ -796,6 +801,7 @@ function openEquipmentEdit(button) {
   document.getElementById("editEquipmentDays").value = button.dataset.equipmentDays || 1;
   document.getElementById("editEquipmentPrice").value = button.dataset.equipmentPrice || 0;
   document.getElementById("editEquipmentMonthly").value = button.dataset.equipmentMonthly || 0;
+  document.getElementById("editEquipmentMonthCount").value = button.dataset.equipmentMonthCount || 1;
   updateEquipmentEditTotal();
   bootstrap.Modal.getOrCreateInstance(document.getElementById("equipmentEditModal")).show();
 }
@@ -804,7 +810,8 @@ function updateEquipmentEditTotal() {
   const days = Number(document.getElementById("editEquipmentDays").value) || 1;
   const price = Number(document.getElementById("editEquipmentPrice").value) || 0;
   const monthly = Number(document.getElementById("editEquipmentMonthly").value) || 0;
-  const total = price > 0 ? days * price : monthly;
+  const monthCount = Number(document.getElementById("editEquipmentMonthCount").value) || 1;
+  const total = price > 0 ? days * price : monthly * monthCount;
   document.getElementById("editEquipmentTotal").textContent = total.toFixed(2);
 }
 
@@ -828,7 +835,8 @@ function saveEquipmentPricing() {
     body: JSON.stringify({
       day_duration: Number(document.getElementById("editEquipmentDays").value) || 1,
       price_per_day: Number(document.getElementById("editEquipmentPrice").value) || 0,
-      monthly_price: Number(document.getElementById("editEquipmentMonthly").value) || 0
+      monthly_price: Number(document.getElementById("editEquipmentMonthly").value) || 0,
+      month_count: Number(document.getElementById("editEquipmentMonthCount").value) || 1
     })
   })
   .then(async r => {

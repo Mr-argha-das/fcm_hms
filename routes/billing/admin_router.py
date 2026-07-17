@@ -771,6 +771,7 @@ async def generate_bill(
         days = req.day_duration or 1
         assigned_unit_price = req.price_per_day or 0
         monthly_price = req.monthly_price or 0
+        month_count = req.month_count or 1
         unit_price = assigned_unit_price or monthly_price or equipment.price or 0
 
         if not unit_price and not monthly_price:
@@ -779,13 +780,13 @@ async def generate_bill(
         base_total = (
             days * qty * assigned_unit_price
             if assigned_unit_price > 0
-            else (monthly_price or (days * qty * unit_price))
+            else ((monthly_price * month_count) if monthly_price > 0 else (days * qty * unit_price))
         )
         title_suffix = (
             f"{days} day{'s' if days != 1 else ''} x {assigned_unit_price:.2f}/day"
             if assigned_unit_price > 0
             else (
-                f"monthly {monthly_price:.2f}"
+                f"{month_count} month{'s' if month_count != 1 else ''} x {monthly_price:.2f}/month"
                 if monthly_price > 0
                 else f"{days} day{'s' if days != 1 else ''} x {unit_price:.2f}/day"
             )
