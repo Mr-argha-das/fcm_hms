@@ -384,6 +384,7 @@ function addRow(){
         value="0"
         min="0"
         step="0.01"
+        oninput="clearMonthlyPrice(this)"
       >
     </td>
 
@@ -400,6 +401,8 @@ function addRow(){
         class="form-control monthly-input"
         value="0"
         min="0"
+        step="0.01"
+        oninput="clearDailyPrice(this)"
       >
     </td>
 
@@ -420,6 +423,19 @@ function addRow(){
 function removeRow(btn){
   btn.closest("tr").remove();
 }
+
+function clearMonthlyPrice(priceInput){
+  if ((parseFloat(priceInput.value) || 0) > 0) {
+    priceInput.closest("tr").querySelector(".monthly-input").value = 0;
+  }
+}
+
+function clearDailyPrice(monthlyInput){
+  if ((parseFloat(monthlyInput.value) || 0) > 0) {
+    monthlyInput.closest("tr").querySelector(".price-input").value = 0;
+  }
+}
+
 function skipEquipment(){
   document.getElementById("equipmentPopup").style.display = "none";
   window.location.href = "/admin/patients";
@@ -435,13 +451,15 @@ async function submitEquipment(){
 
     const eq = r.querySelector(".equipment-select").value;
     const price = parseFloat(r.querySelector(".price-input").value) || 0;
+    const monthly = parseFloat(r.querySelector(".monthly-input").value) || 0;
     const days = r.querySelector(".duration-input").value;
 
     if(eq){
       equipments.push({
         equipment_id: eq,
         day_duration: parseInt(days),
-        price_per_day: price
+        price_per_day: price,
+        monthly_price: monthly
       });
     }
 

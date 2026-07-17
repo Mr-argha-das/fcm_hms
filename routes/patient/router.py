@@ -1176,6 +1176,7 @@ class EquipmentRow(BaseModel):
     equipment_id: str
     day_duration: int
     price_per_day: float
+    monthly_price: Optional[float] = 0
 
 class AssignEquipmentSchema(BaseModel):
     patient_id: str
@@ -1185,6 +1186,7 @@ class AssignEquipmentSchema(BaseModel):
 class EquipmentAssignmentUpdate(BaseModel):
     day_duration: Optional[int] = None
     price_per_day: Optional[float] = None
+    monthly_price: Optional[float] = None
 
 
 @router.post("/assign-equipment")
@@ -1209,7 +1211,8 @@ async def assign_equipment(data: AssignEquipmentSchema):
             equipment=equipment,
             status=True,
             day_duration=row.day_duration,
-            price_per_day=row.price_per_day
+            price_per_day=row.price_per_day,
+            monthly_price=row.monthly_price or 0
         )
 
         req.save()
@@ -1235,7 +1238,16 @@ def update_equipment_assignment(request_id: str, payload: EquipmentAssignmentUpd
     if payload.price_per_day is not None:
         req.price_per_day = max(float(payload.price_per_day), 0)
 
+    if payload.monthly_price is not None:
+        req.monthly_price = max(float(payload.monthly_price), 0)
+
     req.save()
+
+    total_cost = (
+        (req.day_duration or 1) * (req.price_per_day or 0)
+        if (req.price_per_day or 0) > 0
+        else (req.monthly_price or 0)
+    )
 
     return {
         "success": True,
@@ -1243,5 +1255,6 @@ def update_equipment_assignment(request_id: str, payload: EquipmentAssignmentUpd
         "id": str(req.id),
         "day_duration": req.day_duration,
         "price_per_day": req.price_per_day,
-        "total_cost": (req.day_duration or 1) * (req.price_per_day or 0),
+        "monthly_price": req.monthly_price,
+        "total_cost": total_cost,
     }
