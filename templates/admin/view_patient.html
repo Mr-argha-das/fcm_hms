@@ -336,15 +336,8 @@
             src="{{ eq.image }}"
             alt="{{ eq.title }}"
             style="width:100%; height:130px; object-fit:cover; background:#f1f5f9;"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            onerror="this.style.display='none';"
           />
-          <div style="display:none; width:100%; height:130px; background:#f1f5f9;
-                      align-items:center; justify-content:center;
-                      font-size:2.5rem; color:#94a3b8;">🔧</div>
-          {% else %}
-          <div style="width:100%; height:130px; background:#f1f5f9;
-                      display:flex; align-items:center; justify-content:center;
-                      font-size:2.5rem; color:#94a3b8;">🔧</div>
           {% endif %}
 
           <!-- Body -->
