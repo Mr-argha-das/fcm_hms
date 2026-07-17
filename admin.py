@@ -1283,6 +1283,7 @@ def view_patient_details(request: Request, patient_id: str):
             total_equipment_cost += total_cost
  
             equipment_data.append({
+                "id"           : str(eq_req.id),
                 "title"        : equip.title,
                 "image"        : equip.image,
                 "price_per_day": price_per_day,

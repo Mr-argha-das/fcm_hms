@@ -632,6 +632,36 @@ def generate_invoice_no():
             highest = max(highest, int(match.group(1)))
 
     return f"INV-{highest + 1:02d}"
+
+
+def serialize_bill_item(item, index):
+    return {
+        "index": index,
+        "title": item.title or "",
+        "quantity": item.quantity or 1,
+        "unit_price": float(item.unit_price or 0),
+        "base_total": float(item.base_total or 0),
+        "gst_percent": float(item.gst_percent or 0),
+        "gst_amount": float(item.gst_amount or 0),
+        "total_price": float(item.total_price or 0),
+        "start_date": item.start_date.isoformat() if item.start_date else None,
+        "till_date": item.till_date.isoformat() if item.till_date else None,
+        "days": item.days,
+        "dosage": item.dosage,
+    }
+
+
+def sync_bill_invoice_totals(bill):
+    invoice = get_bill_invoice(bill)
+    if not invoice:
+        return
+
+    paid_amount = float(invoice.paid_amount or 0)
+    invoice.total_amount = bill.grand_total
+    invoice.paid_amount = min(paid_amount, bill.grand_total)
+    invoice.due_amount = max(bill.grand_total - invoice.paid_amount, 0)
+    invoice.status = "PAID" if invoice.due_amount <= 0 else "DUE"
+    invoice.save()
 # =====================================================
 # GENERATE BILL
 # =====================================================
@@ -1058,6 +1088,166 @@ def get_patient_bills(
         })
 
     return response
+
+
+@router.get("/admin/billing/{bill_id}")
+def get_bill_detail(
+    bill_id: str,
+    admin=Depends(admin_required)
+):
+    bill = PatientBill.objects(id=bill_id).first()
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+
+    invoice = get_bill_invoice(bill)
+
+    return {
+        "bill_id": str(bill.id),
+        "invoice_no": invoice.invoice_no if invoice else "-",
+        "patient_id": str(bill.patient.id) if bill.patient else None,
+        "bill_date": bill.created_at.strftime("%Y-%m-%d") if bill.created_at else None,
+        "bill_month": bill.bill_month or "",
+        "items": [
+            serialize_bill_item(item, index)
+            for index, item in enumerate(bill.items or [])
+        ],
+        "sub_total": float(bill.sub_total or 0),
+        "discount": float(bill.discount or 0),
+        "extra_charges": float(bill.extra_charges or 0),
+        "grand_total": float(bill.grand_total or 0),
+        "status": bill.status,
+        "payment_mode": bill.payment_mode or "",
+        "paid_at": bill.paid_at.strftime("%Y-%m-%d") if bill.paid_at else None,
+        "invoice_status": invoice.status if invoice else "",
+        "paid_amount": float(invoice.paid_amount or 0) if invoice else 0,
+        "due_amount": float(invoice.due_amount or 0) if invoice else float(bill.grand_total or 0),
+    }
+
+
+@router.put("/admin/billing/{bill_id}")
+async def update_bill(
+    bill_id: str,
+    request: Request,
+    admin=Depends(admin_required)
+):
+    bill = PatientBill.objects(id=bill_id).first()
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+
+    data = await request.json()
+    items = []
+    sub_total = 0.0
+    gst_total = 0.0
+
+    for row in data.get("items", []):
+        title = (row.get("title") or "").strip()
+        if not title:
+            continue
+
+        qty = max(int(row.get("quantity") or 1), 1)
+        unit_price = max(float(row.get("unit_price") or 0), 0)
+        days = row.get("days")
+        days = int(days) if days else None
+        gst_percent = max(float(row.get("gst_percent") or 0), 0)
+
+        start_date = (
+            datetime.strptime(row["start_date"], "%Y-%m-%d").date()
+            if row.get("start_date") else None
+        )
+        till_date = (
+            datetime.strptime(row["till_date"], "%Y-%m-%d").date()
+            if row.get("till_date") else None
+        )
+
+        multiplier = days if days else 1
+        base_total = multiplier * qty * unit_price
+        gst_amount = base_total * gst_percent / 100
+        total_price = base_total + gst_amount
+
+        items.append(BillItem(
+            title=title,
+            quantity=qty,
+            unit_price=unit_price,
+            base_total=base_total,
+            gst_percent=gst_percent,
+            gst_amount=gst_amount,
+            total_price=total_price,
+            start_date=start_date,
+            till_date=till_date,
+            days=days,
+            dosage=row.get("dosage"),
+        ))
+        sub_total += total_price
+        gst_total += gst_amount
+
+    if not items:
+        raise HTTPException(400, "Add at least one billable item")
+
+    discount = max(float(data.get("discount") or 0), 0)
+    extra = max(float(data.get("extra_charges") or 0), 0)
+    grand_total = max(sub_total - discount + extra, 0)
+
+    bill.items = items
+    bill.sub_total = sub_total
+    bill.gst_total = gst_total
+    bill.total_gst = gst_total
+    bill.discount = discount
+    bill.extra_charges = extra
+    bill.grand_total = grand_total
+
+    if data.get("bill_date"):
+        bill.created_at = datetime.strptime(data["bill_date"], "%Y-%m-%d")
+
+    bill.bill_month = (data.get("bill_month") or bill.bill_month or "").strip()
+
+    status = (data.get("status") or bill.status or "UNPAID").upper()
+    if status not in ("UNPAID", "PAID"):
+        raise HTTPException(400, "Invalid bill status")
+    bill.status = status
+
+    payment_mode = (data.get("payment_mode") or "").upper()
+    if payment_mode and payment_mode not in ("CASH", "UPI", "BANK", "CARD"):
+        raise HTTPException(400, "Invalid payment mode")
+    bill.payment_mode = payment_mode or None
+
+    if data.get("paid_at"):
+        bill.paid_at = datetime.strptime(data["paid_at"], "%Y-%m-%d")
+    elif status == "UNPAID":
+        bill.paid_at = None
+
+    invoice = get_bill_invoice(bill)
+    if invoice:
+        invoice_no = (data.get("invoice_no") or invoice.invoice_no or "").strip()
+        if invoice_no:
+            existing = PatientInvoice.objects(invoice_no=invoice_no, id__ne=invoice.id).first()
+            if existing:
+                raise HTTPException(400, "Invoice number already exists")
+
+    bill.save()
+
+    if invoice:
+        invoice_no = (data.get("invoice_no") or invoice.invoice_no or "").strip()
+        if invoice_no:
+            invoice.invoice_no = invoice_no
+
+        paid_amount = max(float(data.get("paid_amount") or 0), 0)
+        paid_amount = min(paid_amount, grand_total)
+        invoice.total_amount = grand_total
+        invoice.paid_amount = paid_amount
+        invoice.due_amount = max(grand_total - paid_amount, 0)
+
+        invoice_status = (data.get("invoice_status") or "").upper()
+        if invoice_status not in ("PAID", "PARTIAL", "DUE"):
+            invoice_status = "PAID" if invoice.due_amount <= 0 else ("PARTIAL" if paid_amount > 0 else "DUE")
+        invoice.status = invoice_status
+        invoice.save()
+
+    return {
+        "message": "Bill updated successfully",
+        "bill_id": str(bill.id),
+        "sub_total": sub_total,
+        "grand_total": grand_total,
+    }
 
 
 @router.get("/admin/bills")

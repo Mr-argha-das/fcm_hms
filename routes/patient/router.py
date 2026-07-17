@@ -1182,6 +1182,11 @@ class AssignEquipmentSchema(BaseModel):
     equipments: List[EquipmentRow]
 
 
+class EquipmentAssignmentUpdate(BaseModel):
+    day_duration: Optional[int] = None
+    price_per_day: Optional[float] = None
+
+
 @router.post("/assign-equipment")
 async def assign_equipment(data: AssignEquipmentSchema):
 
@@ -1214,4 +1219,29 @@ async def assign_equipment(data: AssignEquipmentSchema):
     return {
         "success": True,
         "assigned": created
+    }
+
+
+@router.put("/equipment-assignment/{request_id}")
+def update_equipment_assignment(request_id: str, payload: EquipmentAssignmentUpdate):
+    req = UserEquipmentRequest.objects(id=request_id).first()
+
+    if not req:
+        raise HTTPException(status_code=404, detail="Equipment assignment not found")
+
+    if payload.day_duration is not None:
+        req.day_duration = max(int(payload.day_duration), 1)
+
+    if payload.price_per_day is not None:
+        req.price_per_day = max(float(payload.price_per_day), 0)
+
+    req.save()
+
+    return {
+        "success": True,
+        "message": "Equipment pricing updated successfully",
+        "id": str(req.id),
+        "day_duration": req.day_duration,
+        "price_per_day": req.price_per_day,
+        "total_cost": (req.day_duration or 1) * (req.price_per_day or 0),
     }
