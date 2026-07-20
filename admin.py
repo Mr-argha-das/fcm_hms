@@ -45,6 +45,8 @@ def save_settings_upload(file: UploadFile | None, current_path: str | None) -> s
 
 def ensure_patient_profiles_for_registered_users():
     for patient_user in User.objects(role="PATIENT"):
+        if NurseProfile.objects(user=patient_user).first():
+            continue
         if not PatientProfile.objects(user=patient_user).first():
             PatientProfile(user=patient_user, created_by="SELF").save()
 
@@ -58,6 +60,14 @@ def admin_patient_filter(hospital_id: str | None = None):
 
     if hospital_id:
         patient_users = patient_users.filter(hospital=hospital_id)
+
+    nurse_user_ids = [
+        nurse.user.id
+        for nurse in NurseProfile.objects(user__in=patient_users).only("user")
+        if nurse.user
+    ]
+    if nurse_user_ids:
+        patient_users = patient_users.filter(id__nin=nurse_user_ids)
 
     return Q(created_by__ne="SELF") & Q(user__in=patient_users)
 
@@ -178,8 +188,9 @@ def about_page(request: Request):
 @router.get("/nurses/self", response_class=HTMLResponse)
 def self_registered_nurses(request: Request):
 
+    nurse_users = User.objects(role="NURSE")
     nurses_qs = (
-        NurseProfile.objects(created_by="SELF")
+        NurseProfile.objects(created_by="SELF", user__in=nurse_users)
         .filter(nurse_type__ne="CARETAKER")
         .select_related()
        
@@ -201,8 +212,9 @@ def self_registered_nurses(request: Request):
 
 @router.get("/nurses/self/caretacker", response_class=HTMLResponse)
 def self_registered_caretakers(request: Request):
+    nurse_users = User.objects(role="NURSE")
     caretakers_qs = (
-        NurseProfile.objects(created_by="SELF", nurse_type="CARETAKER")
+        NurseProfile.objects(created_by="SELF", nurse_type="CARETAKER", user__in=nurse_users)
         .select_related()
     )
 
@@ -557,7 +569,8 @@ def create_patient_page(request: Request):
 
     doctors = DoctorProfile.objects(available=True)
     hospitals = HospitalModel.objects.all()
-    nurses = NurseProfile.objects()
+    nurse_users = User.objects(role="NURSE")
+    nurses = NurseProfile.objects(user__in=nurse_users)
 
     return templates.TemplateResponse(
         "admin/add_pataint.html",
@@ -590,7 +603,8 @@ def nurses(
     search: str | None = None,
     user = Depends(role_required(["ADMIN", "NURSE"]))
 ):
-    nurses_query = Q(created_by="ADMIN")
+    nurse_users = User.objects(role="NURSE")
+    nurses_query = Q(created_by="ADMIN") & Q(user__in=nurse_users)
 
     if search:
         matched_users = User.objects(
@@ -1199,7 +1213,8 @@ def render_patient_care(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    nurses = NurseProfile.objects()
+    nurse_users = User.objects(role="NURSE")
+    nurses = NurseProfile.objects(user__in=nurse_users)
     duties = NurseDuty.objects(patient=patient, is_active=True)
     notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
@@ -1684,7 +1699,8 @@ def nurses(
     search: str | None = None,
     user = Depends(role_required(["ADMIN", "NURSE"]))
 ):
-    nurses_query = Q(nurse_type="CARETAKER")
+    nurse_users = User.objects(role="NURSE")
+    nurses_query = Q(nurse_type="CARETAKER") & Q(user__in=nurse_users)
 
     if search:
         matched_users = User.objects(

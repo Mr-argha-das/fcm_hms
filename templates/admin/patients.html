@@ -66,6 +66,7 @@ content %}
       <thead class="table-light">
         <tr>
           <th class="min-w-80">Patient Name</th>
+          <th class="min-w-80">Relative Name</th>
           <!-- <th>Age</th> -->
           <th>Gender</th>
           <th>Age</th>
@@ -82,6 +83,7 @@ content %}
         <tr class="patient-row">
           <!-- NAME -->
           <td>{{ patient.user.name or "Self Registered Patient" }}</td>
+          <td>{{ patient.relative_name or "-" }}</td>
 
           <!-- AGE -->
           <!-- <td>{{ patient.age or "-" }}</td> -->
@@ -145,7 +147,7 @@ content %}
         </tr>
         {% endfor %} {% else %}
         <tr>
-          <td colspan="6" class="text-center text-muted">No patients found</td>
+          <td colspan="9" class="text-center text-muted">No patients found</td>
         </tr>
         {% endif %}
       </tbody>

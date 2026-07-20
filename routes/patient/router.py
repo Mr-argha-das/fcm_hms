@@ -23,11 +23,17 @@ router = APIRouter(prefix="/patient", tags=["Patient"])
 
 equipment_router = APIRouter(prefix="/equipment")
 
+def normalize_phone(phone: str | None) -> str | None:
+    if phone is None:
+        return None
+    return phone.strip().replace("+91", "").replace(" ", "").replace("-", "")
+
 class PatientCreateRequest(BaseModel):
     name: str
     phone: str
 
     father_name: Optional[str] = None
+    relative_name: Optional[str] = None
     other_number: Optional[str] = None
     email: Optional[EmailStr] = None
 
@@ -60,6 +66,8 @@ async def create_patient(
     print("🔵 RAW REQUEST BODY:", raw_body)
 
     try:
+        payload.phone = normalize_phone(payload.phone)
+
         # ❌ duplicate phone check
         if User.objects(phone=payload.phone).first():
             raise HTTPException(
@@ -94,6 +102,7 @@ async def create_patient(
             created_by="ADMIN",
             age=payload.age,
             gender=payload.gender,
+            relative_name=payload.relative_name,
             medical_history=payload.medical_history,
             address=payload.address,
             service_start=payload.service_start,
@@ -190,6 +199,7 @@ class PatientUpdatePayload(BaseModel):
     # 🔹 USER
     name: Optional[str] = None
     phone: Optional[str] = None
+    relative_name: Optional[str] = None
     other_number: Optional[str] = None
     email: Optional[str] = None
 
@@ -225,6 +235,7 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
         user.name = payload.name
 
     if payload.phone is not None:
+        payload.phone = normalize_phone(payload.phone)
         exists = User.objects(phone=payload.phone, id__ne=user.id).first()
         if exists:
             raise HTTPException(status_code=400, detail="Phone already exists")
@@ -243,7 +254,7 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
     user.save()
 
     # ===== PATIENT UPDATE =====
-    for field in ["age", "gender", "medical_history", "address", "documents"]:
+    for field in ["age", "gender", "relative_name", "medical_history", "address", "documents"]:
         value = getattr(payload, field)
         if value is not None:
             setattr(patient, field, value)

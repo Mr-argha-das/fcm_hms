@@ -45,16 +45,17 @@ def ensure_patient_profile(user: User) -> None:
 #     }
 
 def normalize_phone(phone: str):
-    phone = phone.replace("+91", "").replace(" ", "")
-    return phone
+    return phone.strip().replace("+91", "").replace(" ", "").replace("-", "")
+
 @router.post("/send-otp")
 def send_otp(data: SendOTPRequest):
+    normalized_phone = normalize_phone(data.phone)
 
     # 🔥 TEST MODE (Google Reviewer)
-    if data.phone == TEST_PHONE:
-        user = User.objects(phone=data.phone).first()
+    if normalized_phone == TEST_PHONE:
+        user = User.objects(phone=normalized_phone).first()
         if not user:
-            user = User(phone=data.phone, role="PATIENT").save()
+            user = User(phone=normalized_phone, role="PATIENT").save()
         ensure_patient_profile(user)
         return {
             "message": "Test OTP sent",
@@ -65,7 +66,7 @@ def send_otp(data: SendOTPRequest):
     params = {
         "api_key": API_KEY,
         "otp_template_name": "OTP",
-        "phone_number": data.phone
+        "phone_number": normalized_phone
     }
 
     try:
@@ -83,9 +84,9 @@ def send_otp(data: SendOTPRequest):
         raise HTTPException(400, "OTP session not received")
 
     # 🔹 Create user if not exists
-    user = User.objects(phone=data.phone).first()
+    user = User.objects(phone=normalized_phone).first()
     if not user:
-        user = User(phone=data.phone, role="PATIENT")
+        user = User(phone=normalized_phone, role="PATIENT")
 
     user.otp_session = otp_session
     user.otp_verified = False
@@ -140,14 +141,15 @@ def send_otp(data: SendOTPRequest):
 
 @router.post("/verify-otp")
 def verify_otp(data: VerifyOTPRequest):
+    normalized_phone = normalize_phone(data.phone)
 
-    user = User.objects(phone=data.phone).first()
+    user = User.objects(phone=normalized_phone).first()
 
     if not user:
         raise HTTPException(404, "User not found")
 
     # 🔥 TEST LOGIN (Google Play reviewer)
-    if data.phone == TEST_PHONE and data.otp == TEST_OTP:
+    if normalized_phone == TEST_PHONE and data.otp == TEST_OTP:
         user.otp_verified = True
         user.otp_session = None
         user.last_login = datetime.utcnow()
@@ -217,7 +219,7 @@ def verify_otp(data: VerifyOTPRequest):
 
 @router.post("/login-password", response_model=TokenResponse)
 def login_password(data: PasswordLoginRequest):
-    user = User.objects(phone=data.phone).first()
+    user = User.objects(phone=normalize_phone(data.phone)).first()
 
     if not user or not user.password_hash:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
@@ -302,7 +304,7 @@ class UpdatePasswordRequest(BaseModel):
 @router.post("/update-password")
 def update_password(data: UpdatePasswordRequest):
 
-    user = User.objects(phone=data.phone).first()
+    user = User.objects(phone=normalize_phone(data.phone)).first()
 
     if not user:
         raise HTTPException(404, "User not found")

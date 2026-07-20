@@ -129,6 +129,11 @@ class NurseResponse(BaseModel):
 
 router = APIRouter(prefix="/nurse", tags=["Nurse"])
 
+def normalize_phone(phone: str | None) -> str | None:
+    if phone is None:
+        return None
+    return phone.strip().replace("+91", "").replace(" ", "").replace("-", "")
+
 class NurseSelfSignupRequest(BaseModel):
     # -------- USER --------
     phone: str = Field(..., example="9876543210")
@@ -192,12 +197,19 @@ def get_about_us():
 def nurse_self_signup(payload: NurseSelfSignupRequest):
 
     try:
+        payload.phone = normalize_phone(payload.phone)
         existing_user = User.objects(phone=payload.phone).first()
 
         # ============================================================
         # 🔁 EXISTING USER
         # ============================================================
         if existing_user:
+            if existing_user.role != "NURSE":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"This phone number is already registered as {existing_user.role}"
+                )
+
             nurse = NurseProfile.objects(user=existing_user).first()
 
             # 🔥 FIX: ensure nurse exists
@@ -357,6 +369,7 @@ async def create_nurse(payload: NurseCreateRequest , request: Request):
     raw_body = await request.body()
     print("🔵 RAW REQUEST BODY:", raw_body)
     try:
+        payload.phone = normalize_phone(payload.phone)
         if User.objects(phone=payload.phone).first():
             raise HTTPException(status_code=400, detail="Phone number already registered")
 

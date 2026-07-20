@@ -244,6 +244,7 @@ class PatientProfile(Document):
     )
     age = IntField()
     gender = StringField()
+    relative_name = StringField(required=False)
     medical_history = StringField()
     assigned_doctor = ReferenceField("DoctorProfile")
     assigned_caretaker = ListField(ReferenceField("NurseProfile"), default=list)

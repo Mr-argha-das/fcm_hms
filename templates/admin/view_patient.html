@@ -42,6 +42,7 @@
     <div class="row">
       <div class="col-md-4">
         <p><b>Name:</b> {{ patient.user.name }}</p>
+        <p><b>Relative Name:</b> {{ patient.relative_name or "-" }}</p>
         <p><b>Phone:</b> {{ patient.user.phone }}</p>
         <p><b>Email:</b> {{ patient.user.email or "-" }}</p>
         <p><b>Hospital:</b> {{ patient.user.hospital.name or "-" }}</p>

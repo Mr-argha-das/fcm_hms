@@ -72,6 +72,11 @@
     </div>
 
     <div class="col-md-4">
+      <label>Patient Relative Name</label>
+      <input id="edit_relative_name" class="form-control" value="{{ patient.relative_name or '' }}">
+    </div>
+
+    <div class="col-md-4">
       <label>Other Number</label>
       <input id="edit_other_number" class="form-control" value="{{ patient.user.other_number or '' }}">
     </div>
@@ -278,6 +283,7 @@ async function updatePatient() {
   const payload = {
     name: edit_name.value || null,
     phone: edit_phone.value || null,
+    relative_name: edit_relative_name.value || null,
     other_number: edit_other_number.value || null,
     email: edit_email.value || null,
 

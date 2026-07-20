@@ -26,6 +26,11 @@
     </div>
 
     <div class="col-md-4 mb-3">
+      <label>Patient Relative Name</label>
+      <input class="form-control" id="relative_name" />
+    </div>
+
+    <div class="col-md-4 mb-3">
       <label>Phone *</label>
       <input class="form-control" id="phone" required />
     </div>
@@ -286,6 +291,7 @@ document.getElementById("patientForm").onsubmit = async (e) => {
   name: document.getElementById("name").value.trim(),
   phone: document.getElementById("phone").value.trim(),
   father_name: document.getElementById("father_name").value || null,
+  relative_name: document.getElementById("relative_name").value || null,
   other_number: document.getElementById("other_number").value || null,
   email: document.getElementById("email").value || null,
   age: document.getElementById("age").value || null,
