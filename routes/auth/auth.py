@@ -164,6 +164,7 @@ def verify_otp(data: VerifyOTPRequest):
 
         return {
             "access_token": token,
+            "user_id": str(user.id),
             "role": user.role,
             "token_type": "bearer"
         }
@@ -210,6 +211,7 @@ def verify_otp(data: VerifyOTPRequest):
 
     return {
         "access_token": token,
+        "user_id": str(user.id),
         "role": user.role,
         "token_type": "bearer"
     }
@@ -245,6 +247,7 @@ def login_password(data: PasswordLoginRequest):
 
     response = JSONResponse({
         "access_token": token,
+        "user_id": str(user.id),
         "role": user.role,
         "admin_role_name": user.admin_role_name,
         "redirect_url": first_allowed_admin_path(user) if user.role == "ADMIN" else None
