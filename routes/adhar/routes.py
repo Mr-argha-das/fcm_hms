@@ -3,7 +3,7 @@ from bson import ObjectId
 import cv2
 import re
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import pytesseract
 import json
 
@@ -122,13 +122,32 @@ async def extract_aadhaar(file: UploadFile = File(...)):
 class AadhaarOtpRequest(BaseModel):
     aadhaar_number: str
 
+    @field_validator("aadhaar_number")
+    @classmethod
+    def validate_aadhaar_number(cls, value: str) -> str:
+        normalized = re.sub(r"\D", "", value or "")
+        if len(normalized) != 12:
+            raise ValueError("Aadhaar number must contain exactly 12 digits")
+        return normalized
+
 @router.post("/generate-otp")
 def generate(payload: AadhaarOtpRequest):
     """Generate OTP for Aadhaar verification"""
     try:
         result = aadhaar.generate_otp(payload.aadhaar_number)
         print(f"🔥 Generate OTP Response: {json.dumps(result, indent=2)}")
+        data = result.get("data") or {}
+        if result.get("code") != 200 or not data.get("reference_id"):
+            message = (
+                data.get("message")
+                or result.get("message")
+                or "Unable to send Aadhaar OTP"
+            )
+            status_code = 400 if result.get("code") in (400, 401, 403, 404, 422) else 502
+            raise HTTPException(status_code=status_code, detail=message)
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Generate OTP Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -142,6 +161,33 @@ class AadhaarVerifyRequest(BaseModel):
     user_id: str
     reference_id: str
     otp: str
+    aadhaar_number: str | None = None
+
+    @field_validator("otp")
+    @classmethod
+    def validate_otp(cls, value: str) -> str:
+        normalized = (value or "").strip()
+        if not re.fullmatch(r"\d{6}", normalized):
+            raise ValueError("OTP must contain exactly 6 digits")
+        return normalized
+
+    @field_validator("reference_id", "user_id")
+    @classmethod
+    def validate_required_ids(cls, value: str) -> str:
+        normalized = (value or "").strip()
+        if not normalized or normalized.lower() == "null":
+            raise ValueError("A valid identifier is required")
+        return normalized
+
+    @field_validator("aadhaar_number")
+    @classmethod
+    def validate_optional_aadhaar_number(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = re.sub(r"\D", "", value)
+        if len(normalized) != 12:
+            raise ValueError("Aadhaar number must contain exactly 12 digits")
+        return normalized
 
 
 def _is_verified_value(value) -> bool:
@@ -200,7 +246,7 @@ def verify(payload: AadhaarVerifyRequest):
         nurse = NurseProfile.objects.get(user=user)
         
         # 3️⃣ Call Aadhaar service
-        print(f"🔥 Verifying with reference_id: {payload.reference_id}, otp: {payload.otp}")
+        print(f"🔥 Verifying with reference_id: {payload.reference_id}")
         result = aadhaar.verify_otp(payload.reference_id, payload.otp)
         
         print(f"🔥 Full Verify Response: {json.dumps(result, indent=2)}")
@@ -221,7 +267,6 @@ def verify(payload: AadhaarVerifyRequest):
         
         # Collect all verification indicators
         verification_values = [
-            api_code,  # Should be 200 for success
             data.get("status"),
             data.get("message"),
             result.get("status"),
@@ -232,14 +277,17 @@ def verify(payload: AadhaarVerifyRequest):
         print(f"🔍 Verification values to check: {verification_values}")
         
         # ===== SUCCESS CASE =====
-        # Check if code is 200 OR any value indicates success
+        # A transport-level 200 is not sufficient: providers can return an
+        # INVALID/EXPIRED result inside a successful HTTP response.
         is_code_success = api_code == 200
         is_value_success = any(_is_verified_value(value) for value in verification_values)
         
-        if is_code_success or is_value_success:
+        if is_code_success and is_value_success:
             print("✅ OTP Verification SUCCESS")
             
             nurse.aadhaar_verified = True
+            if payload.aadhaar_number:
+                nurse.aadhaar_number = payload.aadhaar_number
             nurse.aadharData = {
                 "reference_id": data.get("reference_id") or payload.reference_id,
                 "name": data.get("name"),
@@ -300,6 +348,9 @@ def verify(payload: AadhaarVerifyRequest):
     except User.DoesNotExist as e:
         print(f"❌ User not found: {str(e)}")
         raise HTTPException(status_code=404, detail="User not found")
+
+    except HTTPException:
+        raise
     
     except Exception as e:
         print(f"❌ Verify OTP Exception: {str(e)}")
