@@ -615,6 +615,11 @@ class AllPaymentsHistory(Document):
     )
     order_id = StringField(required=True)
     payment_id = StringField()
+    created_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        "indexes": ["order_id", "user", "status", "-created_at"],
+    }
 
 
 
