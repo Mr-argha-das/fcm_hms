@@ -13,6 +13,7 @@ from models import PatientProfile, User
 from core.security import create_access_token, verify_password
 from core.dependencies import get_current_user, admin_required
 from core.permissions import first_allowed_admin_path
+from core.test_accounts import TEST_ACCOUNTS, TEST_OTP, is_test_account
 
 
 
@@ -28,8 +29,7 @@ BASE_URL = "https://connect.muzztech.com/api/V1"
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-TEST_PHONE = "8104144303"
-TEST_OTP = "123456"
+LEGACY_TEST_PHONE = "8104144303"
 
 
 def ensure_patient_profile(user: User) -> None:
@@ -52,10 +52,11 @@ def send_otp(data: SendOTPRequest):
     normalized_phone = normalize_phone(data.phone)
 
     # 🔥 TEST MODE (Google Reviewer)
-    if normalized_phone == TEST_PHONE:
+    if is_test_account(normalized_phone) or normalized_phone == LEGACY_TEST_PHONE:
         user = User.objects(phone=normalized_phone).first()
         if not user:
-            user = User(phone=normalized_phone, role="PATIENT").save()
+            role = TEST_ACCOUNTS.get(normalized_phone, "PATIENT")
+            user = User(phone=normalized_phone, role=role).save()
         ensure_patient_profile(user)
         return {
             "message": "Test OTP sent",
@@ -149,7 +150,10 @@ def verify_otp(data: VerifyOTPRequest):
         raise HTTPException(404, "User not found")
 
     # 🔥 TEST LOGIN (Google Play reviewer)
-    if normalized_phone == TEST_PHONE and data.otp == TEST_OTP:
+    if (
+        (is_test_account(normalized_phone, user.role) or normalized_phone == LEGACY_TEST_PHONE)
+        and data.otp == TEST_OTP
+    ):
         user.otp_verified = True
         user.otp_session = None
         user.last_login = datetime.utcnow()
