@@ -137,7 +137,7 @@ def normalize_phone(phone: str | None) -> str | None:
 class NurseSelfSignupRequest(BaseModel):
     # -------- USER --------
     phone: str = Field(..., example="9876543210")
-    other_number: str = Field(..., example="9876543210")
+    other_number: Optional[str] = Field(None, example="9876543210")
     name: str = Field(..., example="Sruti Das")
     password_hash:str = Field(...,example="pass")
     father_name: Optional[str] = Field(None, example="Ram Das")
@@ -279,6 +279,7 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
     except Exception as e:
         print(f"❌ Signup Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
+@router.get("/self-signup/me", response_model=NurseSelfSignupRequest)
 @router.get("/rzp_live_SBbgiyIPp35rea", response_model=NurseSelfSignupRequest)
 def get_my_profile(current_user: User = Depends(get_current_user)):
 
@@ -683,11 +684,21 @@ def nurse_dashboard(current_user: User = Depends(get_current_user)):
             "hours": hours
         })
 
+    final_name = None
+    if current_user.email:
+        final_name = current_user.email.split("@")[0].title()
+    if not final_name and current_user.name:
+        final_name = current_user.name.title()
+    if not final_name and getattr(nurse.user, "phone", None):
+        final_name = nurse.user.phone
+    if not final_name:
+        final_name = "Nurse"
+
     # 6️⃣ Final Response
     return {
         "nurse": {
             "nurse_id": str(nurse.id),
-            "name": current_user.email.split("@")[0].title(),
+            "name": final_name,
            "profile": with_domain(nurse.profile_photo) if nurse.profile_photo else "/static/default.png",
             "nurse_type": nurse.nurse_type,
             "status": "ACTIVE" if attendance and attendance.check_in and not attendance.check_out else "INACTIVE",
