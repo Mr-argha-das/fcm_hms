@@ -9,7 +9,14 @@ from fastapi.responses import JSONResponse
 import requests
 from pydantic import BaseModel, Field
 
-from models import PatientProfile, User
+from models import (
+    DoctorProfile,
+    NurseProfile,
+    PatientProfile,
+    RelativeAccess,
+    StaffProfile,
+    User,
+)
 from core.security import create_access_token, verify_password
 from core.dependencies import get_current_user, admin_required
 from core.permissions import first_allowed_admin_path
@@ -279,6 +286,28 @@ def me(user: User = Depends(get_current_user)):
 @router.post("/logout")
 def logout():
     return {"message": "Logout successful (client-side token delete)"}
+
+@router.delete("/delete-account")
+def delete_account(user: User = Depends(get_current_user)):
+    try:
+        user.is_active = False
+        user.otp_verified = False
+        user.token_version += 1
+        user.save()
+
+        if user.role == "NURSE":
+            NurseProfile.objects(user=user).modify(upsert=False, new=False)
+        elif user.role == "DOCTOR":
+            DoctorProfile.objects(user=user).modify(upsert=False, new=False)
+        elif user.role == "PATIENT":
+            PatientProfile.objects(user=user).modify(upsert=False, new=False)
+            RelativeAccess.objects(relative_user=user).update(set__permissions=[])
+        elif user.role == "STAFF":
+            StaffProfile.objects(user=user).modify(upsert=False, new=False)
+
+        return {"success": True, "message": "Account deactivated successfully"}
+    except Exception as exc:
+        raise HTTPException(500, f"Failed to deactivate account: {exc}")
 
 @router.post("/admin/block-user")
 def block_user(user_id: str, admin: User = Depends(admin_required)):
