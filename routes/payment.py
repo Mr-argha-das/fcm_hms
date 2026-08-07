@@ -13,7 +13,7 @@ from utils.razorpay_client import (
     RAZORPAY_KEY_SECRET,
     client,
 )
-from core.test_accounts import is_test_account
+from core.test_accounts import is_test_account, is_test_payment_exempt
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -40,13 +40,13 @@ def _joining_fee() -> UserJoiningFees:
 
 
 def _has_successful_payment(user: User) -> bool:
-    if is_test_account(getattr(user, "phone", None), getattr(user, "role", None)):
+    if is_test_payment_exempt(getattr(user, "phone", None), getattr(user, "role", None)):
         return True
     return AllPaymentsHistory.objects(user=user, status="success").first() is not None
 
 
 def _payment_state(user: User) -> dict:
-    if is_test_account(getattr(user, "phone", None), getattr(user, "role", None)):
+    if is_test_payment_exempt(getattr(user, "phone", None), getattr(user, "role", None)):
         return {
             "paid": True,
             "status": "success",

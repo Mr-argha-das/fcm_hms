@@ -68,6 +68,19 @@ class PaymentFlowTests(unittest.TestCase):
         self.assertTrue(state["paid"])
         self.assertEqual(state["status"], "success")
 
+    def test_new_test_account_requires_payment(self):
+        user = type(
+            "NewTestUser", (), {"phone": "9000000004", "role": "PATIENT"}
+        )()
+        with patch.object(
+            payment,
+            "AllPaymentsHistory",
+            self._model(_Manager()),
+        ):
+            state = payment._payment_state(user)
+        self.assertFalse(state["paid"])
+        self.assertEqual(state["status"], "not_started")
+
     def test_non_allowlisted_account_is_not_payment_exempt(self):
         user = type(
             "RegularUser", (), {"phone": "9000000099", "role": "NURSE"}
