@@ -36,7 +36,11 @@ from startup import create_default_admin
 from core.permissions import first_allowed_admin_path, module_for_path, user_can_access_admin_path
 from core.security import SECRET_KEY, ALGORITHM
 from models import User
-app = FastAPI(title="Hospital Management System")
+app = FastAPI(
+    title="Hospital Management System",
+    docs_url=None,
+    redoc_url=None,
+    )
 
 
 init_db()
