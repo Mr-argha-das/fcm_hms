@@ -72,7 +72,7 @@ class SiteSettings(Document):
 class NurseProfile(Document):
     user = ReferenceField(User, required=True)
     nurse_type = StringField(
-        choices=["GNM", "ANM", "CARETAKER", "PHYSIO", "COMBO", "OTHER"]
+        choices=["GNM", "ANM", "CARETAKER", "BABY_CARETAKER", "PHYSIO", "COMBO", "OTHER"]
     )
     aadhaar_front = StringField()
     aadhaar_back = StringField()
@@ -122,7 +122,9 @@ class NurseDuty(Document):
     patient = ReferenceField("PatientProfile")
 
     duty_type = StringField(choices=["10HR", "12HR", "24HR", "FLEX"])
-    shift = StringField(choices=["DAY", "NIGHT"])
+    shift = StringField(choices=["DAY", "NIGHT", "24_HOURS"])
+    care_role = StringField(choices=["NURSING", "CARETAKER", "BABY_CARETAKER"])
+    staff_contact_number = StringField()
     dutyLocation = StringField(
         choices=["HOME", "HOSPITAL"],
         required=True
@@ -258,6 +260,7 @@ class PatientProfile(Document):
     service_end = DateField()
 
     adharcard = StringField()
+    aadhaar_number = StringField()
 
     documents = ListField(StringField(), default=list)
 

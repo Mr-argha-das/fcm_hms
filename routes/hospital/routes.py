@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 
-from models import HospitalModel
+from models import HospitalModel, User
 from routes.auth.schemas import HospitalCreate, HospitalResponse
 
 
@@ -72,3 +72,15 @@ def update_hospital(hospital_id: str, payload: HospitalCreate):
         "address": hospital.address,
         "branch": hospital.branch
     }
+
+
+@router.delete("/delete/{hospital_id}")
+def delete_hospital(hospital_id: str):
+    hospital = HospitalModel.objects(id=hospital_id).first()
+    if not hospital:
+        raise HTTPException(status_code=404, detail="Hospital not found")
+
+    # Keep people and their clinical records, but detach the deleted hospital.
+    User.objects(hospital=hospital).update(unset__hospital=1)
+    hospital.delete()
+    return {"success": True, "message": "Hospital deleted successfully"}

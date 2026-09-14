@@ -9,8 +9,9 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException ,Request
 from core.dependencies import get_current_user
 from models import (
-    DoctorProfile, EquipmentTable, HospitalModel, Medicine, NurseDuty, NurseProfile, PatientProfile, PatientDailyNote,
-    PatientVitals, PatientMedication, RelativeAccess, StaffProfile, User, UserEquipmentRequest
+    DoctorProfile, DoctorVisit, EquipmentTable, HospitalModel, Medicine, NurseDuty, NurseProfile, NurseVisit,
+    PatientProfile, PatientDailyNote, PatientVitals, PatientMedication, PatientInvoice, PatientBill,
+    RelativeAccess, SOSAlert, StaffProfile, User, UserEquipmentRequest
 )
 
 from mongoengine.errors import NotUniqueError ,ValidationError
@@ -27,6 +28,25 @@ def normalize_phone(phone: str | None) -> str | None:
     if phone is None:
         return None
     return phone.strip().replace("+91", "").replace(" ", "").replace("-", "")
+
+
+def normalize_aadhaar(aadhaar_number: str | None) -> str | None:
+    if not aadhaar_number:
+        return None
+    value = aadhaar_number.replace(" ", "").replace("-", "")
+    if not value.isdigit() or len(value) != 12:
+        raise HTTPException(status_code=400, detail="Aadhaar number must contain 12 digits")
+    return value
+
+
+def care_role_for(nurse: NurseProfile, requested_role: str | None = None) -> str:
+    allowed_roles = {"NURSING", "CARETAKER", "BABY_CARETAKER"}
+    role = requested_role if requested_role in allowed_roles else None
+    if nurse.nurse_type == "BABY_CARETAKER":
+        return "BABY_CARETAKER"
+    if nurse.nurse_type == "CARETAKER":
+        return "CARETAKER"
+    return role or "NURSING"
 
 class PatientCreateRequest(BaseModel):
     name: str
@@ -54,6 +74,7 @@ class PatientCreateRequest(BaseModel):
     documents: List[str] = []
     assigned_caretaker : Optional[List[str]] = []
     adharcard : Optional[str] = None
+    aadhaar_number: Optional[str] = None
        # 🔥 IMPORTANT
 
 @router.post("/create")
@@ -67,6 +88,7 @@ async def create_patient(
 
     try:
         payload.phone = normalize_phone(payload.phone)
+        payload.aadhaar_number = normalize_aadhaar(payload.aadhaar_number)
 
         # ❌ duplicate phone check
         if User.objects(phone=payload.phone).first():
@@ -113,7 +135,8 @@ async def create_patient(
             pincode=payload.pincode,
             assigned_caretaker=[
                 NurseProfile.objects.get(id=ObjectId(nurse_id))  for nurse_id in (payload.assigned_caretaker or [])  ],
-                adharcard=payload.adharcard
+            adharcard=payload.adharcard,
+            aadhaar_number=payload.aadhaar_number,
         )
 
         # 👨‍⚕️ Assign doctor (safe)
@@ -198,6 +221,7 @@ async def create_patient(
 class PatientUpdatePayload(BaseModel):
     # 🔹 USER
     name: Optional[str] = None
+    father_name: Optional[str] = None
     phone: Optional[str] = None
     relative_name: Optional[str] = None
     other_number: Optional[str] = None
@@ -217,6 +241,7 @@ class PatientUpdatePayload(BaseModel):
   
     assigned_caretaker : Optional[List[str]] = None
     adharcard : Optional[str] = None
+    aadhaar_number: Optional[str] = None
     city : Optional[str] = None
     state : Optional[str] = None
     pincode : Optional[str] = None
@@ -233,6 +258,9 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
     # ===== USER UPDATE =====
     if payload.name is not None:
         user.name = payload.name
+
+    if payload.father_name is not None:
+        user.father_name = payload.father_name
 
     if payload.phone is not None:
         payload.phone = normalize_phone(payload.phone)
@@ -280,8 +308,11 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
         for nurse_id in payload.assigned_caretaker
     ]
 
-    if payload.adharcard:
+    if payload.adharcard is not None:
         patient.adharcard = payload.adharcard
+
+    if payload.aadhaar_number is not None:
+        patient.aadhaar_number = normalize_aadhaar(payload.aadhaar_number)
 
     if payload.city:
         patient.city = payload.city
@@ -297,6 +328,32 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
         "success": True,
         "message": "Patient updated successfully"
     }
+
+
+@router.delete("/{patient_id}")
+def delete_patient(patient_id: str):
+    """Permanently remove a patient and records that cannot exist without them."""
+    patient = PatientProfile.objects(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    patient_user = patient.user
+    NurseDuty.objects(patient=patient).delete()
+    NurseVisit.objects(patient=patient).delete()
+    DoctorVisit.objects(patient=patient).delete()
+    PatientDailyNote.objects(patient=patient).delete()
+    PatientVitals.objects(patient=patient).delete()
+    PatientMedication.objects(patient=patient).delete()
+    RelativeAccess.objects(patient=patient).delete()
+    SOSAlert.objects(patient=patient).delete()
+    UserEquipmentRequest.objects(patient=patient).delete()
+    PatientBill.objects(patient=patient).delete()
+    PatientInvoice.objects(patient=patient).delete()
+    patient.delete()
+    if patient_user:
+        patient_user.delete()
+
+    return {"success": True, "message": "Patient deleted successfully"}
 
 @router.post("/{patient_id}/add-document")
 def add_patient_document(patient_id: str, path: str):
@@ -570,6 +627,8 @@ def assign_nurse_duty(patient_id: str, payload: dict):
 
         duty_type=payload.get("duty_type"),
         shift=payload.get("shift"),
+        care_role=care_role_for(nurse, payload.get("care_role")),
+        staff_contact_number=normalize_phone(payload.get("staff_contact_number")) or nurse.user.phone,
         dutyLocation=duty_location,
 
         # 🏥 hospital fields
@@ -589,6 +648,10 @@ def assign_nurse_duty(patient_id: str, payload: dict):
     )
 
     duty.save()
+
+    if nurse not in (patient.assigned_caretaker or []):
+        patient.assigned_caretaker.append(nurse)
+        patient.save()
 
     return {
         "success": True,
@@ -894,6 +957,7 @@ def serialize_patient(patient):
         "medical_history": patient.medical_history,
         "service_start": patient.service_start,
         "service_end": patient.service_end,
+        "aadhaar_number": patient.aadhaar_number,
         "documents": patient.documents or []
     }
 
@@ -1079,6 +1143,8 @@ def delete_equipment(equipment_id: str):
     if not equipment:
         raise HTTPException(404, "Equipment not found")
 
+    # Remove assignments first so no patient record keeps a broken equipment link.
+    UserEquipmentRequest.objects(equipment=equipment).delete()
     equipment.delete()
 
     return {"message": "Equipment deleted successfully"}

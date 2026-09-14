@@ -72,6 +72,11 @@
     </div>
 
     <div class="col-md-4">
+      <label>Father / Husband Name</label>
+      <input id="edit_father_name" class="form-control" value="{{ patient.user.father_name or '' }}">
+    </div>
+
+    <div class="col-md-4">
       <label>Patient Relative Name</label>
       <input id="edit_relative_name" class="form-control" value="{{ patient.relative_name or '' }}">
     </div>
@@ -165,6 +170,10 @@
       <label>Pincode</label>
       <input id="edit_pincode" class="form-control" value="{{ patient.pincode or '' }}">
     </div>
+    <div class="col-md-3">
+      <label>Aadhaar Number</label>
+      <input id="edit_aadhaar_number" class="form-control" inputmode="numeric" maxlength="14" value="{{ patient.aadhaar_number or '' }}">
+    </div>
   </div>
 
   <!-- <div class="col-md-3">
@@ -188,19 +197,34 @@
 <div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4">
   <div class="card-header font-bold flex gap-2 p-3 bg-light rounded-t-2xl">
     <i data-lucide="stethoscope" class="w-5 h-5 mt-[2px]"></i>
-    Assign Nurse
+    Assign Nursing / Care Staff
   </div>
 
   <div class="card-body row g-3 p-3">
 
-    <div class="col-md-4">
-      <select id="nurse" class="form-select">
+    <div class="col-md-3">
+      <label>Care Type</label>
+      <select id="care_role" class="form-select" onchange="filterStaffByRole()">
+        <option value="NURSING">Nursing</option>
+        <option value="CARETAKER">Care Taker</option>
+        <option value="BABY_CARETAKER">Baby Care Taker</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label>Staff</label>
+      <select id="nurse" class="form-select" onchange="setStaffContact()">
         {% for n in nurses %}
-        <option value="{{ n.id }}">
-          {{ n.user.name }} ({{ n.nurse_type }})
+        <option value="{{ n.id }}" data-contact="{{ n.user.phone }}" data-care-role="{% if n.nurse_type == 'BABY_CARETAKER' %}BABY_CARETAKER{% elif n.nurse_type == 'CARETAKER' %}CARETAKER{% else %}NURSING{% endif %}">
+          {{ n.user.name }} — {{ n.nurse_type }} ({{ n.user.phone }})
         </option>
         {% endfor %}
       </select>
+    </div>
+
+    <div class="col-md-3">
+      <label>Staff Contact Number</label>
+      <input id="staff_contact_number" class="form-control" readonly placeholder="Select staff">
     </div>
 
     <div class="col-md-3">
@@ -216,6 +240,7 @@
       <select id="shift" class="form-select">
         <option value="DAY">Day</option>
         <option value="NIGHT">Night</option>
+        <option value="24_HOURS">24 Hours</option>
       </select>
     </div>
 
@@ -282,6 +307,7 @@
 async function updatePatient() {
   const payload = {
     name: edit_name.value || null,
+    father_name: edit_father_name.value || null,
     phone: edit_phone.value || null,
     relative_name: edit_relative_name.value || null,
     other_number: edit_other_number.value || null,
@@ -302,6 +328,7 @@ async function updatePatient() {
     city: edit_city.value || null,
     state: edit_state.value || null,
     pincode: edit_pincode.value || null,
+    aadhaar_number: edit_aadhaar_number.value || null,
 
     // documents: edit_documents.value
     //   ? edit_documents.value.split(",").map(d => d.trim())
@@ -327,6 +354,10 @@ async function updatePatient() {
   document.getElementById("assignBtn").addEventListener("click", async () => {
 
   const dutyLocation = document.getElementById("dutyLocation").value;
+  if (!nurse.value || nurse.selectedOptions[0].disabled) {
+    alert("No staff is available for the selected care type.");
+    return;
+  }
   const duration = parseInt(document.getElementById("duration_days").value) || 0;
 const pricePerDay = parseFloat(document.getElementById("price_perday").value) || 0;
  const startDate = new Date();
@@ -334,6 +365,8 @@ const endDate = new Date();
 endDate.setDate(startDate.getDate() + duration);
   const payload = {
   nurse_id: nurse.value,
+  care_role: care_role.value,
+  staff_contact_number: staff_contact_number.value || null,
   duty_type: duty_type.value,
   shift: shift.value,
   dutyLocation: dutyLocation,
@@ -383,6 +416,36 @@ function toggleDutyFields() {
     el.classList.toggle("d-none", location === "HOSPITAL")
   );
 }
+
+function filterStaffByRole() {
+  const requestedRole = document.getElementById("care_role").value;
+  const staff = document.getElementById("nurse");
+  let selectedVisible = false;
+
+  [...staff.options].forEach(option => {
+    const matches = option.dataset.careRole === requestedRole;
+    option.hidden = !matches;
+    option.disabled = !matches;
+    if (option.selected && matches) selectedVisible = true;
+  });
+
+  if (!selectedVisible) {
+    const firstMatch = [...staff.options].find(option => !option.disabled);
+    if (firstMatch) firstMatch.selected = true;
+  }
+  setStaffContact();
+}
+
+function setStaffContact() {
+  const selected = document.getElementById("nurse").selectedOptions[0];
+  document.getElementById("staff_contact_number").value = selected ? selected.dataset.contact || "" : "";
+}
+
+document.getElementById("shift").addEventListener("change", () => {
+  if (shift.value === "24_HOURS") duty_type.value = "24HR";
+});
+
+filterStaffByRole();
   async function updatePassword() {
     const res = await fetch("/auth/update-password", {
       method: "POST",

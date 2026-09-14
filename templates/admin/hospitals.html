@@ -156,6 +156,9 @@
       <button onclick="openEditModal('${h.id}')" class="btn-primary">
         Edit
       </button>
+      <button onclick="deleteHospital('${h.id}')" class="btn btn-sm btn-outline-danger ms-1">
+        Delete
+      </button>
     </td>
   </tr>
   `;
@@ -215,6 +218,18 @@
     loadHospitals();
   } else {
     alert("Failed to update hospital");
+  }
+}
+
+async function deleteHospital(id) {
+  if (!confirm("Delete this hospital? Patients and staff will be kept, but unlinked from this hospital.")) return;
+
+  const res = await fetch(`/hospital/delete/${id}`, { method: "DELETE" });
+  const data = await res.json();
+  if (res.ok) {
+    loadHospitals();
+  } else {
+    alert(data.detail || "Failed to delete hospital");
   }
 }
   async function openEditModal(id) {

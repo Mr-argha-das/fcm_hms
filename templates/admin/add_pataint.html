@@ -21,7 +21,7 @@
     </div>
 
     <div class="col-md-4 mb-3">
-      <label>Father Name</label>
+      <label>Father / Husband Name</label>
       <input class="form-control" id="father_name" />
     </div>
 
@@ -105,7 +105,7 @@
       />
     </div>
     <div class="col-md-4 mb-3">
-  <label>Aadhar Card</label>
+  <label>Aadhaar Card</label>
   <input
     type="file"
     class="form-control"
@@ -113,6 +113,11 @@
   />
   <input type="hidden" id="adharcard" />
 </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Aadhaar Number (12 digits)</label>
+      <input class="form-control" id="aadhaar_number" inputmode="numeric" maxlength="14" placeholder="1234 5678 9012" />
+    </div>
 
     <div class="col-md-12 mb-3">
       <label>Address</label>
@@ -138,7 +143,7 @@
       </select>
     </div>
     <div class="col-md-6 mb-3">
-      <label>Role</label>
+      <label>Assign Care Staff</label>
       <select id="assigned_caretaker" class="form-select">
         {% for n in nurses %}
         <option value="{{ n.id }}">
@@ -311,7 +316,8 @@ document.getElementById("patientForm").onsubmit = async (e) => {
   documents: document.getElementById("documents").value
     ? JSON.parse(document.getElementById("documents").value)
     : [],
-  adharcard: document.getElementById("adharcard").value || null
+  adharcard: document.getElementById("adharcard").value || null,
+  aadhaar_number: document.getElementById("aadhaar_number").value || null
 };
 
   console.log("📦 PAYLOAD:", payload);

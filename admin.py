@@ -191,7 +191,7 @@ def self_registered_nurses(request: Request):
     nurse_users = User.objects(role="NURSE")
     nurses_qs = (
         NurseProfile.objects(created_by="SELF", user__in=nurse_users)
-        .filter(nurse_type__ne="CARETAKER")
+        .filter(nurse_type__nin=["CARETAKER", "BABY_CARETAKER"])
         .select_related()
        
     )
@@ -214,7 +214,11 @@ def self_registered_nurses(request: Request):
 def self_registered_caretakers(request: Request):
     nurse_users = User.objects(role="NURSE")
     caretakers_qs = (
-        NurseProfile.objects(created_by="SELF", nurse_type="CARETAKER", user__in=nurse_users)
+        NurseProfile.objects(
+            created_by="SELF",
+            nurse_type__in=["CARETAKER", "BABY_CARETAKER"],
+            user__in=nurse_users,
+        )
         .select_related()
     )
 
@@ -411,7 +415,7 @@ def dashboard(
     # ======================
     total_pending_billing = sum(b.grand_total or 0 for b in pending_bills)
     totalCareTakers = NurseProfile.objects(
-        nurse_type="CARETAKER",
+        nurse_type__in=["CARETAKER", "BABY_CARETAKER"],
         **user_filter
     ).count()
     return templates.TemplateResponse(
@@ -1700,7 +1704,7 @@ def nurses(
     user = Depends(role_required(["ADMIN", "NURSE"]))
 ):
     nurse_users = User.objects(role="NURSE")
-    nurses_query = Q(nurse_type="CARETAKER") & Q(user__in=nurse_users)
+    nurses_query = Q(nurse_type__in=["CARETAKER", "BABY_CARETAKER"]) & Q(user__in=nurse_users)
 
     if search:
         matched_users = User.objects(

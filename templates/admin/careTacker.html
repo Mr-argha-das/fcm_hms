@@ -4,7 +4,7 @@ content %}
 <div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
   <!-- HEADER -->
   <div class="d-flex p-3 justify-content-between align-items-center">
-    <h5 class="mb-0 text-md">Nurses</h5>
+    <h5 class="mb-0 text-md">Care Takers</h5>
     <div class="d-flex gap-2">
       <form method="get" class="d-flex gap-2">
         <input
@@ -148,12 +148,13 @@ content %}
           >
             <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
           </a>
-          <!-- <a
-            class="btn btn-sm btn-outline-warning"
+          <button
+            class="btn btn-sm btn-outline-danger"
+            title="Delete caretaker"
             onclick="deleteNurse('{{ nurse.id }}')"
           >
             🗑️
-          </a> -->
+          </button>
 
           <!-- {% if nurse.user.is_active %}
           <button class="btn btn-sm btn-outline-danger" title="Deactivate">

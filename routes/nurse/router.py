@@ -276,6 +276,8 @@ def nurse_self_signup(payload: NurseSelfSignupRequest):
             verification_status=nurse.verification_status
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Signup Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
@@ -461,6 +463,9 @@ def delete_nurse(
         NurseDuty.objects(nurse=nurse).delete()
         NurseAttendance.objects(nurse=nurse).delete()
         NurseVisit.objects(nurse=nurse).delete()
+        PatientProfile.objects(assigned_caretaker=nurse).update(
+            pull__assigned_caretaker=nurse
+        )
 
         # 🔥 DELETE NURSE PROFILE
         nurse.delete()
@@ -474,6 +479,8 @@ def delete_nurse(
             "message": "Nurse deleted successfully"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print("❌ Delete nurse error:", e)
         raise HTTPException(

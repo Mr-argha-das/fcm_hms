@@ -143,6 +143,13 @@ content %}
               🏥
             </button>
             {% endif %}
+            <button
+              class="btn btn-sm btn-outline-danger"
+              title="Delete Patient"
+              onclick="deletePatient('{{ patient.id }}')"
+            >
+              🗑️
+            </button>
           </td>
         </tr>
         {% endfor %} {% else %}
@@ -195,6 +202,28 @@ async function closePatient(patientId) {
     }
   } catch (err) {
     console.error("Close patient error:", err);
+    alert("Something went wrong");
+  }
+}
+
+async function deletePatient(patientId) {
+  if (!confirm("Permanently delete this patient and their linked care records?")) return;
+
+  try {
+    const res = await fetch(`/patient/${patientId}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+      credentials: "same-origin",
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert("Patient deleted successfully");
+      location.reload();
+    } else {
+      alert(data.detail || "Failed to delete patient");
+    }
+  } catch (err) {
+    console.error("Delete patient error:", err);
     alert("Something went wrong");
   }
 }

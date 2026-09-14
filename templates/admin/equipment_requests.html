@@ -139,12 +139,14 @@ function renderTable(data) {
       ? `<span class="badge bg-success">Approved</span>`
       : `<span class="badge bg-warning text-dark">Pending</span>`;
 
-    const actionBtn = r.status
+    const approveBtn = r.status
       ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
       : `<button class="btn btn-sm btn-success"
             onclick="approveRequest('${r.id}')">
             Approve
          </button>`;
+    const actionBtn = `${approveBtn}
+      <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteRequest('${r.id}')">Delete</button>`;
 
     table.innerHTML += `
       <tr>
@@ -173,7 +175,7 @@ function renderTable(data) {
   //////////////////////////////////////////////////////
   // APPROVE REQUEST
   //////////////////////////////////////////////////////
-  async function approveRequest(id) {
+async function approveRequest(id) {
     if (!confirm("Approve this request?")) return;
 
     await fetch(`${API_BASE}/request-equipment/approve/${id}`, {
@@ -183,7 +185,21 @@ function renderTable(data) {
     });
 
     loadRequests(); // refresh
+}
+
+async function deleteRequest(id) {
+  if (!confirm("Delete this equipment request?")) return;
+
+  const res = await fetch(`${API_BASE}/request-equipment/delete/${id}`, {
+    method: "DELETE",
+  });
+  const data = await res.json();
+  if (res.ok) {
+    loadRequests();
+  } else {
+    alert(data.detail || "Failed to delete equipment request");
   }
+}
 
   //////////////////////////////////////////////////////
 

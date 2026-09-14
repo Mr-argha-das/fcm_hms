@@ -147,12 +147,13 @@ endblock %} {% block content %}
 
           </a>
 
-          <!-- <a
-            class="btn btn-sm btn-outline-warning"
+          <button
+            class="btn btn-sm btn-outline-danger"
+            title="Delete self-registered staff"
             onclick="deleteNurse('{{ nurse.id }}')"
           >
             🗑️
-          </a> -->
+          </button>
         </td>
       </tr>
       {% endfor %} {% else %}
