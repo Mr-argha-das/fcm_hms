@@ -571,7 +571,7 @@ def create_nurse(request: Request):
 @router.get("/create/patient", response_class=HTMLResponse)
 def create_patient_page(request: Request):
 
-    doctors = DoctorProfile.objects(available=True)
+    doctors = DoctorProfile.objects().select_related()
     hospitals = HospitalModel.objects.all()
     nurse_users = User.objects(role="NURSE")
     nurses = NurseProfile.objects(user__in=nurse_users)
@@ -772,6 +772,7 @@ def doctor_visits(request: Request):
 def patients(
     request: Request,
     status: str = Query("all", pattern="^(all|active|discharged)$"),
+    service: str = Query("all", pattern="^(all|care|equipment|both)$"),
     user = Depends(role_required(["ADMIN", "NURSE", "DOCTOR", "PATIENT"]))
 ):
     ensure_patient_profiles_for_registered_users()
@@ -790,28 +791,109 @@ def patients(
     ).count()
 
     if status == "active":
-        patients_qs = PatientProfile.objects(
+        all_patients_qs = list(PatientProfile.objects(
             patient_filter,
             service_end=None
-        ).select_related()
+        ).select_related())
     elif status == "discharged":
-        patients_qs = PatientProfile.objects(
+        all_patients_qs = list(PatientProfile.objects(
             patient_filter,
             service_end__exists=True,
             service_end__ne=None
-        ).select_related()
+        ).select_related())
     else:
-        patients_qs = PatientProfile.objects(patient_filter).select_related()
+        all_patients_qs = list(PatientProfile.objects(patient_filter).select_related())
+
+    patient_ids = [p.id for p in all_patients_qs if hasattr(p, "id")]
+
+    # Batch fetch equipment requests for all patients
+    eq_by_patient = defaultdict(list)
+    if patient_ids:
+        for req in UserEquipmentRequest.objects(patient__in=patient_ids).select_related():
+            if getattr(req, "patient", None) and hasattr(req.patient, "id"):
+                eq_by_patient[str(req.patient.id)].append(req)
+
+    # Batch fetch duties for all patients
+    duties_by_patient = defaultdict(list)
+    if patient_ids:
+        for duty in NurseDuty.objects(patient__in=patient_ids).select_related():
+            if getattr(duty, "patient", None) and hasattr(duty.patient, "id"):
+                duties_by_patient[str(duty.patient.id)].append(duty)
+
+    # Decorate and categorize each patient
+    decorated_patients = []
+    care_count = 0
+    equipment_only_count = 0
+    both_count = 0
+
+    for p in all_patients_qs:
+        pid = str(p.id)
+        eq_list = eq_by_patient.get(pid, [])
+        duties = duties_by_patient.get(pid, [])
+
+        has_equipment = len(eq_list) > 0
+        equipment_titles = [getattr(r.equipment, "title", "Equipment") for r in eq_list if getattr(r, "equipment", None)]
+
+        caretakers = getattr(p, "assigned_caretaker", []) or []
+        has_caretakers = bool(len(caretakers) > 0)
+        has_doctor = bool(getattr(p, "assigned_doctor", None))
+        has_duties = len(duties) > 0
+
+        has_care = has_caretakers or has_doctor or has_duties
+
+        if has_equipment and has_care:
+            category = "BOTH"
+            both_count += 1
+        elif has_equipment and not has_care:
+            category = "EQUIPMENT"
+            equipment_only_count += 1
+        else:
+            category = "CARE"
+            care_count += 1
+
+        p_data = {
+            "id": str(p.id),
+            "profile": p,
+            "user": getattr(p, "user", None),
+            "name": getattr(getattr(p, "user", None), "name", "") or "Self Registered Patient",
+            "phone": getattr(getattr(p, "user", None), "phone", "") or "",
+            "relative_name": getattr(p, "relative_name", "") or "-",
+            "gender": getattr(p, "gender", "") or "-",
+            "age": getattr(p, "age", "") or "-",
+            "address": getattr(p, "address", "") or "-",
+            "assigned_doctor": getattr(p, "assigned_doctor", None),
+            "service_end": getattr(p, "service_end", None),
+            "service_start": getattr(p, "service_start", None),
+            "category": category,
+            "equipment_list": equipment_titles,
+            "equipment_count": len(equipment_titles),
+            "duties_count": len(duties),
+            "caretakers": caretakers,
+        }
+
+        # Apply service filter
+        if service == "care" and category != "CARE":
+            continue
+        elif service == "equipment" and category != "EQUIPMENT":
+            continue
+        elif service == "both" and category != "BOTH":
+            continue
+
+        decorated_patients.append(p_data)
 
     return templates.TemplateResponse(
         "admin/patients.html",
         {
             "request": request,
-            "patients": patients_qs,
+            "patients": decorated_patients,
             "status": status,
+            "service": service,
             "total_patients": total_patients,
             "active_patients": active_patients,
             "discharged_patients": discharged_patients,
+            "care_count": care_count,
+            "equipment_only_count": equipment_only_count,
+            "both_count": both_count,
         }
     )
 
@@ -1219,13 +1301,12 @@ def render_patient_care(
 
     nurse_users = User.objects(role="NURSE")
     nurses = NurseProfile.objects(user__in=nurse_users)
+    doctors = DoctorProfile.objects().select_related()
     duties = NurseDuty.objects(patient=patient, is_active=True)
     notes = PatientDailyNote.objects(patient=patient).order_by("-created_at")
     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
     hospitals = HospitalModel.objects.all()
     visits = NurseVisit.objects(patient=patient).order_by("-visit_time")
-
-    print(patient.to_json())
 
     return templates.TemplateResponse(
         "admin/edit_patient.html",
@@ -1233,8 +1314,9 @@ def render_patient_care(
             "request": request,
             "patient": patient,
             "doctor": patient.assigned_doctor,
+            "doctors": doctors,
             "nurses": nurses,
-            "visits":visits,
+            "visits": visits,
             "duties": duties,
             "notes": notes,
             "vitals": vitals,
@@ -1505,15 +1587,15 @@ def hospital_page(request: Request):
     )
 
 
-@router.get("/equipment")
+@router.get("/equipment", response_class=HTMLResponse)
 def equipment_page(request: Request):
     return templates.TemplateResponse(
         "admin/equipment.html",
         {"request": request}
     )
 
-@router.get("/request-equipment")
-def equipment_page(request: Request):
+@router.get("/request-equipment", response_class=HTMLResponse)
+def request_equipment_page(request: Request):
     return templates.TemplateResponse(
         "admin/equipment_requests.html",
         {"request": request}

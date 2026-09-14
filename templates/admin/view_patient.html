@@ -62,8 +62,8 @@
         <p><b>Service End:</b> {{ patient.service_end if patient.service_end else "—" }}</p>
         <p>
           <b>Assigned Doctor:</b>
-          {% if doctor %}
-            Dr. {{ doctor.user.name }} ({{ doctor.specialization }})
+          {% if doctor and doctor.user %}
+            {% if not (doctor.user.name and doctor.user.name.strip().lower().startswith('dr')) %}Dr. {% endif %}{{ doctor.user.name }}{% if doctor.specialization %} ({{ doctor.specialization }}){% endif %}
           {% else %}
             <span class="text-muted">Not Assigned</span>
           {% endif %}

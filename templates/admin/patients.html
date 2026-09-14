@@ -1,78 +1,112 @@
-{% extends "admin/base.html" %} {% block title %}Patients{% endblock %} {% block
-content %}
+{% extends "admin/base.html" %} {% block title %}Patients Management{% endblock %} 
+{% block content %}
 
-<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
-  <!-- HEADER -->
-  <!-- <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Patients</h5>
-
-    <div class="d-flex gap-2">
-      <button
-        class="btn btn-sm btn-primary"
-        onclick="location.href = '/admin/create/patient'"
-      >
-        ➕ Add Patient
-      </button>
-    </div>
-  </div> -->
-
-  <div class="d-flex p-3 justify-content-between align-items-center flex-wrap gap-2">
+<div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4 p-4">
+  <!-- HEADER & CONTROLS -->
+  <div class="d-flex p-2 justify-content-between align-items-center flex-wrap gap-3 mb-3">
     <div>
-      <h5 class="mb-0 text-md">Patients</h5>
-      <div class="text-sm text-muted mt-1">
-        Total: {{ total_patients }} | Active: {{ active_patients }} |
-        Closed: {{ discharged_patients }}
+      <h5 class="mb-1 text-lg font-semibold text-gray-800">Patients Directory</h5>
+      <div class="text-xs text-muted">
+        Total: <span class="fw-semibold text-dark">{{ total_patients }}</span> |
+        Active: <span class="fw-semibold text-success">{{ active_patients }}</span> |
+        Closed: <span class="fw-semibold text-secondary">{{ discharged_patients }}</span> |
+        Care Services: <span class="fw-semibold text-primary">{{ care_count }}</span> |
+        Equipment Only: <span class="fw-semibold text-purple-600">{{ equipment_only_count }}</span> |
+        Both: <span class="fw-semibold text-indigo-600">{{ both_count }}</span>
       </div>
     </div>
-    <input
-    type="text"
-    id="patientSearch"
-    placeholder="Search patient..."
-    class="form-control form-control-sm"
-    style="width:200px"
-    onkeyup="filterPatients()"
-  />
-    <div class="d-flex gap-2 flex-wrap">
-      <a
-        href="/admin/patients"
-        class="btn btn-sm {% if status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-      >
-        All
-      </a>
-      <a
-        href="/admin/patients?status=active"
-        class="btn btn-sm {% if status == 'active' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-      >
-        Active
-      </a>
-      <a
-        href="/admin/patients?status=discharged"
-        class="btn btn-sm {% if status == 'discharged' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-      >
-        Closed
-      </a>
+
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <input
+        type="text"
+        id="patientSearch"
+        placeholder="Search by name, phone, equipment..."
+        class="form-control form-control-sm"
+        style="width: 260px"
+        onkeyup="filterPatients()"
+      />
+
       <button
-        class="bg-success -500 text-white px-2 py-1.5 !rounded-xl hover:bg-success -600 transition-colors"
+        class="btn btn-sm btn-success !rounded-xl"
         onclick="location.href = '/admin/create/patient'"
       >
-        Add Patient
+        <i data-lucide="plus" class="w-4 h-4 inline me-1"></i> Add Patient
       </button>
+    </div>
+  </div>
+
+  <!-- FILTER BUTTONS (SERVICE & STATUS) -->
+  <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between p-2 bg-light rounded-xl mb-4 border">
+    <!-- Service Category Filter -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-xs font-semibold text-gray-600">Service:</span>
+      <div class="btn-group btn-group-sm" role="group">
+        <a
+          href="/admin/patients?status={{ status }}&service=all"
+          class="btn {% if service == 'all' %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          All ({{ care_count + equipment_only_count + both_count }})
+        </a>
+        <a
+          href="/admin/patients?status={{ status }}&service=care"
+          class="btn {% if service == 'care' %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          🩺 Patient Care ({{ care_count }})
+        </a>
+        <a
+          href="/admin/patients?status={{ status }}&service=equipment"
+          class="btn {% if service == 'equipment' %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          🛠️ Equipment Only ({{ equipment_only_count }})
+        </a>
+        <a
+          href="/admin/patients?status={{ status }}&service=both"
+          class="btn {% if service == 'both' %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          🏥 Care + Equipment ({{ both_count }})
+        </a>
+      </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-xs font-semibold text-gray-600">Status:</span>
+      <div class="btn-group btn-group-sm" role="group">
+        <a
+          href="/admin/patients?status=all&service={{ service }}"
+          class="btn {% if status == 'all' %}btn-dark{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          All
+        </a>
+        <a
+          href="/admin/patients?status=active&service={{ service }}"
+          class="btn {% if status == 'active' %}btn-success{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          Active
+        </a>
+        <a
+          href="/admin/patients?status=discharged&service={{ service }}"
+          class="btn {% if status == 'discharged' %}btn-secondary{% else %}btn-outline-secondary bg-white{% endif %}"
+        >
+          Closed
+        </a>
+      </div>
     </div>
   </div>
 
   <div class="overflow-scroll">
     <!-- TABLE -->
-    <table class="table table-hover overflow-auto align-middle">
+    <table class="table table-hover overflow-auto align-middle" id="patientsTable">
       <thead class="table-light">
         <tr>
-          <th class="min-w-80">Patient Name</th>
-          <th class="min-w-80">Relative Name</th>
-          <!-- <th>Age</th> -->
+          <th class="min-w-64">Patient Name</th>
+          <th class="min-w-44">Relative Name</th>
           <th>Gender</th>
           <th>Age</th>
           <th class="min-w-32">Mobile</th>
-          <th class="min-w-40">Doctor</th>
-          <th class="min-w-96">Address / Ward</th>
+          <th class="min-w-48">Service Type</th>
+          <th class="min-w-40">Doctor / Staff</th>
+          <th class="min-w-64">Address / Ward</th>
           <th>Status</th>
           <th class="text-center min-w-32">Actions</th>
         </tr>
@@ -80,87 +114,136 @@ content %}
 
       <tbody>
         {% if patients %} {% for patient in patients %}
-        <tr class="patient-row">
+        <tr class="patient-row" data-service="{{ patient.category }}">
           <!-- NAME -->
-          <td>{{ patient.user.name or "Self Registered Patient" }}</td>
-          <td>{{ patient.relative_name or "-" }}</td>
+          <td>
+            <div class="fw-semibold text-gray-900">{{ patient.name }}</div>
+            {% if patient.service_start %}
+            <small class="text-muted text-[11px]">Since: {{ patient.service_start }}</small>
+            {% endif %}
+          </td>
+          <td>{{ patient.relative_name }}</td>
 
-          <!-- AGE -->
-          <!-- <td>{{ patient.age or "-" }}</td> -->
-
-          <!-- GENDER -->
-          <td>{{ patient.gender or "-" }}</td>
-          <!-- AGE -->
-          <td>{{ patient.age or "-" }}</td>
+          <!-- GENDER & AGE -->
+          <td>{{ patient.gender }}</td>
+          <td>{{ patient.age }}</td>
 
           <!-- MOBILE -->
-          <td>{{ patient.user.phone }}</td>
+          <td><span class="font-monospace text-sm">{{ patient.phone or "-" }}</span></td>
+
+          <!-- SERVICE TYPE BADGE -->
           <td>
-            {% if patient.assigned_doctor %} Dr. {{
-            patient.assigned_doctor.user.name }} {% else %}
-            <span class="text-muted">Not Assigned</span>
+            {% if patient.category == "CARE" %}
+              <span class="badge bg-blue-100 text-blue-800 border border-blue-200 px-2 py-1 rounded-pill">
+                🩺 Patient Care
+              </span>
+            {% elif patient.category == "EQUIPMENT" %}
+              <span class="badge bg-purple-100 text-purple-800 border border-purple-200 px-2 py-1 rounded-pill">
+                🛠️ Equipment Only
+              </span>
+              {% if patient.equipment_list %}
+              <div class="mt-1 d-flex flex-wrap gap-1">
+                {% for eq in patient.equipment_list %}
+                <span class="badge bg-light text-dark border text-[10px]">{{ eq }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+            {% elif patient.category == "BOTH" %}
+              <span class="badge bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-1 rounded-pill">
+                🏥 Care + Equipment
+              </span>
+              {% if patient.equipment_list %}
+              <div class="mt-1 d-flex flex-wrap gap-1">
+                {% for eq in patient.equipment_list %}
+                <span class="badge bg-light text-dark border text-[10px]">{{ eq }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
             {% endif %}
-            <!-- ROOM / WARD -->
           </td>
 
-          <td>{{ patient.address}}</td>
+          <!-- DOCTOR / STAFF -->
+          <td>
+            {% if patient.assigned_doctor %}
+            <div class="text-sm fw-medium text-gray-800">Dr. {{ patient.assigned_doctor.user.name }}</div>
+            {% endif %}
+            {% if patient.caretakers %}
+            <div class="text-xs text-muted">
+              {% for c in patient.caretakers %}
+              <span class="d-block">👤 {{ c.user.name or 'Staff' }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if not patient.assigned_doctor and not patient.caretakers %}
+            <span class="text-muted text-xs">-</span>
+            {% endif %}
+          </td>
+
+          <!-- ADDRESS -->
+          <td><small class="text-gray-700">{{ patient.address }}</small></td>
 
           <!-- STATUS -->
           <td>
             {% if patient.service_end %}
-            <span class="badge bg-success">Closed</span>
+            <span class="badge bg-secondary">Closed</span>
             {% elif patient.assigned_doctor %}
             <span class="badge bg-info text-dark">Under Observation</span>
             {% else %}
-            <span class="badge bg-warning text-dark">Admitted</span>
+            <span class="badge bg-success">Active</span>
             {% endif %}
           </td>
 
           <!-- ACTIONS -->
-          <td class="text-center flex items-center justify-center gap-0 min-w-32">
-            <a
-              href="/admin/patient/{{ patient.id }}/view"
-                          class="btn btn-sm hover:bg-yellow-100">
-                          <!-- class="btn btn-sm btn-outline-secondary" -->
-        <i data-lucide="eye" class="w-5 h-5 text-yellow-600"></i>
-            </a>
-
-            <a
-              href="/admin/patient/{{ patient.id }}/care"
-                          class="btn btn-sm hover:bg-yellow-100"
-
+          <td class="text-center">
+            <div class="d-flex items-center justify-center gap-1">
+              <a
+                href="/admin/patient/{{ patient.id }}/view"
+                class="btn btn-sm btn-light border hover:bg-yellow-100"
+                title="View Patient Profile"
               >
-              <!-- class="btn btn-sm btn-outline-warning" -->
-              <i data-lucide="pencil" class="w-5 h-5 text-yellow-600"></i>
-            </a>
+                <i data-lucide="eye" class="w-4 h-4 text-yellow-600"></i>
+              </a>
 
-            {% if not patient.service_end %}
-            <button
-              class="btn btn-sm btn-outline-danger"
-              title="Close Patient"
-              onclick="closePatient('{{ patient.id }}')"
-            >
-              🏥
-            </button>
-            {% endif %}
-            <button
-              class="btn btn-sm btn-outline-danger"
-              title="Delete Patient"
-              onclick="deletePatient('{{ patient.id }}')"
-            >
-              🗑️
-            </button>
+              <a
+                href="/admin/patient/{{ patient.id }}/care"
+                class="btn btn-sm btn-light border hover:bg-yellow-100"
+                title="Edit / Care Plan"
+              >
+                <i data-lucide="pencil" class="w-4 h-4 text-yellow-600"></i>
+              </a>
+
+              {% if not patient.service_end %}
+              <button
+                class="btn btn-sm btn-outline-warning"
+                title="Close / Discharge Patient"
+                onclick="closePatient('{{ patient.id }}')"
+              >
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </button>
+              {% endif %}
+              <button
+                class="btn btn-sm btn-outline-danger"
+                title="Delete Patient"
+                onclick="deletePatient('{{ patient.id }}')"
+              >
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
           </td>
         </tr>
         {% endfor %} {% else %}
         <tr>
-          <td colspan="9" class="text-center text-muted">No patients found</td>
+          <td colspan="10" class="text-center py-4 text-muted">
+            <i data-lucide="inbox" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
+            <p class="mb-0">No patients found matching this criteria</p>
+          </td>
         </tr>
         {% endif %}
       </tbody>
     </table>
   </div>
 </div>
+
 <script>
 function filterPatients() {
   const input = document.getElementById("patientSearch").value.toLowerCase();
@@ -168,7 +251,6 @@ function filterPatients() {
 
   rows.forEach(row => {
     const text = row.innerText.toLowerCase();
-
     if (text.includes(input)) {
       row.style.display = "";
     } else {

@@ -130,6 +130,7 @@ block content %}
     </div>
   </a>
   <a
+    href="/admin/request-equipment"
     class="bg-car cursor-pointer !bg-purple-500 -gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
   >
     <div>
@@ -137,19 +138,19 @@ block content %}
       <h3 class="text-2xl font-bold text-white">{{ in_used_equipment }}</h3>
     </div>
     <div class="text-3xl">
-      <i data-lucide="stethoscope" class="w-8 h-8 text-white ext-sky-600"></i>
+      <i data-lucide="wrench" class="w-8 h-8 text-white ext-sky-600"></i>
     </div>
   </a>
-  <!-- href="/admin/doctors" -->
   <a
+    href="/admin/billing"
     class="bg-car cursor-pointer !bg-orange-500 -gradient-to-b from-sky-100 to-white rounded-2xl shadow-soft p-4 flex justify-between items-center"
   >
     <div>
       <p class="text-sm text-mute text-white">Pending Payments</p>
-      <h3 class="text-2xl font-bold text-white">{{ pending_Payments }}</h3>
+      <h3 class="text-2xl font-bold text-white">₹ {{ pending_Payments }}</h3>
     </div>
     <div class="text-3xl">
-      <i data-lucide="stethoscope" class="w-8 h-8 text-white ext-sky-600"></i>
+      <i data-lucide="receipt-indian-rupee" class="w-8 h-8 text-white ext-sky-600"></i>
     </div>
   </a>
    <a

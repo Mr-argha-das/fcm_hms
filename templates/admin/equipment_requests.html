@@ -1,34 +1,59 @@
-{% extends "admin/base.html" %} {% block title %}Equipment Requests{% endblock
-%} {% block content %}
+{% extends "admin/base.html" %} {% block title %}Equipment Requests & In Use{% endblock %} 
+{% block content %}
 
 <div class="space-y-6">
   <!-- TABLE CARD -->
-  <div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
-    <div class="d-flex p-3 justify-content-between align-items-center">
-    <h5 class="mb-0 text-md flex w-full justify-between item-center">Equipment Requests<input
-    type="text"
-    id="searchInput"
-    class="form-control w-72"
-    placeholder="Search equipment..."
-    onkeyup="searchRequests()"
-  /></h5>
+  <div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4 p-4">
+    <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+      <div>
+        <h5 class="mb-1 text-lg font-semibold text-gray-800">Equipment in Use & Requests</h5>
+        <p class="text-xs text-muted mb-0">Manage all patient assigned equipment and pending requests</p>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <!-- Status Filter -->
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-sm btn-outline-primary active" id="filterAll" onclick="filterByStatus('ALL')">All</button>
+          <button type="button" class="btn btn-sm btn-outline-success" id="filterInUse" onclick="filterByStatus('IN_USE')">In Use (Approved)</button>
+          <button type="button" class="btn btn-sm btn-outline-warning" id="filterPending" onclick="filterByStatus('PENDING')">Pending</button>
+        </div>
+
+        <input
+          type="text"
+          id="searchInput"
+          class="form-control form-control-sm w-64"
+          placeholder="Search equipment, patient..."
+          onkeyup="searchRequests()"
+        />
+
+        <a href="/admin/equipment" class="btn btn-sm btn-primary">
+          <i data-lucide="wrench" class="w-4 h-4 inline me-1"></i> Manage Catalog
+        </a>
+      </div>
     </div>
+
     <div class="table-responsive">
-      <table class="table align-middle">
+      <table class="table align-middle table-hover">
         <thead class="table-light">
           <tr>
-            <th>Image</th>
-            <th>Equipment Name</th>
+            <th>Equipment</th>
             <th>Patient Name</th>
             <th>Mobile Number</th>
-            <th>Price Per Day</th>
-            <th>Address</th>
+            <th>Rate / Duration</th>
+            <th>Address / Ward</th>
             <th>Status</th>
-            <th width="160">Action</th>
+            <th width="180">Action</th>
           </tr>
         </thead>
 
-        <tbody id="requestTable"></tbody>
+        <tbody id="requestTable">
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+              Loading equipment...
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -37,171 +62,188 @@
 <script>
   const API_BASE = "/equipment";
   let requestsData = [];
+  let currentFilter = "ALL";
 
-
-  //////////////////////////////////////////////////////
-  // LOAD ALL REQUESTS
-  //////////////////////////////////////////////////////
-  // async function loadRequests() {
-  //   const res = await fetch(`${API_BASE}/request-equipment/all`);
-  //   const data = await res.json();
-  //   requestsData = data;
-    
-
-  //   const table = document.getElementById("requestTable");
-  //   table.innerHTML = "";
-
-  //   if (!data.length) {
-  //     table.innerHTML = `
-  //     <tr>
-  //       <td colspan="5" class="text-center text-muted">
-  //         No requests found
-  //       </td>
-  //     </tr>
-  //   `;
-  //     return;
-  //   }
-
-  //   data.forEach((r) => {
-  //     const statusBadge = r.status
-  //       ? `<span class="badge bg-success">Approved</span>`
-  //       : `<span class="badge bg-warning text-dark">Pending</span>`;
-
-  //     const actionBtn = r.status
-  //       ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
-  //       : `<button class="btn btn-sm btn-success"
-  //           onclick="approveRequest('${r.id}')">
-  //           Approve
-  //        </button>`;
-
-  //     table.innerHTML += `
-  //     <tr>
-
-  //       <td>
-  //         <img src="${r.equipment_image}"
-  //              width="55"
-  //              height="55"
-  //              class="rounded shadow-sm object-fit-cover">
-  //       </td>
-
-  //       <td class="fw-semibold">${r.equipment_title}</td>
-
-  //       <td>${r.patient_name}</td>
-  //       <td>${r.equipment_phone}</td>
-  //       <td>${r.equipment_price}</td>
-  //       <td>${r.ward}</td>
-  //       <td>${statusBadge}</td>
-
-  //       <td>${actionBtn}</td>
-
-  //     </tr>
-  //   `;
-  //   });
-  // }
- 
- function searchRequests() {
-  const keyword = document
-    .getElementById("searchInput")
-    .value.toLowerCase();
-
-  const filtered = requestsData.filter((r) =>
-    r.equipment_title.toLowerCase().includes(keyword) ||
-    r.patient_name.toLowerCase().includes(keyword) ||
-    r.equipment_phone.toLowerCase().includes(keyword)
-  );
-
-  renderTable(filtered);
-}
-  async function loadRequests() {
-  const res = await fetch(`${API_BASE}/request-equipment/all`);
-  const data = await res.json();
-
-  requestsData = data; // store data
-  renderTable(data);
-}
-function renderTable(data) {
-  const table = document.getElementById("requestTable");
-  table.innerHTML = "";
-
-  if (!data.length) {
-    table.innerHTML = `
-      <tr>
-        <td colspan="8" class="text-center text-muted">
-          No requests found
-        </td>
-      </tr>
-    `;
-    return;
+  function filterByStatus(status) {
+    currentFilter = status;
+    document.getElementById("filterAll").classList.toggle("active", status === "ALL");
+    document.getElementById("filterInUse").classList.toggle("active", status === "IN_USE");
+    document.getElementById("filterPending").classList.toggle("active", status === "PENDING");
+    applyFilters();
   }
 
-  data.forEach((r) => {
-    const statusBadge = r.status
-      ? `<span class="badge bg-success">Approved</span>`
-      : `<span class="badge bg-warning text-dark">Pending</span>`;
+  function searchRequests() {
+    applyFilters();
+  }
 
-    const approveBtn = r.status
-      ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
-      : `<button class="btn btn-sm btn-success"
-            onclick="approveRequest('${r.id}')">
-            Approve
-         </button>`;
-    const actionBtn = `${approveBtn}
-      <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteRequest('${r.id}')">Delete</button>`;
+  function applyFilters() {
+    const keyword = (document.getElementById("searchInput").value || "").toLowerCase().trim();
 
-    table.innerHTML += `
-      <tr>
+    let filtered = requestsData.filter((r) => {
+      // Status filter
+      if (currentFilter === "IN_USE" && !r.status) return false;
+      if (currentFilter === "PENDING" && r.status) return false;
 
-        <td>
-          <img src="${r.equipment_image}"
-               width="55"
-               height="55"
-               class="rounded shadow-sm object-fit-cover">
-        </td>
+      // Search keyword
+      if (!keyword) return true;
+      const title = (r.equipment_title || "").toLowerCase();
+      const patient = (r.patient_name || "").toLowerCase();
+      const phone = (r.patient_phone || r.equipment_phone || "").toLowerCase();
+      const ward = (r.ward || "").toLowerCase();
 
-        <td class="fw-semibold">${r.equipment_title}</td>
-
-        <td>${r.patient_name}</td>
-        <td>${r.equipment_phone}</td>
-        <td>${r.equipment_price}</td>
-        <td>${r.ward}</td>
-        <td>${statusBadge}</td>
-
-        <td>${actionBtn}</td>
-
-      </tr>
-    `;
-  });
-}
-  //////////////////////////////////////////////////////
-  // APPROVE REQUEST
-  //////////////////////////////////////////////////////
-async function approveRequest(id) {
-    if (!confirm("Approve this request?")) return;
-
-    await fetch(`${API_BASE}/request-equipment/approve/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: true }),
+      return title.includes(keyword) || patient.includes(keyword) || phone.includes(keyword) || ward.includes(keyword);
     });
 
-    loadRequests(); // refresh
-}
-
-async function deleteRequest(id) {
-  if (!confirm("Delete this equipment request?")) return;
-
-  const res = await fetch(`${API_BASE}/request-equipment/delete/${id}`, {
-    method: "DELETE",
-  });
-  const data = await res.json();
-  if (res.ok) {
-    loadRequests();
-  } else {
-    alert(data.detail || "Failed to delete equipment request");
+    renderTable(filtered);
   }
-}
 
-  //////////////////////////////////////////////////////
+  async function loadRequests() {
+    try {
+      const res = await fetch(`${API_BASE}/request-equipment/all`);
+      if (!res.ok) {
+        throw new Error("HTTP error " + res.status);
+      }
+      const data = await res.json();
+      requestsData = Array.isArray(data) ? data : [];
+      applyFilters();
+    } catch (err) {
+      console.error("Load requests failed:", err);
+      const table = document.getElementById("requestTable");
+      table.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-4 text-danger">
+            Failed to load equipment requests. Please refresh or try again.
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  function renderTable(data) {
+    const table = document.getElementById("requestTable");
+    table.innerHTML = "";
+
+    if (!data.length) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            <div class="py-3">
+              <i data-lucide="inbox" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
+              <p class="mb-0">No equipment requests found</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    data.forEach((r) => {
+      const statusBadge = r.status
+        ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill"><i class="bi bi-check-circle me-1"></i>In Use (Approved)</span>`
+        : `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill"><i class="bi bi-hourglass me-1"></i>Pending</span>`;
+
+      const approveBtn = r.status
+        ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Already in use">In Use</button>`
+        : `<button class="btn btn-sm btn-success" onclick="approveRequest('${r.id}')"><i class="bi bi-check-lg me-1"></i>Approve</button>`;
+
+      const actionBtn = `
+        <div class="d-flex gap-1">
+          ${approveBtn}
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest('${r.id}')" title="Delete request">
+            <i class="bi bi-trash"></i> Delete
+          </button>
+        </div>
+      `;
+
+      let durationText = "";
+      if (r.monthly_price && r.monthly_price > 0) {
+        durationText = `₹${r.monthly_price}/mo (${r.month_count || 1} mo)`;
+      } else if (r.equipment_price) {
+        durationText = `₹${r.equipment_price}/day (${r.day_duration || 1} days)`;
+      } else {
+        durationText = `${r.day_duration || 1} days`;
+      }
+
+      const patientDisplay = r.patient_id
+        ? `<a href="/admin/patient/${r.patient_id}/view" class="text-decoration-none fw-semibold text-primary">${escapeHtml(r.patient_name || "View Patient")}</a>`
+        : `<span class="fw-semibold">${escapeHtml(r.patient_name || "N/A")}</span>`;
+
+      table.innerHTML += `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded bg-light border d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; overflow: hidden; flex-shrink: 0;">
+                <i data-lucide="wrench" class="w-5 h-5 text-gray-500"></i>
+              </div>
+              <div>
+                <span class="fw-semibold text-gray-800 d-block">${escapeHtml(r.equipment_title || "Unknown Equipment")}</span>
+                ${r.request_time ? `<small class="text-muted text-[11px]">${escapeHtml(r.request_time)}</small>` : ""}
+              </div>
+            </div>
+          </td>
+
+          <td>${patientDisplay}</td>
+          <td><span class="font-monospace">${escapeHtml(r.patient_phone || r.equipment_phone || "-")}</span></td>
+          <td><span class="fw-medium">${durationText}</span></td>
+          <td><small class="text-muted">${escapeHtml(r.ward || "-")}</small></td>
+          <td>${statusBadge}</td>
+          <td>${actionBtn}</td>
+        </tr>
+      `;
+    });
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  async function approveRequest(id) {
+    if (!confirm("Approve this equipment request and mark as in use?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/request-equipment/approve/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: true }),
+      });
+
+      if (res.ok) {
+        loadRequests();
+      } else {
+        const err = await res.json();
+        alert(err.detail || "Failed to approve request");
+      }
+    } catch (e) {
+      alert("Error approving request: " + e);
+    }
+  }
+
+  async function deleteRequest(id) {
+    if (!confirm("Delete this equipment assignment/request?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/request-equipment/delete/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        loadRequests();
+      } else {
+        alert(data.detail || "Failed to delete equipment request");
+      }
+    } catch (e) {
+      alert("Error deleting request: " + e);
+    }
+  }
 
   loadRequests();
 </script>

@@ -140,6 +140,7 @@
 
         if (d.access_token) {
           localStorage.setItem("token", d.access_token);
+          document.cookie = "access_token=" + d.access_token + "; path=/; max-age=86400; SameSite=Lax";
 
           // 🔥 ROLE BASED REDIRECT
           if (d.role === "ADMIN") {
@@ -154,7 +155,7 @@
             alert("Unknown role");
           }
         } else {
-          alert("Login failed");
+          alert(d.detail || "Login failed");
         }
       }
     </script>

@@ -38,21 +38,15 @@ from core.security import SECRET_KEY, ALGORITHM
 from models import User
 app = FastAPI(
     title="Hospital Management System",
-    docs_url=None,
-    redoc_url=None,
-    )
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 
 init_db()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        "http://192.0.0.2:8000",
-        "https://wecarehhcs.in",
-        # "https://7cdss4vm-8005.inc1.devtunnels.ms"
-    ],
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -137,6 +131,10 @@ app.include_router(paymentRouter)
 app.include_router(hospital_router)
 app.include_router(aadharRouter)
 app.include_router(pdfSalaryRouter)
+@app.get("/")
+def root():
+    return RedirectResponse(url="/admin/dashboard")
+
 @app.get("/download/download-apk")
 def download_apk():
     file_path = "apk/app-release.apk"

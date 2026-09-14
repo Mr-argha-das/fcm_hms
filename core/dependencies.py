@@ -69,6 +69,12 @@ def get_current_user(
 
 def get_current_user_from_cookie(request: Request):
     token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("authorization") or ""
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header.split(" ", 1)[1]
+    if not token:
+        token = request.query_params.get("token")
 
     if not token:
         raise HTTPException(

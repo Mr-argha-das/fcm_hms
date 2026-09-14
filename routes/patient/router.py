@@ -293,10 +293,12 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
     if payload.service_end:
         patient.service_end = datetime.strptime(payload.service_end, "%Y-%m-%d")
 
-    if payload.assigned_doctor:
+    if payload.assigned_doctor and str(payload.assigned_doctor).strip():
         patient.assigned_doctor = DoctorProfile.objects(
             id=payload.assigned_doctor
         ).first()
+    elif payload.assigned_doctor == "" or (hasattr(payload, "model_fields_set") and "assigned_doctor" in payload.model_fields_set and payload.assigned_doctor is None):
+        patient.assigned_doctor = None
 
     patient.save()
 
@@ -1180,47 +1182,90 @@ def create_request(payload: EquipmentRequestCreate,user=Depends(get_current_user
     }
 
 @equipment_router.get("/request-equipment/all")
-def get_all_requests():
+def get_all_requests(status: Optional[str] = None):
+    try:
+        if status == "true" or status == "in_use" or status == "approved":
+            requests = UserEquipmentRequest.objects(status=True)
+        elif status == "false" or status == "pending":
+            requests = UserEquipmentRequest.objects(status=False)
+        else:
+            requests = UserEquipmentRequest.objects()
 
-    requests = UserEquipmentRequest.objects.select_related()
+        data = []
 
-    data = []
+        for r in requests:
+            patient = getattr(r, "patient", None)
+            equipment = getattr(r, "equipment", None)
+            patient_user = getattr(patient, "user", None) if patient else None
 
-    for r in requests:
-        data.append({
-            "id": str(r.id),
-            "patient_id": str(r.patient.id),
-            "patient_name": getattr(r.patient.user, "name", ""),
-            "patient_phone": getattr(r.patient.user, "phone", ""),
-            "ward": str(r.patient.address),
-            "equipment_id": str(r.equipment.id),
-            "equipment_title": r.equipment.title,
-            "equipment_image": r.equipment.image,
-            "equipment_price": r.equipment.price,
-            "request_time": r.created_at,
-    
-            "status": r.status
-        })
-    print(data)
+            patient_name = ""
+            patient_phone = ""
+            ward = ""
 
-    return data
+            if patient:
+                ward = str(getattr(patient, "address", "") or "")
+                if patient_user:
+                    patient_name = getattr(patient_user, "name", "") or ""
+                    patient_phone = getattr(patient_user, "phone", "") or ""
+                if not patient_name and hasattr(patient, "relative_name"):
+                    patient_name = patient.relative_name or ""
+
+            eq_title = getattr(equipment, "title", "Unknown Equipment") if equipment else "Unknown Equipment"
+            eq_image = getattr(equipment, "image", "") if equipment else ""
+            eq_price = getattr(r, "price_per_day", 0) or (getattr(equipment, "price", 0) if equipment else 0)
+
+            req_time = ""
+            if getattr(r, "created_at", None):
+                try:
+                    req_time = r.created_at.strftime("%Y-%m-%d %H:%M")
+                except Exception:
+                    req_time = str(r.created_at)
+
+            data.append({
+                "id": str(r.id),
+                "patient_id": str(patient.id) if (patient and hasattr(patient, "id")) else "",
+                "patient_name": patient_name or "Unknown Patient",
+                "patient_phone": patient_phone,
+                "equipment_phone": patient_phone,
+                "ward": ward,
+                "equipment_id": str(equipment.id) if (equipment and hasattr(equipment, "id")) else "",
+                "equipment_title": eq_title,
+                "equipment_image": eq_image,
+                "equipment_price": eq_price,
+                "day_duration": getattr(r, "day_duration", 1) or 1,
+                "monthly_price": getattr(r, "monthly_price", 0) or 0,
+                "month_count": getattr(r, "month_count", 1) or 1,
+                "request_time": req_time,
+                "status": bool(r.status)
+            })
+
+        return data
+    except Exception as e:
+        print("Error fetching equipment requests:", e)
+        return []
 
 @equipment_router.get("/request-equipment/patient/{patient_id}")
 def get_patient_requests(patient_id: str):
+    try:
+        requests = UserEquipmentRequest.objects(patient=patient_id)
 
-    requests = UserEquipmentRequest.objects(patient=patient_id).select_related()
+        data = []
 
-    data = []
+        for r in requests:
+            equipment = getattr(r, "equipment", None)
+            data.append({
+                "id": str(r.id),
+                "equipment_title": getattr(equipment, "title", "Equipment") if equipment else "Equipment",
+                "equipment_image": getattr(equipment, "image", "") if equipment else "",
+                "equipment_price": getattr(r, "price_per_day", 0) or (getattr(equipment, "price", 0) if equipment else 0),
+                "day_duration": getattr(r, "day_duration", 1),
+                "status": bool(r.status)
+            })
 
-    for r in requests:
-        data.append({
-            "id": str(r.id),
-            "equipment_title": r.equipment.title,
-            "equipment_image": r.equipment.image,
-            "status": r.status
-        })
-
-    return data
+        return data
+    except Exception as e:
+        print("Error fetching patient equipment requests:", e)
+        return []
 
 @equipment_router.put("/request-equipment/approve/{request_id}")
 def update_request(request_id: str, payload: EquipmentRequestUpdate):

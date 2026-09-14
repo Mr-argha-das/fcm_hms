@@ -136,9 +136,11 @@
       <select class="form-control" id="assigned_doctor">
         <option value="">Not Assigned</option>
         {% for d in doctors %}
+        {% if d and d.user %}
         <option value="{{ d.id }}">
-          Dr. {{ d.user.name }} ({{ d.specialization }})
+          {% if not (d.user.name and d.user.name.strip().lower().startswith('dr')) %}Dr. {% endif %}{{ d.user.name or 'Doctor' }}{% if d.specialization %} ({{ d.specialization }}){% endif %}
         </option>
+        {% endif %}
         {% endfor %}
       </select>
     </div>
