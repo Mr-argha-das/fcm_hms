@@ -434,92 +434,112 @@
 <!-- ========================================================= -->
 <!-- ================= BILLING TAB =========================== -->
 <!-- ========================================================= -->
-<div id="tab-billing" class="tab-content hidden">
+<div id="tab-billing" class="tab-content hidden space-y-4">
 
 <!-- ================= GENERATE BILL ================= -->
-<div class="bg-card  mb-3  border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="flex items-center p-2 px-3 !rounded-t-2xl   bg-light">
-    <b><i data-lucide="file-text" class="w-4 h-4 inline mb-1"></i> Generate Bill</b>
+<div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+  <div class="flex items-center justify-between p-3.5 px-4 bg-slate-50 border-b border-slate-100">
+    <div class="flex items-center gap-2">
+      <i data-lucide="receipt" class="w-4 h-4 text-sky-600"></i>
+      <b class="text-sm text-slate-800">Generate Patient Bill</b>
+    </div>
+    <span class="text-xs font-semibold text-slate-400">Select Billing Category</span>
   </div>
-  <div class="card-body  p-3">
+  
+  <div class="p-4 space-y-4">
 
-    <div class="row g-2 mb-3">
-      <div class="col-md-4">
-        <label class="form-label text-xs fw-bold text-muted">BILLING TYPE</label>
-        <select id="patient_billing_type" class="form-select form-select-sm" onchange="onPatientBillingTypeChange()">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div>
+        <label class="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Billing Type</label>
+        <select id="patient_billing_type" class="form-select form-select-sm text-xs font-bold rounded-xl border-slate-200 py-2 focus:border-sky-500" onchange="onPatientBillingTypeChange()">
           <option value="SERVICE" selected>🩺 Service Billing (Nurse Duty & Medicines)</option>
           <option value="EQUIPMENT">🛠️ Equipment Billing (Assigned Equipment)</option>
           <option value="ALL">📦 Combined (All Items)</option>
         </select>
       </div>
-      <div class="col-md-4">
-        <label class="form-label text-xs fw-bold text-muted">DISCOUNT (₹)</label>
-        <input id="discount" type="number" class="form-control form-control-sm" placeholder="Discount">
+      <div>
+        <label class="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Discount (₹)</label>
+        <input id="discount" type="number" min="0" class="form-control form-control-sm text-xs font-semibold rounded-xl border-slate-200 py-2" placeholder="0.00">
       </div>
-      <div class="col-md-4">
-        <label class="form-label text-xs fw-bold text-muted">EXTRA CHARGES (₹)</label>
-        <input id="extra_charges" type="number" class="form-control form-control-sm" placeholder="Extra Charges">
+      <div>
+        <label class="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Extra Charges (₹)</label>
+        <input id="extra_charges" type="number" min="0" class="form-control form-control-sm text-xs font-semibold rounded-xl border-slate-200 py-2" placeholder="0.00">
       </div>
     </div>
 
-    <h6 class="mt-3">Other Billing Items</h6>
+    <div class="border-t border-slate-100 pt-3">
+      <div class="flex items-center justify-between mb-2">
+        <h6 class="text-xs font-extrabold uppercase text-slate-600">Custom Line Items</h6>
+        <button class="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition flex items-center gap-1" onclick="addOtherItemRow()">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Custom Item
+        </button>
+      </div>
 
-    <table class="table table-sm table-bordered mb-3">
-      <thead class="table-light">
-        <tr>
-          <th>Title</th>
-          <th width="140">Start Date</th>
-          <th width="140">Till Date</th>
-          <th width="80">Days</th>
-          <th width="120">Qty</th>
-          <th width="120">Price</th>
-          <th width="60">GST</th>
-          <th width="120">Unit Price</th>
-          <th width="60"></th>
-        </tr>
-      </thead>
-      <tbody id="otherItemsTable"></tbody>
-    </table>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse border border-slate-200 rounded-xl overflow-hidden">
+          <thead>
+            <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-500">
+              <th class="p-2">Item Title</th>
+              <th width="130" class="p-2">Start Date</th>
+              <th width="130" class="p-2">Till Date</th>
+              <th width="70" class="p-2">Days</th>
+              <th width="70" class="p-2">Qty</th>
+              <th width="100" class="p-2">Price (₹)</th>
+              <th width="80" class="p-2">GST %</th>
+              <th width="110" class="p-2">Total (₹)</th>
+              <th width="40" class="p-2 text-center"></th>
+            </tr>
+          </thead>
+          <tbody id="otherItemsTable" class="divide-y divide-slate-100 text-xs"></tbody>
+        </table>
+      </div>
+    </div>
 
-    <button class="btn flex items-center btn-sm btn-outline-secondary mb-2" onclick="addOtherItemRow()">
-      <i data-lucide="plus-circle" class="w-4 h-4 me-1"></i> Add Item
-    </button>
-    <br>
-    <button id="patientGenerateBillBtn" class="btn btn-sm btn-success px-3" onclick="generateBill()">
-      Generate Service Bill
-    </button>
+    <div class="pt-2 flex justify-end">
+      <button id="patientGenerateBillBtn" class="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition flex items-center gap-2" onclick="generateBill()">
+        <i data-lucide="file-check-2" class="w-4 h-4"></i>
+        <span>Generate Service Bill</span>
+      </button>
+    </div>
+
   </div>
 </div>
 
 <!-- ================= BILL LIST ================= -->
-<div class="bg-card  mb-3  border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-header flex justify-content-between align-items-center  p-2 px-3 !rounded-t-2xl   bg-light">
-    <b><i data-lucide="file-text" class="w-4 h-4 inline mb-1"></i> Bills</b>
-    <div class="d-flex justify-content-end">
+<div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+  <div class="flex items-center justify-between p-3.5 px-4 bg-slate-50 border-b border-slate-100">
+    <div class="flex items-center gap-2">
+      <i data-lucide="history" class="w-4 h-4 text-slate-600"></i>
+      <b class="text-sm text-slate-800">Generated Invoices</b>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="text-[11px] font-bold text-slate-400 uppercase">GST Rate for PDF:</span>
       <input
         id="gst_download_percent"
         type="number"
-        class="form-control form-control-sm"
+        min="0"
+        max="100"
+        class="form-control form-control-sm text-xs font-bold text-center w-16 rounded-lg"
         value="18"
-        style="width:120px"
       />
     </div>
   </div>
-  <div class="card-body">
-    <table class="table table-sm table-bordered">
-      <thead class="table-light">
-        <tr>
-          <th>Date</th>
-          <th>Type</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>PDF</th>
-          <th>Action</th>
+  
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+          <th class="py-3 px-4">Bill Date</th>
+          <th class="py-3 px-4">Type</th>
+          <th class="py-3 px-4">Amount</th>
+          <th class="py-3 px-4">Status</th>
+          <th class="py-3 px-4">PDF Downloads</th>
+          <th class="py-3 px-4 text-center">Action</th>
         </tr>
       </thead>
-      <tbody id="billTable">
+      <tbody id="billTable" class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
         <tr>
-          <td colspan="6" class="text-center text-muted">Loading...</td>
+          <td colspan="6" class="text-center text-slate-400 py-6">Loading invoices...</td>
         </tr>
       </tbody>
     </table>
@@ -718,15 +738,16 @@ function onPatientBillingTypeChange() {
   const bType = document.getElementById("patient_billing_type").value;
   const btn = document.getElementById("patientGenerateBillBtn");
   if (!btn) return;
+  const span = btn.querySelector("span");
   if (bType === "SERVICE") {
-    btn.textContent = "Generate Service Bill";
-    btn.className = "btn btn-sm btn-success px-3";
+    if (span) span.textContent = "Generate Service Bill";
+    btn.className = "px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition flex items-center gap-2";
   } else if (bType === "EQUIPMENT") {
-    btn.textContent = "Generate Equipment Bill";
-    btn.className = "btn btn-sm btn-warning text-dark px-3";
+    if (span) span.textContent = "Generate Equipment Bill";
+    btn.className = "px-5 py-2.5 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 rounded-xl shadow-md transition flex items-center gap-2";
   } else {
-    btn.textContent = "Generate Combined Bill";
-    btn.className = "btn btn-sm btn-primary px-3";
+    if (span) span.textContent = "Generate Combined Bill";
+    btn.className = "px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition flex items-center gap-2";
   }
 }
 
@@ -801,11 +822,11 @@ function updateRowTotal(el) {
 
 function renderPatientBillTypeBadge(type) {
   if (type === "EQUIPMENT") {
-    return `<span class="badge bg-warning text-dark">🛠️ Equipment</span>`;
+    return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">🛠️ Equipment</span>`;
   } else if (type === "ALL") {
-    return `<span class="badge text-white" style="background:#7e22ce;">📦 Combined</span>`;
+    return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">📦 Combined</span>`;
   } else {
-    return `<span class="badge bg-info text-dark">🩺 Service</span>`;
+    return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200">🩺 Service</span>`;
   }
 }
 

@@ -1,170 +1,274 @@
 {% extends "admin/base.html" %}
-{% block title %}Patient Billing{% endblock %}
+{% block title %}Patient Billing - Hospital Management{% endblock %}
 
 {% block content %}
-<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-  <div>
-    <h1 class="text-xl font-semibold text-slate-800">Patient Billing</h1>
-    <p class="text-sm text-slate-500">Generate service or equipment bills and manage payment history</p>
+<!-- HEADER BAR -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+  <div class="flex items-center gap-3">
+    <div class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center border border-sky-200/50 shadow-sm">
+      <i data-lucide="receipt" class="w-6 h-6"></i>
+    </div>
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Patient Billing</h1>
+      <p class="text-xs font-medium text-slate-500">Generate service or equipment invoices and manage payment records</p>
+    </div>
   </div>
-  <button
-    type="button"
-    onclick="loadBillingHistory()"
-    class="btn btn-outline-primary btn-sm flex items-center gap-2"
-  >
-    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-    Refresh
-  </button>
-</div>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-  <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
-    <p class="text-sm text-slate-500">Total Billed</p>
-    <p id="totalBilled" class="text-2xl font-semibold text-slate-800">₹ {{ "%.2f"|format(total_billed) }}</p>
-  </div>
-  <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
-    <p class="text-sm text-slate-500">Total Paid</p>
-    <p id="totalPaid" class="text-2xl font-semibold text-emerald-600">₹ {{ "%.2f"|format(total_paid) }}</p>
-  </div>
-  <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
-    <p class="text-sm text-slate-500">Outstanding</p>
-    <p id="totalDue" class="text-2xl font-semibold text-rose-600">₹ {{ "%.2f"|format(total_due) }}</p>
+  
+  <div class="flex items-center gap-2">
+    <button
+      type="button"
+      onclick="loadBillingHistory()"
+      class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition flex items-center gap-2"
+    >
+      <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-500"></i>
+      Refresh Data
+    </button>
   </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
-  <section class="xl:col-span-1 bg-white border border-slate-100 rounded-lg shadow-sm">
-    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
-      <h2 class="font-semibold text-slate-800">Generate Bill</h2>
-      <a href="/admin/create/patient" class="btn btn-sm btn-outline-primary">
-        Add Patient
+<!-- KPI SUMMARY STATS -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  <!-- TOTAL BILLED -->
+  <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm relative overflow-hidden flex items-center justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total Billed</p>
+      <h3 id="totalBilled" class="text-2xl font-extrabold text-slate-800">₹ {{ "%.2f"|format(total_billed) }}</h3>
+      <p class="text-[11px] font-medium text-slate-400 mt-1">Cumulative invoices generated</p>
+    </div>
+    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+      <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+    </div>
+  </div>
+
+  <!-- TOTAL PAID -->
+  <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm relative overflow-hidden flex items-center justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total Collected</p>
+      <h3 id="totalPaid" class="text-2xl font-extrabold text-emerald-600">₹ {{ "%.2f"|format(total_paid) }}</h3>
+      <p class="text-[11px] font-medium text-emerald-600/70 mt-1">Completed payments</p>
+    </div>
+    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+      <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+    </div>
+  </div>
+
+  <!-- OUTSTANDING -->
+  <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm relative overflow-hidden flex items-center justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Outstanding Balance</p>
+      <h3 id="totalDue" class="text-2xl font-extrabold text-rose-600">₹ {{ "%.2f"|format(total_due) }}</h3>
+      <p class="text-[11px] font-medium text-rose-600/70 mt-1">Pending collections</p>
+    </div>
+    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+      <i data-lucide="alert-circle" class="w-6 h-6"></i>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+  
+  <!-- LEFT: GENERATE BILL FORM -->
+  <section class="xl:col-span-4 bg-white border border-slate-200/80 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+    <div class="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-5 h-5 text-sky-600"></i>
+        <h2 class="font-bold text-slate-800 text-base">Generate Bill</h2>
+      </div>
+      <a href="/admin/create/patient" class="text-xs font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200/60 transition">
+        + Add Patient
       </a>
     </div>
 
-    <div class="p-4 space-y-4">
+    <div class="p-5 space-y-5 flex-1">
+      
+      <!-- BILLING TYPE SEGMENTED CONTROLS -->
       <div>
-        <label class="form-label font-medium text-slate-700">Billing Type</label>
-        <select id="billingType" class="form-select mb-1" onchange="onBillingTypeChange()">
-          <option value="SERVICE" selected>🩺 Service Billing (Nurse Duty & Medicines)</option>
-          <option value="EQUIPMENT">🛠️ Equipment Billing (Assigned Equipment)</option>
-          <option value="ALL">📦 Combined (All Unbilled Items)</option>
-        </select>
-        <p id="billingTypeNotice" class="text-xs text-slate-500 mt-1">
-          Auto-bills active Nurse Duties and Medications for selected patient.
-        </p>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Select Billing Type</label>
+        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/60" id="billingTypeSegment">
+          <button
+            type="button"
+            id="tabServiceBtn"
+            onclick="setBillingType('SERVICE')"
+            class="py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 bg-white text-sky-700 shadow-sm border border-slate-200/80"
+          >
+            <span>🩺 Service</span>
+          </button>
+          <button
+            type="button"
+            id="tabEquipBtn"
+            onclick="setBillingType('EQUIPMENT')"
+            class="py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-slate-900"
+          >
+            <span>🛠️ Equipment</span>
+          </button>
+          <button
+            type="button"
+            id="tabAllBtn"
+            onclick="setBillingType('ALL')"
+            class="py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-slate-900"
+          >
+            <span>📦 Combined</span>
+          </button>
+        </div>
+        <input type="hidden" id="billingType" value="SERVICE" />
+        
+        <!-- HELPER BANNER -->
+        <div id="billingTypeNoticeBox" class="mt-2.5 p-2.5 rounded-xl text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200/70 flex items-start gap-2">
+          <i data-lucide="info" class="w-4 h-4 text-sky-600 shrink-0 mt-0.5"></i>
+          <span id="billingTypeNotice">Auto-calculates active Nurse Duties & Medication charges for the selected patient.</span>
+        </div>
       </div>
 
+      <!-- PATIENT SELECT -->
       <div>
-        <label class="form-label">Patient</label>
-        <input
-          id="patientSearchInput"
-          class="form-control mb-2"
-          placeholder="Search patient by name or phone"
-          oninput="filterBillingPatients()"
-        />
-        <select id="billingPatient" class="form-select">
-          <option value="">Select patient</option>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Select Patient</label>
+        <div class="relative mb-2">
+          <input
+            id="patientSearchInput"
+            class="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition"
+            placeholder="Search patient by name or phone..."
+            oninput="filterBillingPatients()"
+          />
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+        </div>
+        <select id="billingPatient" class="form-select text-xs font-medium text-slate-800 rounded-xl border-slate-200 py-2 focus:border-sky-500 focus:ring-sky-500/20">
+          <option value="">Choose patient profile...</option>
           {% for patient in patients %}
           <option value="{{ patient.id }}">
-            {{ patient.user.name or "-" }} ({{ patient.user.phone }})
+            {{ patient.user.name or "Unnamed Patient" }} — 📞 {{ patient.user.phone or "No Phone" }}
           </option>
           {% endfor %}
         </select>
       </div>
 
+      <!-- DISCOUNT & EXTRA CHARGES -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="form-label">Discount</label>
-          <input id="billingDiscount" type="number" min="0" value="0" class="form-control" />
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Discount (₹)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">₹</span>
+            <input id="billingDiscount" type="number" min="0" value="0" class="w-full pl-7 pr-3 py-2 text-xs font-semibold text-slate-800 border border-slate-200 rounded-xl focus:border-sky-500 outline-none" />
+          </div>
         </div>
         <div>
-          <label class="form-label">Extra Charges</label>
-          <input id="billingExtra" type="number" min="0" value="0" class="form-control" />
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Extra Charges (₹)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">₹</span>
+            <input id="billingExtra" type="number" min="0" value="0" class="w-full pl-7 pr-3 py-2 text-xs font-semibold text-slate-800 border border-slate-200 rounded-xl focus:border-sky-500 outline-none" />
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-slate-700">Additional Items</h3>
-        <button type="button" onclick="addBillingItem()" class="btn btn-sm btn-outline-secondary">
-          Add Item
-        </button>
+      <!-- ADDITIONAL ITEMS -->
+      <div class="border-t border-slate-100 pt-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Custom Line Items</h3>
+          <button type="button" onclick="addBillingItem()" class="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            Add Item
+          </button>
+        </div>
+
+        <div id="billingItems" class="space-y-3"></div>
       </div>
 
-      <div id="billingItems" class="space-y-3"></div>
-
+      <!-- GENERATE SUBMIT BUTTON -->
       <button
         id="generateBillButton"
         type="button"
         onclick="generatePatientBill()"
-        class="btn btn-success w-100"
+        class="w-full py-3 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2"
       >
-        Generate Service Bill
+        <i data-lucide="file-check-2" class="w-4 h-4"></i>
+        <span>Generate Service Bill</span>
       </button>
+
     </div>
   </section>
 
-  <section class="xl:col-span-2 bg-white border border-slate-100 rounded-lg shadow-sm">
-    <div class="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-      <h2 class="font-semibold text-slate-800">Billing History</h2>
-      <div class="flex flex-wrap gap-2">
-        <input
-          id="billingSearch"
-          class="form-control form-control-sm"
-          style="width: 170px"
-          placeholder="Patient, phone, invoice"
-          oninput="renderBillingHistory()"
-        />
+  <!-- RIGHT: BILLING HISTORY -->
+  <section class="xl:col-span-8 bg-white border border-slate-200/80 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+    <!-- FILTERS HEADER -->
+    <div class="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="history" class="w-5 h-5 text-slate-600"></i>
+        <h2 class="font-bold text-slate-800 text-base">Billing History</h2>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- SEARCH -->
+        <div class="relative">
+          <input
+            id="billingSearch"
+            class="pl-8 pr-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:border-sky-500 outline-none w-44"
+            placeholder="Search invoice or patient..."
+            oninput="renderBillingHistory()"
+          />
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+        </div>
+
+        <!-- TYPE FILTER -->
         <select
           id="billingTypeFilter"
-          class="form-select form-select-sm"
-          style="width: 140px"
+          class="py-1.5 px-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:border-sky-500 outline-none"
           onchange="loadBillingHistory()"
         >
-          <option value="">All Types</option>
-          <option value="SERVICE">Service Billing</option>
-          <option value="EQUIPMENT">Equipment Billing</option>
+          <option value="">All Billing Types</option>
+          <option value="SERVICE">🩺 Service Billing</option>
+          <option value="EQUIPMENT">🛠️ Equipment Billing</option>
         </select>
+
+        <!-- STATUS FILTER -->
         <select
           id="billingStatus"
-          class="form-select form-select-sm"
-          style="width: 110px"
+          class="py-1.5 px-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:border-sky-500 outline-none"
           onchange="loadBillingHistory()"
         >
           <option value="">All Status</option>
-          <option value="UNPAID">Unpaid</option>
-          <option value="PAID">Paid</option>
+          <option value="UNPAID">🔴 Unpaid</option>
+          <option value="PAID">🟢 Paid</option>
         </select>
-        <input
-          id="downloadGst"
-          type="number"
-          min="0"
-          max="100"
-          value="18"
-          class="form-control form-control-sm"
-          title="GST percentage for GST PDF"
-          style="width: 70px"
-        />
+
+        <!-- GST % FOR DOWNLOAD -->
+        <div class="flex items-center gap-1 bg-slate-100/80 px-2 py-1 rounded-xl border border-slate-200/60" title="GST Rate for PDF Download">
+          <span class="text-[10px] font-bold text-slate-500 uppercase">GST%</span>
+          <input
+            id="downloadGst"
+            type="number"
+            min="0"
+            max="100"
+            value="18"
+            class="w-11 text-center py-0.5 text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded-md outline-none"
+          />
+        </div>
       </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Invoice</th>
-            <th>Patient</th>
-            <th>Type</th>
-            <th>Date</th>
-            <th>Items</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>PDF</th>
-            <th>Payment</th>
+    <!-- TABLE AREA -->
+    <div class="overflow-x-auto flex-1">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-100/70 border-b border-slate-200/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+            <th class="py-3 px-4">Invoice No</th>
+            <th class="py-3 px-4">Patient Profile</th>
+            <th class="py-3 px-4">Type</th>
+            <th class="py-3 px-4">Date</th>
+            <th class="py-3 px-4 text-center">Items</th>
+            <th class="py-3 px-4">Grand Total</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4">PDF Download</th>
+            <th class="py-3 px-4 text-center">Actions</th>
           </tr>
         </thead>
-        <tbody id="billingHistory">
+        <tbody id="billingHistory" class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
           <tr>
-            <td colspan="9" class="text-center text-muted py-4">Loading...</td>
+            <td colspan="9" class="text-center text-slate-400 py-10">
+              <div class="flex flex-col items-center justify-center gap-2">
+                <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-sky-500"></i>
+                <span>Loading billing history...</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -172,110 +276,125 @@
   </section>
 </div>
 
+<!-- EDIT BILL MODAL -->
 <div class="modal fade" id="billEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h6 class="modal-title">Edit Bill <span id="editBillInvoice" class="text-muted"></span></h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-content rounded-2xl border-0 shadow-2xl overflow-hidden">
+      
+      <div class="modal-header bg-slate-900 text-white px-5 py-3.5 border-0">
+        <div class="flex items-center gap-2">
+          <i data-lucide="edit-3" class="w-5 h-5 text-sky-400"></i>
+          <h5 class="modal-title font-bold text-sm tracking-wide">Edit Invoice <span id="editBillInvoice" class="text-sky-300 font-mono"></span></h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+
+      <div class="modal-body p-5 bg-slate-50/50 space-y-4">
         <input type="hidden" id="editBillId">
-        <div class="row g-2 mb-3">
-          <div class="col-md-3">
-            <label class="form-label">Invoice No</label>
-            <input id="editBillInvoiceNo" class="form-control">
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Invoice Number</label>
+            <input id="editBillInvoiceNo" class="form-control form-control-sm text-xs font-bold font-mono text-slate-800" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Billing Type</label>
-            <select id="editBillType" class="form-select">
-              <option value="SERVICE">Service</option>
-              <option value="EQUIPMENT">Equipment</option>
-              <option value="ALL">Combined</option>
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Billing Type</label>
+            <select id="editBillType" class="form-select form-select-sm text-xs font-bold">
+              <option value="SERVICE">🩺 Service Billing</option>
+              <option value="EQUIPMENT">🛠️ Equipment Billing</option>
+              <option value="ALL">📦 Combined</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Bill Date</label>
-            <input id="editBillDate" type="date" class="form-control">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Bill Date</label>
+            <input id="editBillDate" type="date" class="form-control form-control-sm text-xs" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Bill Month</label>
-            <input id="editBillMonth" class="form-control" placeholder="Jul 2026">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Bill Month</label>
+            <input id="editBillMonth" class="form-control form-control-sm text-xs" placeholder="e.g. Sep 2026" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Bill Status</label>
-            <select id="editBillStatus" class="form-select">
-              <option value="UNPAID">UNPAID</option>
-              <option value="PAID">PAID</option>
+
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Bill Status</label>
+            <select id="editBillStatus" class="form-select form-select-sm text-xs font-bold">
+              <option value="UNPAID">🔴 UNPAID</option>
+              <option value="PAID">🟢 PAID</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Payment Mode</label>
-            <select id="editBillPaymentMode" class="form-select">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Payment Mode</label>
+            <select id="editBillPaymentMode" class="form-select form-select-sm text-xs">
               <option value="">None</option>
-              <option value="CASH">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="BANK">Bank</option>
-              <option value="CARD">Card</option>
+              <option value="CASH">💵 Cash</option>
+              <option value="UPI">📱 UPI</option>
+              <option value="BANK">🏦 Bank</option>
+              <option value="CARD">💳 Card</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Paid Date</label>
-            <input id="editBillPaidAt" type="date" class="form-control">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Paid Date</label>
+            <input id="editBillPaidAt" type="date" class="form-control form-control-sm text-xs" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Paid Amount</label>
-            <input id="editBillPaidAmount" type="number" min="0" class="form-control" oninput="updateEditBillTotals()">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Paid Amount (₹)</label>
+            <input id="editBillPaidAmount" type="number" min="0" class="form-control form-control-sm text-xs font-bold text-emerald-600" oninput="updateEditBillTotals()" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Invoice Status</label>
-            <select id="editInvoiceStatus" class="form-select">
+
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Invoice Status</label>
+            <select id="editInvoiceStatus" class="form-select form-select-sm text-xs font-bold">
               <option value="DUE">DUE</option>
               <option value="PARTIAL">PARTIAL</option>
               <option value="PAID">PAID</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Discount</label>
-            <input id="editBillDiscount" type="number" min="0" class="form-control" oninput="updateEditBillTotals()">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Discount (₹)</label>
+            <input id="editBillDiscount" type="number" min="0" class="form-control form-control-sm text-xs" oninput="updateEditBillTotals()" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Extra Charges</label>
-            <input id="editBillExtra" type="number" min="0" class="form-control" oninput="updateEditBillTotals()">
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Extra Charges (₹)</label>
+            <input id="editBillExtra" type="number" min="0" class="form-control form-control-sm text-xs" oninput="updateEditBillTotals()" />
           </div>
-          <div class="col-md-3">
-            <label class="form-label">Sub Total</label>
-            <input id="editBillSubTotal" class="form-control" readonly>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Grand Total</label>
-            <input id="editBillGrandTotal" class="form-control" readonly>
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Grand Total (₹)</label>
+            <input id="editBillGrandTotal" class="form-control form-control-sm text-xs font-extrabold text-slate-900 bg-slate-100" readonly />
+            <input id="editBillSubTotal" type="hidden" />
           </div>
         </div>
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Title</th>
-                <th width="130">Start Date</th>
-                <th width="130">Till Date</th>
-                <th width="80">Days</th>
-                <th width="90">Qty</th>
-                <th width="110">Price</th>
-                <th width="90">GST</th>
-                <th width="120">Total</th>
-                <th width="50"></th>
-              </tr>
-            </thead>
-            <tbody id="editBillItems"></tbody>
-          </table>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h6 class="text-xs font-bold uppercase tracking-wider text-slate-700">Bill Items</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary text-xs font-bold" onclick="addEditBillItemRow()">+ Add Row</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle text-xs mb-0">
+              <thead class="table-light text-[11px] uppercase text-slate-500">
+                <tr>
+                  <th>Item Title</th>
+                  <th width="120">Start</th>
+                  <th width="120">Till</th>
+                  <th width="70">Days</th>
+                  <th width="70">Qty</th>
+                  <th width="100">Unit Price</th>
+                  <th width="80">GST %</th>
+                  <th width="110">Total</th>
+                  <th width="40"></th>
+                </tr>
+              </thead>
+              <tbody id="editBillItems"></tbody>
+            </table>
+          </div>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addEditBillItemRow()">Add Item</button>
+
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-sm btn-primary" onclick="saveBillEdit()">Save Bill</button>
+
+      <div class="modal-footer bg-slate-100 px-5 py-3 border-0 flex items-center justify-between">
+        <button type="button" class="btn btn-sm btn-light border text-slate-600 font-bold" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm btn-primary font-bold px-4" onclick="saveBillEdit()">Save Changes</button>
       </div>
+
     </div>
   </div>
 </div>
@@ -292,52 +411,89 @@
     };
   }
 
-  function onBillingTypeChange() {
-    const type = document.getElementById("billingType").value;
+  function setBillingType(type) {
+    document.getElementById("billingType").value = type;
+    
+    const sBtn = document.getElementById("tabServiceBtn");
+    const eBtn = document.getElementById("tabEquipBtn");
+    const aBtn = document.getElementById("tabAllBtn");
     const notice = document.getElementById("billingTypeNotice");
-    const btn = document.getElementById("generateBillButton");
+    const noticeBox = document.getElementById("billingTypeNoticeBox");
+    const generateBtn = document.getElementById("generateBillButton");
+
+    // Reset styles
+    [sBtn, eBtn, aBtn].forEach(btn => {
+      btn.className = "py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
+    });
 
     if (type === "SERVICE") {
-      notice.textContent = "Auto-bills active Nurse Duties and Medications for selected patient.";
-      btn.textContent = "Generate Service Bill";
-      btn.className = "btn btn-success w-100";
+      sBtn.className = "py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 bg-white text-sky-700 shadow-sm border border-slate-200/80";
+      notice.textContent = "Auto-calculates active Nurse Duties & Medication charges for the selected patient.";
+      noticeBox.className = "mt-2.5 p-2.5 rounded-xl text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200/70 flex items-start gap-2";
+      generateBtn.className = "w-full py-3 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2";
+      generateBtn.querySelector("span").textContent = "Generate Service Bill";
     } else if (type === "EQUIPMENT") {
-      notice.textContent = "Auto-bills active Equipment assignments and rentals for selected patient.";
-      btn.textContent = "Generate Equipment Bill";
-      btn.className = "btn btn-warning text-dark w-100";
+      eBtn.className = "py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 bg-white text-amber-700 shadow-sm border border-slate-200/80";
+      notice.textContent = "Auto-calculates active Equipment assignments and daily/monthly rental charges.";
+      noticeBox.className = "mt-2.5 p-2.5 rounded-xl text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/70 flex items-start gap-2";
+      generateBtn.className = "w-full py-3 px-4 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 active:scale-[0.99] rounded-xl shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-2";
+      generateBtn.querySelector("span").textContent = "Generate Equipment Bill";
     } else {
-      notice.textContent = "Auto-bills all active duties, medications, and equipment assignments combined.";
-      btn.textContent = "Generate Combined Bill";
-      btn.className = "btn btn-primary w-100";
+      aBtn.className = "py-2 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 bg-white text-purple-700 shadow-sm border border-slate-200/80";
+      notice.textContent = "Auto-calculates ALL active Nurse Duties, Medications, and Equipment assignments combined.";
+      noticeBox.className = "mt-2.5 p-2.5 rounded-xl text-xs font-medium bg-purple-50 text-purple-800 border border-purple-200/70 flex items-start gap-2";
+      generateBtn.className = "w-full py-3 px-4 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] rounded-xl shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2";
+      generateBtn.querySelector("span").textContent = "Generate Combined Bill";
     }
   }
 
   function billingItemTemplate() {
     return `
-      <div class="billing-item border border-slate-200 rounded-lg p-3">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-xs font-semibold text-slate-500">BILL ITEM</span>
-          <button type="button" class="text-rose-600" onclick="this.closest('.billing-item').remove()" title="Remove">
+      <div class="billing-item bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 relative space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Custom Line Item</span>
+          <button type="button" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1.5 py-0.5 rounded hover:bg-rose-50" onclick="this.closest('.billing-item').remove()" title="Remove">
             ✕
           </button>
         </div>
-        <input class="form-control form-control-sm item-title mb-2" placeholder="Item Name (e.g. Consultation)" />
-        <div class="grid grid-cols-2 gap-2 mb-2">
-          <input type="date" class="form-control form-control-sm item-start" onchange="updateBillingItem(this)" />
-          <input type="date" class="form-control form-control-sm item-till" onchange="updateBillingItem(this)" />
+        <input class="w-full px-3 py-1.5 text-xs font-medium text-slate-800 border border-slate-200 rounded-lg outline-none focus:border-sky-500 bg-white item-title" placeholder="Item Name (e.g. Doctor Consultation)" />
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[9px] font-bold text-slate-400 uppercase">Start Date</label>
+            <input type="date" class="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg item-start bg-white" onchange="updateBillingItem(this)" />
+          </div>
+          <div>
+            <label class="block text-[9px] font-bold text-slate-400 uppercase">Till Date</label>
+            <input type="date" class="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg item-till bg-white" onchange="updateBillingItem(this)" />
+          </div>
         </div>
-        <div class="grid grid-cols-4 gap-2 mb-2">
-          <input type="number" min="1" class="form-control form-control-sm item-days" placeholder="Days" onchange="updateBillingItem(this)" />
-          <input type="number" min="1" value="1" class="form-control form-control-sm item-qty" placeholder="Qty" onchange="updateBillingItem(this)" />
-          <input type="number" min="0" class="form-control form-control-sm item-price" placeholder="Price" onchange="updateBillingItem(this)" />
-          <select class="form-select form-select-sm item-gst" onchange="updateBillingItem(this)">
-            <option value="0">GST 0%</option>
-            <option value="5">GST 5%</option>
-            <option value="12">GST 12%</option>
-            <option value="18">GST 18%</option>
-          </select>
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label class="block text-[9px] font-bold text-slate-400 uppercase">Days</label>
+            <input type="number" min="1" class="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg item-days bg-white" placeholder="Days" onchange="updateBillingItem(this)" />
+          </div>
+          <div>
+            <label class="block text-[9px] font-bold text-slate-400 uppercase">Qty</label>
+            <input type="number" min="1" value="1" class="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg item-qty bg-white" placeholder="Qty" onchange="updateBillingItem(this)" />
+          </div>
+          <div>
+            <label class="block text-[9px] font-bold text-slate-400 uppercase">Price (₹)</label>
+            <input type="number" min="0" class="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg item-price bg-white" placeholder="Price" onchange="updateBillingItem(this)" />
+          </div>
+          <div>
+            <label class="block text-[9px] font-bold text-slate-400 uppercase">GST %</label>
+            <select class="w-full px-1 py-1 text-xs border border-slate-200 rounded-lg item-gst bg-white" onchange="updateBillingItem(this)">
+              <option value="0">0%</option>
+              <option value="5">5%</option>
+              <option value="12">12%</option>
+              <option value="18">18%</option>
+            </select>
+          </div>
         </div>
-        <input class="form-control form-control-sm item-total bg-slate-50" placeholder="Total" readonly />
+        <div class="flex items-center justify-between pt-1 border-t border-slate-200/50">
+          <span class="text-[10px] font-bold text-slate-400">LINE TOTAL</span>
+          <span class="text-xs font-bold text-slate-800">₹ <input class="inline-block w-20 text-right bg-transparent border-0 font-bold outline-none item-total" value="0.00" readonly /></span>
+        </div>
       </div>
     `;
   }
@@ -391,15 +547,17 @@
   async function generatePatientBill() {
     const patientId = document.getElementById("billingPatient").value;
     if (!patientId) {
-      alert("Select a patient");
+      alert("Please select a patient profile first");
       return;
     }
 
     const bType = document.getElementById("billingType").value;
     const button = document.getElementById("generateBillButton");
-    const oldText = button.textContent;
+    const buttonSpan = button.querySelector("span");
+    const oldText = buttonSpan.textContent;
+    
     button.disabled = true;
-    button.textContent = "Generating...";
+    buttonSpan.textContent = "Processing Bill...";
 
     try {
       const response = await fetch("/billing/admin/billing/generate", {
@@ -417,16 +575,16 @@
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Failed to generate bill");
 
-      alert(`${data.message}\nInvoice: ${data.invoice_no}\nTotal: ₹ ${Number(data.grand_total).toFixed(2)}`);
+      alert(`✅ Bill Generated Successfully!\n\nInvoice: ${data.invoice_no}\nGrand Total: ₹ ${Number(data.grand_total).toFixed(2)}`);
       document.getElementById("billingItems").innerHTML = "";
       document.getElementById("billingDiscount").value = 0;
       document.getElementById("billingExtra").value = 0;
       await Promise.all([loadBillingHistory(), loadBillingSummary()]);
     } catch (error) {
-      alert(error.message);
+      alert("⚠️ " + error.message);
     } finally {
       button.disabled = false;
-      button.textContent = oldText;
+      buttonSpan.textContent = oldText;
     }
   }
 
@@ -450,7 +608,7 @@
       renderBillingHistory();
     } catch (error) {
       document.getElementById("billingHistory").innerHTML = `
-        <tr><td colspan="9" class="text-center text-danger py-4">${error.message}</td></tr>
+        <tr><td colspan="9" class="text-center text-rose-500 py-6 font-medium">${error.message}</td></tr>
       `;
     }
   }
@@ -473,17 +631,17 @@
       document.getElementById("totalPaid").textContent = `₹ ${paid.toFixed(2)}`;
       document.getElementById("totalDue").textContent = `₹ ${(total - paid).toFixed(2)}`;
     } catch (_) {
-      // Server-rendered totals remain visible if refresh fails.
+      // Keep server rendered totals
     }
   }
 
   function renderTypeBadge(billingType) {
     if (billingType === "EQUIPMENT") {
-      return `<span class="badge bg-amber-100 text-amber-800 border border-amber-200">🛠️ Equipment</span>`;
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">🛠️ Equipment</span>`;
     } else if (billingType === "ALL") {
-      return `<span class="badge bg-purple-100 text-purple-800 border border-purple-200">📦 Combined</span>`;
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">📦 Combined</span>`;
     } else {
-      return `<span class="badge bg-sky-100 text-sky-800 border border-sky-200">🩺 Service</span>`;
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200">🩺 Service</span>`;
     }
   }
 
@@ -496,52 +654,61 @@
 
     const tbody = document.getElementById("billingHistory");
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No billing records found</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-slate-400 py-8">No matching billing records found</td></tr>`;
       return;
     }
 
     const gst = Math.max(0, Math.min(100, Number(document.getElementById("downloadGst").value) || 0));
     tbody.innerHTML = rows.map(bill => `
-      <tr>
-        <td><span class="font-medium">${bill.invoice_no}</span></td>
-        <td>
-          <div class="font-medium">${bill.patient_name}</div>
-          <div class="text-xs text-muted">${bill.phone}</div>
+      <tr class="hover:bg-slate-50/80 transition">
+        <td class="py-3 px-4">
+          <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">${bill.invoice_no}</span>
         </td>
-        <td>${renderTypeBadge(bill.billing_type)}</td>
-        <td>${bill.date}</td>
-        <td>${bill.item_count}</td>
-        <td class="font-medium">₹ ${Number(bill.amount).toFixed(2)}</td>
-        <td>
-          <span class="badge ${bill.status === "PAID" ? "bg-success" : "bg-danger"}">${bill.status}</span>
-          ${bill.payment_mode ? `<div class="text-xs text-muted mt-1">${bill.payment_mode}</div>` : ""}
+        <td class="py-3 px-4">
+          <div class="font-bold text-slate-800">${escapeHtml(bill.patient_name)}</div>
+          <div class="text-[11px] font-mono text-slate-400">📞 ${escapeHtml(bill.phone)}</div>
         </td>
-        <td class="whitespace-nowrap">
-          <a class="btn btn-sm btn-outline-secondary" target="_blank"
-             href="/billing/admin/billing/${bill.bill_id}/download">Basic</a>
-          <a class="btn btn-sm btn-outline-primary" target="_blank"
-             href="/billing/admin/billing/${bill.bill_id}/download?gst_percent=${gst}">GST</a>
+        <td class="py-3 px-4">${renderTypeBadge(bill.billing_type)}</td>
+        <td class="py-3 px-4 font-medium text-slate-600">${bill.date}</td>
+        <td class="py-3 px-4 text-center">
+          <span class="font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-[11px]">${bill.item_count}</span>
         </td>
-        <td>
-          <button class="btn btn-sm btn-outline-primary mb-1" onclick="openBillEdit('${bill.bill_id}')">Edit</button>
-          ${bill.status === "PAID" ? `<span class="text-sm text-success ms-1">Paid</span>` : `
-            <div class="flex gap-1 mt-1">
-              <select id="mode-${bill.bill_id}" class="form-select form-select-sm" style="width:90px">
+        <td class="py-3 px-4 font-extrabold text-slate-900">₹ ${Number(bill.amount).toFixed(2)}</td>
+        <td class="py-3 px-4">
+          ${bill.status === "PAID"
+            ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">✓ PAID</span>`
+            : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">⏳ UNPAID</span>`
+          }
+          ${bill.payment_mode ? `<div class="text-[10px] text-slate-400 mt-0.5 font-medium">via ${bill.payment_mode}</div>` : ""}
+        </td>
+        <td class="py-3 px-4 whitespace-nowrap">
+          <div class="flex items-center gap-1">
+            <a class="px-2 py-1 text-[11px] font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition" target="_blank"
+               href="/billing/admin/billing/${bill.bill_id}/download">Basic</a>
+            <a class="px-2 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition" target="_blank"
+               href="/billing/admin/billing/${bill.bill_id}/download?gst_percent=${gst}">GST ${gst}%</a>
+          </div>
+        </td>
+        <td class="py-3 px-4 text-center whitespace-nowrap">
+          <div class="flex items-center justify-center gap-1">
+            <button class="px-2.5 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 transition" onclick="openBillEdit('${bill.bill_id}')">Edit</button>
+            ${bill.status === "PAID" ? `<span class="text-xs font-bold text-emerald-600 px-1">Done</span>` : `
+              <select id="mode-${bill.bill_id}" class="py-1 px-1.5 text-[11px] font-bold border border-slate-200 rounded-lg bg-white outline-none">
                 <option value="CASH">Cash</option>
                 <option value="UPI">UPI</option>
                 <option value="BANK">Bank</option>
                 <option value="CARD">Card</option>
               </select>
-              <button class="btn btn-sm btn-success" onclick="markBillingPaid('${bill.bill_id}')">Pay</button>
-            </div>
-          `}
+              <button class="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition" onclick="markBillingPaid('${bill.bill_id}')">Pay</button>
+            `}
+          </div>
         </td>
       </tr>
     `).join("");
   }
 
   async function markBillingPaid(billId) {
-    if (!confirm("Mark this bill as paid?")) return;
+    if (!confirm("Confirm marking this invoice as PAID?")) return;
     const paymentMode = document.getElementById(`mode-${billId}`).value;
 
     try {
@@ -555,15 +722,15 @@
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Failed to update payment");
-      alert(data.message);
+      alert("✅ " + data.message);
       await Promise.all([loadBillingHistory(), loadBillingSummary()]);
     } catch (error) {
-      alert(error.message);
+      alert("⚠️ " + error.message);
     }
   }
 
   function escapeHtml(value) {
-    return String(value)
+    return String(value || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -573,19 +740,19 @@
   function editBillRowTemplate(item = {}) {
     return `
       <tr>
-        <td><input class="form-control item-title" value="${escapeHtml(item.title || "")}" placeholder="Item name"></td>
-        <td><input type="date" class="form-control item-start" value="${item.start_date || ""}" onchange="calculateEditBillDays(this)"></td>
-        <td><input type="date" class="form-control item-till" value="${item.till_date || ""}" onchange="calculateEditBillDays(this)"></td>
-        <td><input type="number" class="form-control item-days" value="${item.days || ""}" oninput="updateEditBillTotals()"></td>
-        <td><input type="number" min="1" class="form-control item-qty" value="${item.quantity || 1}" oninput="updateEditBillTotals()"></td>
-        <td><input type="number" min="0" step="0.01" class="form-control item-price" value="${Number(item.unit_price || 0)}" oninput="updateEditBillTotals()"></td>
+        <td><input class="form-control form-control-sm item-title text-xs" value="${escapeHtml(item.title || "")}" placeholder="Item name"></td>
+        <td><input type="date" class="form-control form-control-sm item-start text-xs" value="${item.start_date || ""}" onchange="calculateEditBillDays(this)"></td>
+        <td><input type="date" class="form-control form-control-sm item-till text-xs" value="${item.till_date || ""}" onchange="calculateEditBillDays(this)"></td>
+        <td><input type="number" class="form-control form-control-sm item-days text-xs" value="${item.days || ""}" oninput="updateEditBillTotals()"></td>
+        <td><input type="number" min="1" class="form-control form-control-sm item-qty text-xs" value="${item.quantity || 1}" oninput="updateEditBillTotals()"></td>
+        <td><input type="number" min="0" step="0.01" class="form-control form-control-sm item-price text-xs font-semibold" value="${Number(item.unit_price || 0)}" oninput="updateEditBillTotals()"></td>
         <td>
-          <select class="form-control item-gst" onchange="updateEditBillTotals()">
+          <select class="form-select form-select-sm item-gst text-xs" onchange="updateEditBillTotals()">
             ${[0, 5, 12, 18].map(rate => `<option value="${rate}" ${Number(item.gst_percent || 0) === rate ? "selected" : ""}>${rate}%</option>`).join("")}
           </select>
         </td>
-        <td><input class="form-control item-total" value="${Number(item.total_price || 0).toFixed(2)}" readonly></td>
-        <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove(); updateEditBillTotals();">×</button></td>
+        <td><input class="form-control form-control-sm item-total text-xs font-bold text-slate-800" value="${Number(item.total_price || 0).toFixed(2)}" readonly></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-link text-rose-600 p-0 font-bold" onclick="this.closest('tr').remove(); updateEditBillTotals();">✕</button></td>
       </tr>
     `;
   }
@@ -664,7 +831,7 @@
       updateEditBillTotals();
       bootstrap.Modal.getOrCreateInstance(document.getElementById("billEditModal")).show();
     } catch (error) {
-      alert(error.message);
+      alert("⚠️ " + error.message);
     }
   }
 
@@ -693,17 +860,17 @@
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Failed to update bill");
 
-      alert(`${data.message}\nTotal: ₹ ${Number(data.grand_total).toFixed(2)}`);
+      alert(`✅ ${data.message}\nNew Total: ₹ ${Number(data.grand_total).toFixed(2)}`);
       bootstrap.Modal.getOrCreateInstance(document.getElementById("billEditModal")).hide();
       await Promise.all([loadBillingHistory(), loadBillingSummary()]);
     } catch (error) {
-      alert(error.message);
+      alert("⚠️ " + error.message);
     }
   }
 
   document.getElementById("downloadGst").addEventListener("input", renderBillingHistory);
   document.addEventListener("DOMContentLoaded", () => {
-    onBillingTypeChange();
+    setBillingType("SERVICE");
     const patientFromUrl = new URLSearchParams(window.location.search).get("patient_id");
     if (patientFromUrl) document.getElementById("billingPatient").value = patientFromUrl;
     Promise.all([loadBillingHistory(), loadBillingSummary()]);
