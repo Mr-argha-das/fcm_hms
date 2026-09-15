@@ -7,7 +7,18 @@ Hospital Management System — FastAPI + MongoDB (Atlas) + Firebase.
 ```bash
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
+```
+
+**Option A — real MongoDB Atlas** (needs the host IP in your Atlas IP allow-list):
+```bash
 ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+**Option B — offline / sandbox (no Atlas access):** in-memory MongoDB with
+file persistence. Data is saved to `local_db.json` (every 30s + on shutdown)
+and restored on the next start, so it survives restarts:
+```bash
+./venv/bin/uvicorn run_local:app --host 0.0.0.0 --port 8000
 ```
 
 Default admin (see `core/config.py`): phone `8432144275` / password `Shahzain@144275`.
