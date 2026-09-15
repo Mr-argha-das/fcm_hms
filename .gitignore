@@ -11,3 +11,7 @@ __pycache__/
 uploads/documents/
 utils/healthcare-hms-1fdc42c427ae.json
 
+
+# local in-memory DB snapshot (dev only)
+local_db.json
+local_db.json.tmp
