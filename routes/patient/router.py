@@ -1073,12 +1073,27 @@ def get_all_equipment():
 
     equipments = EquipmentTable.objects()
 
+    # Equipment currently assigned to patients (status=True = in use)
+    in_use_map: dict[str, list[str]] = {}
+    for r in UserEquipmentRequest.objects(status=True).select_related():
+        eq_id = str(r.equipment.id)
+        label = "Unknown"
+        try:
+            user = r.patient.user
+            label = getattr(user, "name", "") or getattr(user, "phone", "") or "Unknown"
+        except Exception:
+            label = "Unknown"
+        in_use_map.setdefault(eq_id, []).append(label)
+
     data = [
         {
             "id": str(e.id),
             "title": e.title,
             "price": e.price,
-          
+            "image": e.image,
+            "in_use": str(e.id) in in_use_map,
+            "in_use_count": len(in_use_map.get(str(e.id), [])),
+            "used_by": in_use_map.get(str(e.id), []),
         }
         for e in equipments
     ]

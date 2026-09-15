@@ -7,14 +7,6 @@
     <!-- HEADER -->
     <div class="d-flex p-3 justify-content-between align-items-center">
       <h5 class="mb-0 text-md">Equipment Management</h5>
-      <!-- <div class="d-flex gap-2">
-        <button
-          class="bg-green-500 text-white px-2 py-1.5 !rounded-xl hover:bg-green-600 transition-colors"
-          onclick="window.location.href = '/admin/create/nurse'"
-        >
-          ➕ Add Nurse
-        </button>
-      </div> -->
     </div>
     <div class="row g-3 p-3">
       <div class="col-md-5">
@@ -22,17 +14,14 @@
       </div>
 
       <div class="col-md-3">
-  <input 
-    id="price" 
-    type="number" 
-    step="0.01"
-    class="form-control" 
-    placeholder="Price"
-  />
-</div>
-
-
-    
+        <input
+          id="price"
+          type="number"
+          step="0.01"
+          class="form-control"
+          placeholder="Price"
+        />
+      </div>
 
       <div class="col-md-2">
         <button
@@ -45,22 +34,48 @@
     </div>
   </div>
 
-  <!-- TABLE -->
+  <!-- ALL EQUIPMENT TABLE -->
   <div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
-    <h5 class="mb-4 font-semibold px-3 pt-3">All Equipment</h5>
+    <div class="d-flex justify-content-between align-items-center px-3 pt-3">
+      <h5 class="mb-4 font-semibold">All Equipment</h5>
+      <span class="badge bg-secondary" id="totalEquipBadge">0</span>
+    </div>
 
     <div class="table-responsive">
       <table class="table align-middle">
         <thead class="table-light">
           <tr>
-           
             <th>Title</th>
             <th>Price</th>
+            <th>Status</th>
             <th width="200">Action</th>
           </tr>
         </thead>
 
         <tbody id="equipmentTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- IN USE EQUIPMENT TABLE -->
+  <div class="bg-card border border-gray-50/20 rounded-2xl shadow-soft4">
+    <div class="d-flex justify-content-between align-items-center px-3 pt-3">
+      <h5 class="mb-4 font-semibold">In Use Equipment</h5>
+      <span class="badge bg-danger" id="inUseEquipBadge">0</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Title</th>
+            <th>Price</th>
+            <th>Used By</th>
+            <th>Assignments</th>
+          </tr>
+        </thead>
+
+        <tbody id="inUseEquipmentTable"></tbody>
       </table>
     </div>
   </div>
@@ -76,12 +91,9 @@
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
-
       <div class="modal-body">
         <input id="editTitle" class="form-control mb-3" placeholder="Title" />
-          <input id="editPrice" type="number" step="0.01" class="form-control mb-3" placeholder="Price" />
-
-      
+        <input id="editPrice" type="number" step="0.01" class="form-control mb-3" placeholder="Price" />
       </div>
 
       <div class="modal-footer">
@@ -101,34 +113,55 @@
   const API_BASE = "/equipment"; // ✅ single source of truth
 
   let editId = null;
+  let allEquipment = [];
   const modal = new bootstrap.Modal(document.getElementById("editModal"));
 
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   /////////////////////////////////////////////////
-  // LOAD ALL
+  // LOAD ALL + RENDER BOTH TABLES
   /////////////////////////////////////////////////
   async function loadEquipment() {
     const res = await fetch(`${API_BASE}/equipment-getall`);
-    const data = await res.json();
+    allEquipment = await res.json();
 
+    renderAllEquipment();
+    renderInUseEquipment();
+  }
+
+  function renderAllEquipment() {
     const table = document.getElementById("equipmentTable");
     table.innerHTML = "";
 
-    data.forEach((e) => {
+    if (!allEquipment.length) {
+      table.innerHTML =
+        '<tr><td colspan="4" class="text-center text-muted py-3">No equipment added yet.</td></tr>';
+      return;
+    }
+
+    allEquipment.forEach((e) => {
+      const statusBadge = e.in_use
+        ? `<span class="badge bg-danger">In Use × ${e.in_use_count}</span>`
+        : `<span class="badge bg-success">Available</span>`;
+
       table.innerHTML += `
         <tr>
-         
-
-          <td class="fw-semibold">${e.title}</td>
+          <td class="fw-semibold">${escapeHtml(e.title)}</td>
           <td>₹ ${e.price ?? 0}</td>
-
+          <td>${statusBadge}</td>
           <td>
-            <button class="btn btn-sm btn-warning me-2"
-              onclick="openEdit('${e.id}','${e.title}','${e.price}','${e.image}')">
+            <button class="btn btn-sm btn-warning me-2" onclick="openEdit('${e.id}')">
               Edit
             </button>
 
-            <button class="btn btn-sm btn-danger"
-              onclick="deleteEquipment('${e.id}')">
+            <button class="btn btn-sm btn-danger" onclick="deleteEquipment('${e.id}')">
               Delete
             </button>
           </td>
@@ -137,38 +170,69 @@
     });
   }
 
+  function renderInUseEquipment() {
+    const inUse = allEquipment.filter((e) => e.in_use);
+    const table = document.getElementById("inUseEquipmentTable");
+    document.getElementById("inUseEquipBadge").textContent = inUse.length;
+    document.getElementById("totalEquipBadge").textContent = allEquipment.length;
+
+    table.innerHTML = "";
+
+    if (!inUse.length) {
+      table.innerHTML =
+        '<tr><td colspan="4" class="text-center text-muted py-3">No equipment is currently in use.</td></tr>';
+      return;
+    }
+
+    inUse.forEach((e) => {
+      const usedBy =
+        (e.used_by && e.used_by.length ? e.used_by : ["Unknown"])
+          .map(escapeHtml)
+          .join(", ");
+
+      table.innerHTML += `
+        <tr>
+          <td class="fw-semibold">${escapeHtml(e.title)}</td>
+          <td>₹ ${e.price ?? 0}</td>
+          <td>${usedBy}</td>
+          <td><span class="badge bg-danger">${e.in_use_count}</span></td>
+        </tr>
+      `;
+    });
+  }
+
   /////////////////////////////////////////////////
   // CREATE
   /////////////////////////////////////////////////
-async function createEquipment() {
-  const title = document.getElementById("title").value;
-  const price = document.getElementById("price").value;
+  async function createEquipment() {
+    const title = document.getElementById("title").value;
+    const price = document.getElementById("price").value;
 
-  if (!title) {
-    alert("Enter title");
-    return;
+    if (!title) {
+      alert("Enter title");
+      return;
+    }
+
+    if (!price) {
+      alert("Enter price");
+      return;
+    }
+
+    await fetch(`${API_BASE}/create-equipment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        price: parseFloat(price),
+      }),
+    });
+
+    document.getElementById("title").value = "";
+    document.getElementById("price").value = "";
+
+    loadEquipment();
   }
-
-  if (!price) {
-    alert("Enter price");
-    return;
-  }
-
-  await fetch(`${API_BASE}/create-equipment`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title,
-      price: parseFloat(price),
-    }),
-  });
-
-  document.getElementById("title").value = "";
-  document.getElementById("price").value = "";
-
-  loadEquipment();
-}
-/////////////////////////////////////////////////
+  /////////////////////////////////////////////////
   // DELETE
   /////////////////////////////////////////////////
   async function deleteEquipment(id) {
@@ -183,69 +247,36 @@ async function createEquipment() {
 
   /////////////////////////////////////////////////
   // EDIT
- function openEdit(id, title, price, image) {
-  editId = id;
+  /////////////////////////////////////////////////
+  function openEdit(id) {
+    const equipment = allEquipment.find((e) => e.id === id);
+    if (!equipment) return;
 
-  document.getElementById("editTitle").value = title;
-  document.getElementById("editPrice").value = price ?? 0;
+    editId = id;
+    document.getElementById("editTitle").value = equipment.title;
+    document.getElementById("editPrice").value = equipment.price ?? 0;
 
-  document.getElementById("editImageFile").value = "";
-
-  modal.show();
-}
+    modal.show();
+  }
 
   /////////////////////////////////////////////////
   // UPDATE
   /////////////////////////////////////////////////
   async function updateEquipment() {
     const title = document.getElementById("editTitle").value;
-    const fileInput = document.getElementById("editImageFile");
 
-    let imagePath = null;
-
-    ////////////////////////////////////////////
-    // If new image selected → upload
-    ////////////////////////////////////////////
-    if (fileInput.files.length) {
-      const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
-      formData.append("folder", "equipment");
-
-      const uploadRes = await fetch("/upload/file", {
-        method: "POST",
-        body: formData,
-      });
-
-      const uploadData = await uploadRes.json();
-
-      if (!uploadData.success) {
-        alert("Image upload failed");
-        return;
-      }
-
-      imagePath = uploadData.path;
-    }
-
-    ////////////////////////////////////////////
-    // Update equipment
-    ////////////////////////////////////////////
     await fetch(`${API_BASE}/equipment-update/${editId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         price: parseFloat(document.getElementById("editPrice").value),
-        image: imagePath, 
       }),
     });
-
-    document.getElementById("editImageFile").value = "";
 
     modal.hide();
     loadEquipment();
   }
-
-  /////////////////////////////////////////////////
 
   loadEquipment();
 </script>
