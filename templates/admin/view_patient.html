@@ -444,11 +444,21 @@
   <div class="card-body  p-3">
 
     <div class="row g-2 mb-3">
-      <div class="col-md-3">
-        <input id="discount" type="number" class="form-control" placeholder="Discount">
+      <div class="col-md-4">
+        <label class="form-label text-xs fw-bold text-muted">BILLING TYPE</label>
+        <select id="patient_billing_type" class="form-select form-select-sm" onchange="onPatientBillingTypeChange()">
+          <option value="SERVICE" selected>🩺 Service Billing (Nurse Duty & Medicines)</option>
+          <option value="EQUIPMENT">🛠️ Equipment Billing (Assigned Equipment)</option>
+          <option value="ALL">📦 Combined (All Items)</option>
+        </select>
       </div>
-      <div class="col-md-3">
-        <input id="extra_charges" type="number" class="form-control" placeholder="Extra Charges">
+      <div class="col-md-4">
+        <label class="form-label text-xs fw-bold text-muted">DISCOUNT (₹)</label>
+        <input id="discount" type="number" class="form-control form-control-sm" placeholder="Discount">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label text-xs fw-bold text-muted">EXTRA CHARGES (₹)</label>
+        <input id="extra_charges" type="number" class="form-control form-control-sm" placeholder="Extra Charges">
       </div>
     </div>
 
@@ -475,8 +485,8 @@
       <i data-lucide="plus-circle" class="w-4 h-4 me-1"></i> Add Item
     </button>
     <br>
-    <button class="btn btn-sm btn-success px-3" onclick="generateBill()">
-      Generate Bill
+    <button id="patientGenerateBillBtn" class="btn btn-sm btn-success px-3" onclick="generateBill()">
+      Generate Service Bill
     </button>
   </div>
 </div>
@@ -500,6 +510,7 @@
       <thead class="table-light">
         <tr>
           <th>Date</th>
+          <th>Type</th>
           <th>Amount</th>
           <th>Status</th>
           <th>PDF</th>
@@ -508,7 +519,7 @@
       </thead>
       <tbody id="billTable">
         <tr>
-          <td colspan="5" class="text-center text-muted">Loading...</td>
+          <td colspan="6" class="text-center text-muted">Loading...</td>
         </tr>
       </tbody>
     </table>
@@ -703,6 +714,22 @@ function addOtherItemRow() {
   tbody.appendChild(row);
 }
 
+function onPatientBillingTypeChange() {
+  const bType = document.getElementById("patient_billing_type").value;
+  const btn = document.getElementById("patientGenerateBillBtn");
+  if (!btn) return;
+  if (bType === "SERVICE") {
+    btn.textContent = "Generate Service Bill";
+    btn.className = "btn btn-sm btn-success px-3";
+  } else if (bType === "EQUIPMENT") {
+    btn.textContent = "Generate Equipment Bill";
+    btn.className = "btn btn-sm btn-warning text-dark px-3";
+  } else {
+    btn.textContent = "Generate Combined Bill";
+    btn.className = "btn btn-sm btn-primary px-3";
+  }
+}
+
 function generateBill() {
   const otherItems = [];
   document.querySelectorAll("#otherItemsTable tr").forEach(row => {
@@ -718,8 +745,11 @@ function generateBill() {
     }
   });
 
+  const bType = document.getElementById("patient_billing_type") ? document.getElementById("patient_billing_type").value : "SERVICE";
+
   const payload = {
     patient_id: patientId,
+    billing_type: bType,
     discount: Number(document.getElementById("discount").value) || 0,
     extra_charges: Number(document.getElementById("extra_charges").value) || 0,
     other_items: otherItems
@@ -769,6 +799,16 @@ function updateRowTotal(el) {
   row.querySelector(".item-final-price").value = finalPrice.toFixed(2);
 }
 
+function renderPatientBillTypeBadge(type) {
+  if (type === "EQUIPMENT") {
+    return `<span class="badge bg-warning text-dark">🛠️ Equipment</span>`;
+  } else if (type === "ALL") {
+    return `<span class="badge text-white" style="background:#7e22ce;">📦 Combined</span>`;
+  } else {
+    return `<span class="badge bg-info text-dark">🩺 Service</span>`;
+  }
+}
+
 function loadBills() {
   fetch(`/billing/admin/patient/${patientId}/bills`, { headers: headers() })
   .then(r => r.json())
@@ -776,13 +816,14 @@ function loadBills() {
     const tbody = document.getElementById("billTable");
     tbody.innerHTML = "";
     if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center">No bills</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center">No bills</td></tr>`;
       return;
     }
     data.forEach(b => {
       tbody.innerHTML += `
         <tr>
           <td>${b.date}</td>
+          <td>${renderPatientBillTypeBadge(b.billing_type)}</td>
           <td>₹ ${b.amount}</td>
           <td>${b.status}</td>
           <td>

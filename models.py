@@ -542,6 +542,8 @@ class BillItem(EmbeddedDocument):
     till_date = DateField()
     days = IntField()
 
+    item_type = StringField(choices=["SERVICE", "EQUIPMENT", "MEDICINE", "OTHER"], default="SERVICE")
+
 class PatientBill(Document):
     patient = ReferenceField("PatientProfile", required=True)
     invoice = ReferenceField("PatientInvoice")
@@ -564,6 +566,8 @@ class PatientBill(Document):
 
     created_by = ReferenceField("User")
     bill_month = StringField()
+
+    billing_type = StringField(choices=["SERVICE", "EQUIPMENT", "ALL"], default="SERVICE")
 
     created_at = DateTimeField(default=datetime.utcnow)
 

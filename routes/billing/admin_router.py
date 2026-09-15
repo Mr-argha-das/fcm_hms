@@ -163,7 +163,13 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
         spaceAfter=2       # 🔥 very small gap
     )
 
-    elements.append(Paragraph("<b>Tax Invoice</b>", title_style))
+    billing_type_val = getattr(bill, "billing_type", "SERVICE") or "SERVICE"
+    type_label = (
+        "Service Billing" if billing_type_val == "SERVICE"
+        else ("Equipment Billing" if billing_type_val == "EQUIPMENT" else "General Billing")
+    )
+
+    elements.append(Paragraph(f"<b>Tax Invoice ({type_label})</b>", title_style))
 
 
     # ---------- BOTTOM LINE ----------
@@ -213,6 +219,7 @@ def generate_bill_pdf(bill, gst_percent: float = 0):
     right_block = Paragraph(f"""
     <b>Invoice Details</b><br/>
     Invoice No: {invoice_no_str}<br/>
+    Bill Type: <b>{type_label}</b><br/>
     Date: {date_str}<br/>
     Time: {time_str}<br/>
     """, right_style)
@@ -648,6 +655,7 @@ def serialize_bill_item(item, index):
         "till_date": item.till_date.isoformat() if item.till_date else None,
         "days": item.days,
         "dosage": item.dosage,
+        "item_type": getattr(item, "item_type", "SERVICE") or "SERVICE",
     }
 
 
@@ -681,140 +689,144 @@ async def generate_bill(
     except:
         raise HTTPException(404, "Patient not found")
 
+    billing_type = (data.get("billing_type") or "SERVICE").upper()
+    if billing_type not in ("SERVICE", "EQUIPMENT", "ALL"):
+        billing_type = "SERVICE"
+
     items = []
     sub_total = 0
 
     # =================================================
-    # 💊 MEDICINES
+    # 💊 MEDICINES & 👩‍⚕️ NURSE DUTY (SERVICE)
     # =================================================
-    medicines = PatientMedication.objects(patient=patient)
+    if billing_type in ("SERVICE", "ALL"):
+        medicines = PatientMedication.objects(patient=patient)
 
-    for m in medicines:
-        if not m.price:
-            continue
+        for m in medicines:
+            if not m.price:
+                continue
 
-        qty = m.duration_days or 1
-        base_total = qty * m.price
+            qty = m.duration_days or 1
+            base_total = qty * m.price
 
-        item = BillItem(
-            title=f"Medicine: {m.medicine_name}",
-            quantity=qty,
-            unit_price=m.price,
-            base_total=base_total,
-            gst_percent=0,
-            gst_amount=0,
-            total_price=base_total,
-            dosage=m.dosage
-        )
-
-        items.append(item)
-        sub_total += base_total
-
-    # =================================================
-    # 👩‍⚕️ NURSE DUTY (Using is_active)
-    # =================================================
-    duties = NurseDuty.objects(
-        patient=patient,
-        is_active=True
-    )
-
-    for duty in duties:
-
-        if not duty.price_perday:
-            continue
-
-        days = duty.duration_days or 1
-        unit_price = duty.price_perday
-        base_total = days * unit_price
-
-        nurse_name = (
-            duty.nurse.user.name
-            if duty.nurse and duty.nurse.user
-            else "Nurse"
-        )
-
-        item = BillItem(
-            title=f"Nurse Duty ({nurse_name}) - {duty.duty_type}",
-            quantity=days,
-            unit_price=unit_price,
-            base_total=base_total,
-            gst_percent=0,
-            gst_amount=0,
-            total_price=base_total,
-            start_date=duty.duty_start.date() if duty.duty_start else None,
-            till_date=duty.duty_end.date() if duty.duty_end else None,
-            days=days
-        )
-
-        items.append(item)
-        sub_total += base_total
-
-        # 🔥 Prevent duplicate billing
-        duty.update(is_active=False)
-
-    # =================================================
-    # 🏥 EQUIPMENT (Using status)
-    # =================================================
-    equipment_requests = UserEquipmentRequest.objects(
-        patient=patient,
-        status=True
-    )
-
-    for req in equipment_requests:
-
-        equipment = req.equipment
-
-        if not equipment:
-            continue
-
-        qty = 1
-        days = req.day_duration or 1
-        assigned_unit_price = req.price_per_day or 0
-        monthly_price = req.monthly_price or 0
-        month_count = req.month_count or 1
-        unit_price = assigned_unit_price or monthly_price or equipment.price or 0
-
-        if not unit_price and not monthly_price:
-            continue
-
-        base_total = (
-            days * qty * assigned_unit_price
-            if assigned_unit_price > 0
-            else ((monthly_price * month_count) if monthly_price > 0 else (days * qty * unit_price))
-        )
-        title_suffix = (
-            f"{days} day{'s' if days != 1 else ''} x {assigned_unit_price:.2f}/day"
-            if assigned_unit_price > 0
-            else (
-                f"{month_count} month{'s' if month_count != 1 else ''} x {monthly_price:.2f}/month"
-                if monthly_price > 0
-                else f"{days} day{'s' if days != 1 else ''} x {unit_price:.2f}/day"
+            item = BillItem(
+                title=f"Medicine: {m.medicine_name}",
+                quantity=qty,
+                unit_price=m.price,
+                base_total=base_total,
+                gst_percent=0,
+                gst_amount=0,
+                total_price=base_total,
+                dosage=m.dosage,
+                item_type="MEDICINE"
             )
+
+            items.append(item)
+            sub_total += base_total
+
+        duties = NurseDuty.objects(
+            patient=patient,
+            is_active=True
         )
 
-        item = BillItem(
-            title=f"Equipment: {equipment.title} ({title_suffix})",
-            quantity=qty,
-            unit_price=unit_price,
-            base_total=base_total,
-            gst_percent=0,
-            gst_amount=0,
-            total_price=base_total,
-            days=days
+        for duty in duties:
+            if not duty.price_perday:
+                continue
+
+            days = duty.duration_days or 1
+            unit_price = duty.price_perday
+            base_total = days * unit_price
+
+            nurse_name = (
+                duty.nurse.user.name
+                if duty.nurse and duty.nurse.user
+                else "Nurse"
+            )
+
+            item = BillItem(
+                title=f"Nurse Duty ({nurse_name}) - {duty.duty_type}",
+                quantity=days,
+                unit_price=unit_price,
+                base_total=base_total,
+                gst_percent=0,
+                gst_amount=0,
+                total_price=base_total,
+                start_date=duty.duty_start.date() if duty.duty_start else None,
+                till_date=duty.duty_end.date() if duty.duty_end else None,
+                days=days,
+                item_type="SERVICE"
+            )
+
+            items.append(item)
+            sub_total += base_total
+
+            # 🔥 Prevent duplicate billing
+            duty.update(is_active=False)
+
+    # =================================================
+    # 🏥 EQUIPMENT (EQUIPMENT)
+    # =================================================
+    if billing_type in ("EQUIPMENT", "ALL"):
+        equipment_requests = UserEquipmentRequest.objects(
+            patient=patient,
+            status=True
         )
 
-        items.append(item)
-        sub_total += base_total
+        for req in equipment_requests:
+            equipment = req.equipment
+            if not equipment:
+                continue
 
-        # 🔥 Prevent duplicate billing
-        req.update(status=False)
+            qty = 1
+            days = req.day_duration or 1
+            assigned_unit_price = req.price_per_day or 0
+            monthly_price = req.monthly_price or 0
+            month_count = req.month_count or 1
+            unit_price = assigned_unit_price or monthly_price or equipment.price or 0
+
+            if not unit_price and not monthly_price:
+                continue
+
+            base_total = (
+                days * qty * assigned_unit_price
+                if assigned_unit_price > 0
+                else ((monthly_price * month_count) if monthly_price > 0 else (days * qty * unit_price))
+            )
+            title_suffix = (
+                f"{days} day{'s' if days != 1 else ''} x {assigned_unit_price:.2f}/day"
+                if assigned_unit_price > 0
+                else (
+                    f"{month_count} month{'s' if month_count != 1 else ''} x {monthly_price:.2f}/month"
+                    if monthly_price > 0
+                    else f"{days} day{'s' if days != 1 else ''} x {unit_price:.2f}/day"
+                )
+            )
+
+            item = BillItem(
+                title=f"Equipment: {equipment.title} ({title_suffix})",
+                quantity=qty,
+                unit_price=unit_price,
+                base_total=base_total,
+                gst_percent=0,
+                gst_amount=0,
+                total_price=base_total,
+                days=days,
+                item_type="EQUIPMENT"
+            )
+
+            items.append(item)
+            sub_total += base_total
+
+            # 🔥 Prevent duplicate billing
+            req.update(status=False)
 
     # =================================================
     # 🧾 OTHER ITEMS
     # =================================================
     for i in data.get("other_items", []):
-
         title = i.get("title")
+        if not title:
+            continue
         qty = i.get("quantity", 1)
         unit_price = i.get("unit_price", 0)
         days = i.get("days")
@@ -837,6 +849,8 @@ async def generate_bill(
         gst_amount = base_total * gst_percent / 100
         total_price = base_total + gst_amount
 
+        item_type = i.get("item_type") or (billing_type if billing_type != "ALL" else "SERVICE")
+
         item = BillItem(
             title=title,
             quantity=qty,
@@ -847,7 +861,8 @@ async def generate_bill(
             total_price=total_price,
             start_date=start_date,
             till_date=till_date,
-            days=days
+            days=days,
+            item_type=item_type
         )
 
         items.append(item)
@@ -857,7 +872,8 @@ async def generate_bill(
     # 💰 TOTALS
     # =================================================
     if not items:
-        raise HTTPException(400, "Add at least one billable item")
+        label = "service" if billing_type == "SERVICE" else ("equipment" if billing_type == "EQUIPMENT" else "billable")
+        raise HTTPException(400, f"No active {label} items found for this patient")
 
     discount = max(float(data.get("discount", 0) or 0), 0)
     extra = max(float(data.get("extra_charges", 0) or 0), 0)
@@ -873,7 +889,8 @@ async def generate_bill(
         grand_total=grand_total,
         created_by=user,
         bill_month=datetime.utcnow().strftime("%b %Y"),
-        status="UNPAID"
+        status="UNPAID",
+        billing_type=billing_type
     )
 
     bill.save()
@@ -1082,9 +1099,14 @@ def download_bill_pdf(
 @router.get("/admin/patient/{patient_id}/bills")
 def get_patient_bills(
     patient_id: str,
+    billing_type: str | None = Query(None, pattern="^(SERVICE|EQUIPMENT|ALL)$"),
     admin=Depends(admin_required)
 ):  
-    bills = PatientBill.objects(patient=patient_id).order_by("-id")
+    filters = {"patient": patient_id}
+    if billing_type and billing_type != "ALL":
+        filters["billing_type"] = billing_type
+
+    bills = PatientBill.objects(**filters).order_by("-id")
 
     response = []
 
@@ -1101,6 +1123,7 @@ def get_patient_bills(
             "status": b.status,
             "payment_mode": b.payment_mode,
             "paid_at": b.paid_at.isoformat() if b.paid_at else None,
+            "billing_type": getattr(b, "billing_type", "SERVICE") or "SERVICE",
         })
 
     return response
@@ -1123,6 +1146,7 @@ def get_bill_detail(
         "patient_id": str(bill.patient.id) if bill.patient else None,
         "bill_date": bill.created_at.strftime("%Y-%m-%d") if bill.created_at else None,
         "bill_month": bill.bill_month or "",
+        "billing_type": getattr(bill, "billing_type", "SERVICE") or "SERVICE",
         "items": [
             serialize_bill_item(item, index)
             for index, item in enumerate(bill.items or [])
@@ -1154,6 +1178,11 @@ async def update_bill(
     items = []
     sub_total = 0.0
     gst_total = 0.0
+
+    if "billing_type" in data and data["billing_type"]:
+        b_type = str(data["billing_type"]).upper()
+        if b_type in ("SERVICE", "EQUIPMENT", "ALL"):
+            bill.billing_type = b_type
 
     for row in data.get("items", []):
         title = (row.get("title") or "").strip()
@@ -1192,6 +1221,7 @@ async def update_bill(
             till_date=till_date,
             days=days,
             dosage=row.get("dosage"),
+            item_type=row.get("item_type") or getattr(bill, "billing_type", "SERVICE") or "SERVICE"
         ))
         sub_total += total_price
         gst_total += gst_amount
@@ -1270,6 +1300,7 @@ async def update_bill(
 def get_all_bills(
     patient_id: str | None = None,
     status: str | None = Query(None, pattern="^(UNPAID|PAID)$"),
+    billing_type: str | None = Query(None, pattern="^(SERVICE|EQUIPMENT|ALL)$"),
     admin=Depends(admin_required)
 ):
     filters = {}
@@ -1277,6 +1308,8 @@ def get_all_bills(
         filters["patient"] = patient_id
     if status:
         filters["status"] = status
+    if billing_type and billing_type != "ALL":
+        filters["billing_type"] = billing_type
 
     bills = PatientBill.objects(**filters).order_by("-created_at").select_related()
     response = []
@@ -1298,6 +1331,7 @@ def get_all_bills(
             "payment_mode": bill.payment_mode,
             "paid_at": bill.paid_at.isoformat() if bill.paid_at else None,
             "item_count": len(bill.items or []),
+            "billing_type": getattr(bill, "billing_type", "SERVICE") or "SERVICE",
         })
 
     return response
