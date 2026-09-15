@@ -121,6 +121,10 @@ app.include_router(admin_nurse_router)
 app.include_router(doctor_router)
 app.include_router(admin_doctor_router)
 app.include_router(patient_router)
+# Register admin HTML pages before the API catch-all routes (e.g.
+# GET /admin/patient/{patient_id}), otherwise static pages like
+# /admin/patient/vitals and /admin/patient/notes get swallowed by it.
+app.include_router(admin_router)
 app.include_router(admin_patient_router)
 app.include_router(relative_router)
 app.include_router(billing_admin_router)
@@ -128,7 +132,6 @@ app.include_router(sos_admin_router)
 app.include_router(complaint_router)
 app.include_router(admin_complaint_router)
 app.include_router(notification_router)
-app.include_router(admin_router)
 app.include_router(medicine_admin_router)
 app.include_router(staff_router)
 app.include_router(sheetRouter)

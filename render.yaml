@@ -1,0 +1,8 @@
+# Render Blueprint — deploy with: New + → Blueprint → pick this repo/branch
+services:
+  - type: web
+    name: fcm-hms
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /check-time
