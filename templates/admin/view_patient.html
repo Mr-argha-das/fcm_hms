@@ -108,50 +108,67 @@
 </div>
 
 <!-- ================= NURSE VISITS ================= -->
-<div class="bg-card  mb-3  border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-header p-2 px-3 !rounded-t-2xl   bg-light">
-    <b><i data-lucide="stethoscope" class="w-4 h-4 inline me-1"></i> Nurse Visits</b>
-  </div>
-  <div class="card-body">
+<div class="bg-card mb-3 border border-gray-50/20 rounded-2xl shadow-soft4 overflow-hidden">
+  <div class="card-header p-2.5 px-3 bg-light flex items-center justify-between">
+    <b><i data-lucide="stethoscope" class="w-4 h-4 inline me-1"></i> Nurse Visits & Assigned Duties</b>
     {% if duties %}
-    <table class="table table-sm table-bordered align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Nurse</th>
-          <th>Nurse Type</th>
-          <th>Care Type</th>
-          <th>Staff Contact</th>
-          <th>Duty Type</th>
-          <th>Shift</th>
-          <th>Start</th>
-          <th>End</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for duty in duties %}
-        <tr>
-          <td>{{ duty.nurse.user.name }}</td>
-          <td>{{ duty.nurse.nurse_type }}</td>
-          <td>{{ duty.care_role or "NURSING" }}</td>
-          <td>{{ duty.staff_contact_number or duty.nurse.user.phone }}</td>
-          <td>{{ duty.duty_type }}</td>
-          <td>{{ duty.shift }}</td>
-          <td>{{ duty.duty_start.strftime("%d %b %Y %H:%M") }}</td>
-          <td>{{ duty.duty_end.strftime("%d %b %Y %H:%M") }}</td>
-          <td>
-            {% if duty.is_active %}
-              <span class="badge bg-success">Active</span>
-            {% else %}
-              <span class="badge bg-secondary">Completed</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% set total_duty_cost = namespace(value=0.0) %}
+    {% for duty in duties %}
+      {% set total_duty_cost.value = total_duty_cost.value + ((duty.price_perday or 0.0) * (duty.duration_days or 1)) %}
+    {% endfor %}
+    <span class="badge bg-emerald-600 text-white px-3 py-1 font-bold text-xs rounded-full shadow-sm">
+      Total Nurse Duty Charges: ₹{{ "%.2f"|format(total_duty_cost.value) }}
+    </span>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    {% if duties %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0 text-xs">
+        <thead class="table-light text-slate-500 font-extrabold uppercase">
+          <tr>
+            <th>Nurse Name</th>
+            <th>Type</th>
+            <th>Care Role</th>
+            <th>Staff Contact</th>
+            <th>Duty Type</th>
+            <th>Shift</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Price / Day</th>
+            <th>Days</th>
+            <th>Total Charge</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+          {% for duty in duties %}
+          <tr>
+            <td class="font-bold text-slate-900">{{ duty.nurse.user.name or "-" if duty.nurse and duty.nurse.user else "Nurse" }}</td>
+            <td><span class="badge bg-slate-100 text-slate-700 border border-slate-200">{{ duty.nurse.nurse_type or "-" if duty.nurse else "-" }}</span></td>
+            <td>{{ duty.care_role or "NURSING" }}</td>
+            <td>📞 {{ duty.staff_contact_number or (duty.nurse.user.phone if duty.nurse and duty.nurse.user else "-") }}</td>
+            <td><span class="badge bg-sky-50 text-sky-800 border border-sky-200">{{ duty.duty_type or "-" }}</span></td>
+            <td>{{ duty.shift or "-" }}</td>
+            <td class="whitespace-nowrap">{{ duty.duty_start.strftime("%d %b %Y %H:%M") if duty.duty_start else "-" }}</td>
+            <td class="whitespace-nowrap">{{ duty.duty_end.strftime("%d %b %Y %H:%M") if duty.duty_end else "-" }}</td>
+            <td class="font-bold text-slate-900">₹ {{ "%.2f"|format(duty.price_perday or 0.0) }}</td>
+            <td class="font-semibold text-slate-600">{{ duty.duration_days or 1 }} d</td>
+            <td class="font-extrabold text-emerald-600">₹ {{ "%.2f"|format((duty.price_perday or 0.0) * (duty.duration_days or 1)) }}</td>
+            <td>
+              {% if duty.is_active %}
+                <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-200">Active</span>
+              {% else %}
+                <span class="badge bg-slate-100 text-slate-600 border border-slate-200">Completed</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-    <p class="text-muted p-3">No nurse visits recorded.</p>
+    <p class="text-muted p-3 mb-0 text-xs">No nurse visits recorded.</p>
     {% endif %}
   </div>
 </div>
