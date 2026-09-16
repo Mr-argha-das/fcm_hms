@@ -1187,21 +1187,30 @@ def get_all_requests():
     data = []
 
     for r in requests:
+        patient_id = str(r.patient.id) if r.patient else ""
+        patient_name = getattr(r.patient.user, "name", "") if (r.patient and getattr(r.patient, "user", None)) else ""
+        patient_phone = getattr(r.patient.user, "phone", "") if (r.patient and getattr(r.patient, "user", None)) else ""
+        ward = str(getattr(r.patient, "address", "") or "") if r.patient else ""
+
+        equip_id = str(r.equipment.id) if r.equipment else ""
+        equip_title = getattr(r.equipment, "title", "") if r.equipment else ""
+        equip_image = getattr(r.equipment, "image", "") if r.equipment else ""
+        equip_price = getattr(r.equipment, "price", 0) if r.equipment else 0
+
         data.append({
             "id": str(r.id),
-            "patient_id": str(r.patient.id),
-            "patient_name": getattr(r.patient.user, "name", ""),
-            "patient_phone": getattr(r.patient.user, "phone", ""),
-            "ward": str(r.patient.address),
-            "equipment_id": str(r.equipment.id),
-            "equipment_title": r.equipment.title,
-            "equipment_image": r.equipment.image,
-            "equipment_price": r.equipment.price,
-            "request_time": r.created_at,
-    
-            "status": r.status
+            "patient_id": patient_id,
+            "patient_name": patient_name or "Unknown Patient",
+            "patient_phone": patient_phone or "-",
+            "equipment_phone": patient_phone or "-",
+            "ward": ward or "-",
+            "equipment_id": equip_id,
+            "equipment_title": equip_title or "Unknown Equipment",
+            "equipment_image": equip_image or "",
+            "equipment_price": equip_price or 0,
+            "request_time": r.created_at.strftime("%Y-%m-%d %H:%M") if getattr(r, "created_at", None) else "",
+            "status": bool(r.status)
         })
-    print(data)
 
     return data
 
@@ -1213,11 +1222,14 @@ def get_patient_requests(patient_id: str):
     data = []
 
     for r in requests:
+        equip_title = getattr(r.equipment, "title", "") if r.equipment else "Unknown Equipment"
+        equip_image = getattr(r.equipment, "image", "") if r.equipment else ""
+
         data.append({
             "id": str(r.id),
-            "equipment_title": r.equipment.title,
-            "equipment_image": r.equipment.image,
-            "status": r.status
+            "equipment_title": equip_title,
+            "equipment_image": equip_image,
+            "status": bool(r.status)
         })
 
     return data

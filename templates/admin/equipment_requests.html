@@ -127,7 +127,7 @@ function renderTable(data) {
     table.innerHTML = `
       <tr>
         <td colspan="8" class="text-center text-muted">
-          No requests found
+          No equipment requests found
         </td>
       </tr>
     `;
@@ -136,11 +136,11 @@ function renderTable(data) {
 
   data.forEach((r) => {
     const statusBadge = r.status
-      ? `<span class="badge bg-success">Approved</span>`
+      ? `<span class="badge bg-success">Assigned / Approved</span>`
       : `<span class="badge bg-warning text-dark">Pending</span>`;
 
     const approveBtn = r.status
-      ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
+      ? `<button class="btn btn-sm btn-secondary" disabled>Assigned</button>`
       : `<button class="btn btn-sm btn-success"
             onclick="approveRequest('${r.id}')">
             Approve
@@ -148,26 +148,20 @@ function renderTable(data) {
     const actionBtn = `${approveBtn}
       <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteRequest('${r.id}')">Delete</button>`;
 
+    const imgTag = r.equipment_image 
+      ? `<img src="${r.equipment_image}" width="50" height="50" class="rounded shadow-sm object-fit-cover" onerror="this.outerHTML='<span class=\'text-2xl\'>📦</span>';">`
+      : `<span class="text-2xl">📦</span>`;
+
     table.innerHTML += `
       <tr>
-
-        <td>
-          <img src="${r.equipment_image}"
-               width="55"
-               height="55"
-               class="rounded shadow-sm object-fit-cover">
-        </td>
-
-        <td class="fw-semibold">${r.equipment_title}</td>
-
-        <td>${r.patient_name}</td>
-        <td>${r.equipment_phone}</td>
-        <td>${r.equipment_price}</td>
-        <td>${r.ward}</td>
+        <td>${imgTag}</td>
+        <td class="fw-semibold">${r.equipment_title || "Equipment"}</td>
+        <td>${r.patient_name || "-"}</td>
+        <td>${r.patient_phone || r.equipment_phone || "-"}</td>
+        <td>₹ ${r.equipment_price || 0}</td>
+        <td>${r.ward || "-"}</td>
         <td>${statusBadge}</td>
-
         <td>${actionBtn}</td>
-
       </tr>
     `;
   });
