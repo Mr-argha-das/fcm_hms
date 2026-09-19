@@ -109,8 +109,13 @@
 
 <!-- ================= NURSE VISITS ================= -->
 <div class="bg-card  mb-3  border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-header p-2 px-3 !rounded-t-2xl   bg-light">
+  <div class="p-2 px-3 !rounded-t-2xl   bg-light flex items-center justify-between">
     <b><i data-lucide="stethoscope" class="w-4 h-4 inline me-1"></i> Nurse Visits</b>
+    {% if total_nurse_charge > 0 %}
+    <span class="badge" style="background:#0f172a; color:#fff; font-size:.75rem; padding:.3rem .75rem; border-radius:999px;">
+      Total Charge: ₹{{ "%.2f"|format(total_nurse_charge) }}
+    </span>
+    {% endif %}
   </div>
   <div class="card-body">
     {% if duties %}
@@ -125,7 +130,11 @@
           <th>Shift</th>
           <th>Start</th>
           <th>End</th>
+          <th>Price/Day</th>
+          <th>Days</th>
+          <th>Total</th>
           <th>Status</th>
+          <th width="160">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -137,14 +146,21 @@
           <td>{{ duty.staff_contact_number or duty.nurse.user.phone }}</td>
           <td>{{ duty.duty_type }}</td>
           <td>{{ duty.shift }}</td>
-          <td>{{ duty.duty_start.strftime("%d %b %Y %H:%M") }}</td>
-          <td>{{ duty.duty_end.strftime("%d %b %Y %H:%M") }}</td>
+          <td>{{ duty.duty_start.strftime("%d %b %Y %H:%M") if duty.duty_start else "-" }}</td>
+          <td>{{ duty.duty_end.strftime("%d %b %Y %H:%M") if duty.duty_end else "-" }}</td>
+          <td>{% if duty.price_perday %}₹{{ "%.2f"|format(duty.price_perday) }}{% else %}-{% endif %}</td>
+          <td>{{ duty.duration_days or "-" }}</td>
+          <td>{% if duty.price_perday %}₹{{ "%.2f"|format((duty.duration_days or 1) * duty.price_perday) }}{% else %}-{% endif %}</td>
           <td>
             {% if duty.is_active %}
               <span class="badge bg-success">Active</span>
             {% else %}
               <span class="badge bg-secondary">Completed</span>
             {% endif %}
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="openDutyEdit('{{ duty.id }}')">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteDuty('{{ duty.id }}')">Delete</button>
           </td>
         </tr>
         {% endfor %}
@@ -556,6 +572,86 @@
   </div>
 </div>
 
+<div class="modal fade" id="dutyEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Edit Nurse Visit / Duty</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="dutyEditId">
+        <div class="mb-2">
+          <label class="form-label">Nurse</label>
+          <select id="dutyEditNurse" class="form-select"></select>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Duty Type</label>
+            <select id="dutyEditDutyType" class="form-select">
+              <option value="10HR">10HR</option>
+              <option value="12HR">12HR</option>
+              <option value="24HR">24HR</option>
+              <option value="FLEX">FLEX</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Shift</label>
+            <select id="dutyEditShift" class="form-select">
+              <option value="DAY">DAY</option>
+              <option value="NIGHT">NIGHT</option>
+              <option value="24_HOURS">24 HOURS</option>
+            </select>
+          </div>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Care Type</label>
+            <select id="dutyEditCareRole" class="form-select">
+              <option value="NURSING">NURSING</option>
+              <option value="CARETAKER">CARETAKER</option>
+              <option value="BABY_CARETAKER">BABY_CARETAKER</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Staff Contact</label>
+            <input id="dutyEditContact" type="tel" class="form-control">
+          </div>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Duty Start</label>
+            <input id="dutyEditStart" type="datetime-local" class="form-control">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Duty End</label>
+            <input id="dutyEditEnd" type="datetime-local" class="form-control">
+          </div>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Price / Day (₹)</label>
+            <input id="dutyEditPrice" type="number" min="0" step="0.01" class="form-control" oninput="updateDutyEditTotal()">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Days</label>
+            <input id="dutyEditDays" type="number" min="1" step="1" class="form-control" oninput="updateDutyEditTotal()">
+          </div>
+        </div>
+        <div class="text-sm fw-semibold mb-2">Total: ₹ <span id="dutyEditTotal">0.00</span></div>
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="dutyEditActive">
+          <label class="form-check-label" for="dutyEditActive">Active duty</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm btn-primary" onclick="saveDutyEdit()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="billEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -678,6 +774,111 @@
 
 <script>
 const patientId = "{{ patient.id }}";
+
+// ===== NURSE DUTY (VISITS) DATA =====
+const DUTIES = [
+  {% for duty in duties %}
+  {
+    id: "{{ duty.id }}",
+    nurse_id: "{{ duty.nurse.id if duty.nurse else '' }}",
+    duty_type: "{{ duty.duty_type or '' }}",
+    shift: "{{ duty.shift or '' }}",
+    care_role: "{{ duty.care_role or 'NURSING' }}",
+    staff_contact: "{{ duty.staff_contact_number or '' }}",
+    duty_start: "{{ duty.duty_start.strftime('%Y-%m-%dT%H:%M') if duty.duty_start else '' }}",
+    duty_end: "{{ duty.duty_end.strftime('%Y-%m-%dT%H:%M') if duty.duty_end else '' }}",
+    price_perday: {{ duty.price_perday if duty.price_perday else 0 }},
+    duration_days: {{ duty.duration_days if duty.duration_days else 1 }},
+    is_active: {{ 'true' if duty.is_active else 'false' }}
+  },
+  {% endfor %}
+];
+
+const NURSES = [
+  {% for n in nurses %}
+  { id: "{{ n.id }}", name: "{{ n.name }}", type: "{{ n.type }}" },
+  {% endfor %}
+];
+
+function openDutyEdit(id) {
+  const d = DUTIES.find(x => x.id === id);
+  if (!d) return;
+
+  document.getElementById("dutyEditId").value = d.id;
+
+  const nurseSelect = document.getElementById("dutyEditNurse");
+  nurseSelect.innerHTML = NURSES.map(n =>
+    `<option value="${n.id}" ${n.id === d.nurse_id ? "selected" : ""}>${n.name}${n.type ? " (" + n.type + ")" : ""}</option>`
+  ).join("");
+
+  document.getElementById("dutyEditDutyType").value = d.duty_type || "12HR";
+  document.getElementById("dutyEditShift").value = d.shift || "DAY";
+  document.getElementById("dutyEditCareRole").value = d.care_role || "NURSING";
+  document.getElementById("dutyEditContact").value = d.staff_contact || "";
+  document.getElementById("dutyEditStart").value = d.duty_start || "";
+  document.getElementById("dutyEditEnd").value = d.duty_end || "";
+  document.getElementById("dutyEditPrice").value = d.price_perday || 0;
+  document.getElementById("dutyEditDays").value = d.duration_days || 1;
+  document.getElementById("dutyEditActive").checked = !!d.is_active;
+  updateDutyEditTotal();
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("dutyEditModal")).show();
+}
+
+function updateDutyEditTotal() {
+  const price = Number(document.getElementById("dutyEditPrice").value) || 0;
+  const days = Number(document.getElementById("dutyEditDays").value) || 1;
+  document.getElementById("dutyEditTotal").textContent = (price * days).toFixed(2);
+}
+
+function saveDutyEdit() {
+  const dutyId = document.getElementById("dutyEditId").value;
+
+  const payload = {
+    nurse_id: document.getElementById("dutyEditNurse").value,
+    duty_type: document.getElementById("dutyEditDutyType").value,
+    shift: document.getElementById("dutyEditShift").value,
+    care_role: document.getElementById("dutyEditCareRole").value,
+    staff_contact_number: document.getElementById("dutyEditContact").value,
+    duty_start: document.getElementById("dutyEditStart").value || null,
+    duty_end: document.getElementById("dutyEditEnd").value || null,
+    duration_days: Number(document.getElementById("dutyEditDays").value) || 1,
+    price_perday: Number(document.getElementById("dutyEditPrice").value) || 0,
+    is_active: document.getElementById("dutyEditActive").checked
+  };
+
+  fetch(`/admin/nurse/duty/${dutyId}/update`, {
+    method: "PUT",
+    headers: headers(),
+    body: JSON.stringify(payload)
+  })
+  .then(async r => {
+    const data = await r.json();
+    if (!r.ok) throw data;
+    return data;
+  })
+  .then(() => {
+    alert("Duty updated");
+    location.reload();
+  })
+  .catch(err => alert(err.detail || "Failed to update duty"));
+}
+
+function deleteDuty(id) {
+  if (!confirm("Delete this nurse visit / duty?")) return;
+
+  fetch(`/admin/nurse/duty/${id}/delete`, { method: "DELETE", headers: headers() })
+  .then(async r => {
+    const data = await r.json();
+    if (!r.ok) throw data;
+    return data;
+  })
+  .then(() => {
+    alert("Duty deleted");
+    location.reload();
+  })
+  .catch(err => alert(err.detail || "Failed to delete duty"));
+}
 
 function addOtherItemRow() {
   const tbody = document.getElementById("otherItemsTable");

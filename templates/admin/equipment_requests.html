@@ -9,7 +9,7 @@
     type="text"
     id="searchInput"
     class="form-control w-72"
-    placeholder="Search equipment..."
+    placeholder="Search patient / equipment / mobile / address..."
     onkeyup="searchRequests()"
   /></h5>
     </div>
@@ -17,11 +17,12 @@
       <table class="table align-middle">
         <thead class="table-light">
           <tr>
-            <th>Image</th>
-            <th>Equipment Name</th>
+            <th>Date</th>
             <th>Patient Name</th>
+            <th>Equipment Name</th>
             <th>Mobile Number</th>
-            <th>Price Per Day</th>
+            <th>Price P/D</th>
+            <th>Price Month</th>
             <th>Address</th>
             <th>Status</th>
             <th width="160">Action</th>
@@ -38,144 +39,106 @@
   const API_BASE = "/equipment";
   let requestsData = [];
 
-
   //////////////////////////////////////////////////////
   // LOAD ALL REQUESTS
   //////////////////////////////////////////////////////
-  // async function loadRequests() {
-  //   const res = await fetch(`${API_BASE}/request-equipment/all`);
-  //   const data = await res.json();
-  //   requestsData = data;
-    
-
-  //   const table = document.getElementById("requestTable");
-  //   table.innerHTML = "";
-
-  //   if (!data.length) {
-  //     table.innerHTML = `
-  //     <tr>
-  //       <td colspan="5" class="text-center text-muted">
-  //         No requests found
-  //       </td>
-  //     </tr>
-  //   `;
-  //     return;
-  //   }
-
-  //   data.forEach((r) => {
-  //     const statusBadge = r.status
-  //       ? `<span class="badge bg-success">Approved</span>`
-  //       : `<span class="badge bg-warning text-dark">Pending</span>`;
-
-  //     const actionBtn = r.status
-  //       ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
-  //       : `<button class="btn btn-sm btn-success"
-  //           onclick="approveRequest('${r.id}')">
-  //           Approve
-  //        </button>`;
-
-  //     table.innerHTML += `
-  //     <tr>
-
-  //       <td>
-  //         <img src="${r.equipment_image}"
-  //              width="55"
-  //              height="55"
-  //              class="rounded shadow-sm object-fit-cover">
-  //       </td>
-
-  //       <td class="fw-semibold">${r.equipment_title}</td>
-
-  //       <td>${r.patient_name}</td>
-  //       <td>${r.equipment_phone}</td>
-  //       <td>${r.equipment_price}</td>
-  //       <td>${r.ward}</td>
-  //       <td>${statusBadge}</td>
-
-  //       <td>${actionBtn}</td>
-
-  //     </tr>
-  //   `;
-  //   });
-  // }
- 
- function searchRequests() {
-  const keyword = document
-    .getElementById("searchInput")
-    .value.toLowerCase();
-
-  const filtered = requestsData.filter((r) =>
-    r.equipment_title.toLowerCase().includes(keyword) ||
-    r.patient_name.toLowerCase().includes(keyword) ||
-    r.equipment_phone.toLowerCase().includes(keyword)
-  );
-
-  renderTable(filtered);
-}
   async function loadRequests() {
-  const res = await fetch(`${API_BASE}/request-equipment/all`);
-  const data = await res.json();
+    const res = await fetch(`${API_BASE}/request-equipment/all`);
+    const data = await res.json();
 
-  requestsData = data; // store data
-  renderTable(data);
-}
-function renderTable(data) {
-  const table = document.getElementById("requestTable");
-  table.innerHTML = "";
+    requestsData = data; // store data
+    renderTable(data);
+  }
 
-  if (!data.length) {
-    table.innerHTML = `
+  function formatDate(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  function formatPrice(value) {
+    const n = parseFloat(value);
+    if (!n || n <= 0) return "—";
+    return "₹" + n.toLocaleString("en-IN");
+  }
+
+  function searchRequests() {
+    const keyword = document
+      .getElementById("searchInput")
+      .value.toLowerCase();
+
+    const filtered = requestsData.filter((r) =>
+      (r.equipment_title || "").toLowerCase().includes(keyword) ||
+      (r.patient_name || "").toLowerCase().includes(keyword) ||
+      (r.patient_phone || "").toLowerCase().includes(keyword) ||
+      (r.address || "").toLowerCase().includes(keyword)
+    );
+
+    renderTable(filtered);
+  }
+
+  function renderTable(data) {
+    const table = document.getElementById("requestTable");
+    table.innerHTML = "";
+
+    if (!data.length) {
+      table.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center text-muted">
+        <td colspan="9" class="text-center text-muted">
           No requests found
         </td>
       </tr>
     `;
-    return;
-  }
+      return;
+    }
 
-  data.forEach((r) => {
-    const statusBadge = r.status
-      ? `<span class="badge bg-success">Approved</span>`
-      : `<span class="badge bg-warning text-dark">Pending</span>`;
+    data.forEach((r) => {
+      const statusBadge = r.status
+        ? `<span class="badge bg-success">Approved</span>`
+        : `<span class="badge bg-warning text-dark">Pending</span>`;
 
-    const approveBtn = r.status
-      ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
-      : `<button class="btn btn-sm btn-success"
+      const approveBtn = r.status
+        ? `<button class="btn btn-sm btn-secondary" disabled>Approved</button>`
+        : `<button class="btn btn-sm btn-success"
             onclick="approveRequest('${r.id}')">
             Approve
          </button>`;
-    const actionBtn = `${approveBtn}
+      const actionBtn = `${approveBtn}
       <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteRequest('${r.id}')">Delete</button>`;
 
-    table.innerHTML += `
+      const equipmentCell = r.equipment_image
+        ? `<div class="d-flex align-items-center gap-2">
+             <img src="${r.equipment_image}" width="40" height="40"
+                  class="rounded shadow-sm object-fit-cover">
+             <span class="fw-semibold">${r.equipment_title}</span>
+           </div>`
+        : `<span class="fw-semibold">${r.equipment_title || "—"}</span>`;
+
+      table.innerHTML += `
       <tr>
-
-        <td>
-          <img src="${r.equipment_image}"
-               width="55"
-               height="55"
-               class="rounded shadow-sm object-fit-cover">
-        </td>
-
-        <td class="fw-semibold">${r.equipment_title}</td>
-
-        <td>${r.patient_name}</td>
-        <td>${r.equipment_phone}</td>
-        <td>${r.equipment_price}</td>
-        <td>${r.ward}</td>
+        <td class="text-nowrap">${formatDate(r.request_time)}</td>
+        <td class="fw-semibold">${r.patient_name || "—"}</td>
+        <td>${equipmentCell}</td>
+        <td class="text-nowrap">${r.patient_phone || "—"}</td>
+        <td class="text-nowrap">${formatPrice(r.price_per_day)}</td>
+        <td class="text-nowrap">${formatPrice(r.monthly_price)}</td>
+        <td>${r.address || "—"}</td>
         <td>${statusBadge}</td>
-
         <td>${actionBtn}</td>
-
       </tr>
     `;
-  });
-}
+    });
+  }
+
   //////////////////////////////////////////////////////
   // APPROVE REQUEST
   //////////////////////////////////////////////////////
-async function approveRequest(id) {
+  async function approveRequest(id) {
     if (!confirm("Approve this request?")) return;
 
     await fetch(`${API_BASE}/request-equipment/approve/${id}`, {
@@ -185,21 +148,21 @@ async function approveRequest(id) {
     });
 
     loadRequests(); // refresh
-}
-
-async function deleteRequest(id) {
-  if (!confirm("Delete this equipment request?")) return;
-
-  const res = await fetch(`${API_BASE}/request-equipment/delete/${id}`, {
-    method: "DELETE",
-  });
-  const data = await res.json();
-  if (res.ok) {
-    loadRequests();
-  } else {
-    alert(data.detail || "Failed to delete equipment request");
   }
-}
+
+  async function deleteRequest(id) {
+    if (!confirm("Delete this equipment request?")) return;
+
+    const res = await fetch(`${API_BASE}/request-equipment/delete/${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (res.ok) {
+      loadRequests();
+    } else {
+      alert(data.detail || "Failed to delete equipment request");
+    }
+  }
 
   //////////////////////////////////////////////////////
 

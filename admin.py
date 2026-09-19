@@ -1285,6 +1285,16 @@ def view_patient_details(request: Request, patient_id: str):
     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
     medications = PatientMedication.objects(patient=patient).order_by("-id")
     relatives = RelativeAccess.objects(patient=patient)
+
+    # ── Nurses (for duty edit dropdown) ──────────────────────
+    nurses = []
+    for n in NurseProfile.objects.select_related():
+        if n.user:
+            nurses.append({
+                "id": str(n.id),
+                "name": n.user.name or "",
+                "type": n.nurse_type or "",
+            })
  
     # ── Equipment ──────────────────────────────────────────────
     equipment_requests = UserEquipmentRequest.objects(patient=patient)
@@ -1324,7 +1334,14 @@ def view_patient_details(request: Request, patient_id: str):
             # Agar reference broken ho toh skip karo
             continue
     # ───────────────────────────────────────────────────────────
- 
+
+    # ── Total nurse duty charge (price_perday x days) ──────────
+    total_nurse_charge = 0.0
+    for d in duties:
+        if d.price_perday:
+            total_nurse_charge += (d.duration_days or 1) * d.price_perday
+    # ───────────────────────────────────────────────────────────
+
     return templates.TemplateResponse(
         "admin/view_patient.html",
         {
@@ -1332,6 +1349,7 @@ def view_patient_details(request: Request, patient_id: str):
             "patient"              : patient,
             "doctor"               : patient.assigned_doctor,
             "duties"               : duties,
+            "nurses"               : nurses,
             "notes"                : notes,
             "vitals"               : vitals,
             "medications"          : medications,
@@ -1339,6 +1357,7 @@ def view_patient_details(request: Request, patient_id: str):
             # ✅ NEW
             "equipment_data"       : equipment_data,
             "total_equipment_cost" : total_equipment_cost,
+            "total_nurse_charge"   : total_nurse_charge,
             "ist_offset"           : timedelta(hours=5, minutes=30),
         }
     )
