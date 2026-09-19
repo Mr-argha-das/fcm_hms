@@ -1182,26 +1182,39 @@ def create_request(payload: EquipmentRequestCreate,user=Depends(get_current_user
 @equipment_router.get("/request-equipment/all")
 def get_all_requests():
 
-    requests = UserEquipmentRequest.objects.select_related()
+    requests = UserEquipmentRequest.objects.select_related().order_by("-created_at")
 
     data = []
 
     for r in requests:
+        patient = r.patient
+        equipment = r.equipment
+
+        if not patient or not equipment:
+            continue
+
+        try:
+            user = patient.user
+        except Exception:
+            user = None
+
         data.append({
             "id": str(r.id),
-            "patient_id": str(r.patient.id),
-            "patient_name": getattr(r.patient.user, "name", ""),
-            "patient_phone": getattr(r.patient.user, "phone", ""),
-            "ward": str(r.patient.address),
-            "equipment_id": str(r.equipment.id),
-            "equipment_title": r.equipment.title,
-            "equipment_image": r.equipment.image,
-            "equipment_price": r.equipment.price,
+            "patient_id": str(patient.id),
+            "patient_name": getattr(user, "name", "") if user else "",
+            "patient_phone": getattr(user, "phone", "") if user else "",
+            "address": str(patient.address or ""),
+            "equipment_id": str(equipment.id),
+            "equipment_title": equipment.title,
+            "equipment_image": equipment.image,
+            "equipment_price": equipment.price,
+            # P/D price: the assigned price, else the equipment's default price
+            "price_per_day": float(r.price_per_day or 0) or float(equipment.price or 0),
+            "monthly_price": float(r.monthly_price or 0),
             "request_time": r.created_at,
-    
+
             "status": r.status
         })
-    print(data)
 
     return data
 

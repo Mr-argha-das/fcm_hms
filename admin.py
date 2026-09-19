@@ -1285,6 +1285,16 @@ def view_patient_details(request: Request, patient_id: str):
     vitals = PatientVitals.objects(patient=patient).order_by("-recorded_at")
     medications = PatientMedication.objects(patient=patient).order_by("-id")
     relatives = RelativeAccess.objects(patient=patient)
+
+    # ── Nurses (for duty edit dropdown) ──────────────────────
+    nurses = []
+    for n in NurseProfile.objects.select_related():
+        if n.user:
+            nurses.append({
+                "id": str(n.id),
+                "name": n.user.name or "",
+                "type": n.nurse_type or "",
+            })
  
     # ── Equipment ──────────────────────────────────────────────
     equipment_requests = UserEquipmentRequest.objects(patient=patient)
@@ -1332,6 +1342,7 @@ def view_patient_details(request: Request, patient_id: str):
             "patient"              : patient,
             "doctor"               : patient.assigned_doctor,
             "duties"               : duties,
+            "nurses"               : nurses,
             "notes"                : notes,
             "vitals"               : vitals,
             "medications"          : medications,

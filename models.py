@@ -604,6 +604,7 @@ class UserEquipmentRequest(Document):
     price_per_day = FloatField(default=0)
     monthly_price = FloatField(default=0)
     month_count = IntField(default=1)
+    created_at = DateTimeField(default=datetime.utcnow)
 
 class UserJoiningFees(Document):
     amount = IntField(required=True, default=99)

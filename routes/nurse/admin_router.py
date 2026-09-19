@@ -8,6 +8,7 @@ from core.dependencies import admin_required, get_current_user
 from models import HospitalModel, NurseProfile, NurseDuty, NurseSalary, NurseConsent, NurseVisit, PatientProfile
 from routes.auth.schemas import NurseVisitCreate, SignatureUpdateSchema
 from bson import ObjectId
+from pydantic import BaseModel
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -73,6 +74,71 @@ def change_duty(
     duty.duty_end = end
     duty.save()
     return {"message": "Duty updated"}
+
+
+class NurseDutyUpdate(BaseModel):
+    nurse_id: Optional[str] = None
+    duty_type: Optional[str] = None
+    shift: Optional[str] = None
+    care_role: Optional[str] = None
+    staff_contact_number: Optional[str] = None
+    duty_start: Optional[datetime] = None
+    duty_end: Optional[datetime] = None
+    is_active: Optional[bool] = None
+
+
+@router.put("/duty/{duty_id}/update")
+def update_duty(
+    duty_id: str,
+    payload: NurseDutyUpdate,
+    admin=Depends(admin_required)
+):
+    duty = NurseDuty.objects(id=duty_id).first()
+    if not duty:
+        raise HTTPException(404, "Duty not found")
+
+    # Nurse (re-assign to another nurse)
+    if payload.nurse_id:
+        nurse = NurseProfile.objects(id=payload.nurse_id).first()
+        if not nurse:
+            raise HTTPException(404, "Nurse not found")
+        other_duty = NurseDuty.objects(
+            nurse=nurse, is_active=True
+        ).exclude(id=duty.id).first()
+        if other_duty:
+            raise HTTPException(400, "Nurse already on another active duty")
+        duty.nurse = nurse
+
+    if payload.duty_type is not None:
+        duty.duty_type = payload.duty_type
+    if payload.shift is not None:
+        duty.shift = payload.shift
+    if payload.care_role is not None:
+        duty.care_role = payload.care_role
+    if payload.staff_contact_number is not None:
+        duty.staff_contact_number = payload.staff_contact_number
+    if payload.duty_start is not None:
+        duty.duty_start = payload.duty_start
+    if payload.duty_end is not None:
+        duty.duty_end = payload.duty_end
+    if payload.is_active is not None:
+        duty.is_active = payload.is_active
+
+    duty.save()
+    return {"message": "Duty updated successfully"}
+
+
+@router.delete("/duty/{duty_id}/delete")
+def delete_duty(
+    duty_id: str,
+    admin=Depends(admin_required)
+):
+    duty = NurseDuty.objects(id=duty_id).first()
+    if not duty:
+        raise HTTPException(404, "Duty not found")
+
+    duty.delete()
+    return {"message": "Duty deleted successfully"}
 @router.post("/salary/generate")
 def generate_salary(
     nurse_id: str,
