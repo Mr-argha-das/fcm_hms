@@ -125,6 +125,9 @@
           <th>Shift</th>
           <th>Start</th>
           <th>End</th>
+          <th>Price/Day</th>
+          <th>Days</th>
+          <th>Total</th>
           <th>Status</th>
           <th width="160">Action</th>
         </tr>
@@ -140,6 +143,9 @@
           <td>{{ duty.shift }}</td>
           <td>{{ duty.duty_start.strftime("%d %b %Y %H:%M") if duty.duty_start else "-" }}</td>
           <td>{{ duty.duty_end.strftime("%d %b %Y %H:%M") if duty.duty_end else "-" }}</td>
+          <td>{% if duty.price_perday %}₹{{ "%.2f"|format(duty.price_perday) }}{% else %}-{% endif %}</td>
+          <td>{{ duty.duration_days or "-" }}</td>
+          <td>{% if duty.price_perday %}₹{{ "%.2f"|format((duty.duration_days or 1) * duty.price_perday) }}{% else %}-{% endif %}</td>
           <td>
             {% if duty.is_active %}
               <span class="badge bg-success">Active</span>
@@ -617,6 +623,17 @@
             <input id="dutyEditEnd" type="datetime-local" class="form-control">
           </div>
         </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Price / Day (₹)</label>
+            <input id="dutyEditPrice" type="number" min="0" step="0.01" class="form-control" oninput="updateDutyEditTotal()">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Days</label>
+            <input id="dutyEditDays" type="number" min="1" step="1" class="form-control" oninput="updateDutyEditTotal()">
+          </div>
+        </div>
+        <div class="text-sm fw-semibold mb-2">Total: ₹ <span id="dutyEditTotal">0.00</span></div>
         <div class="form-check">
           <input type="checkbox" class="form-check-input" id="dutyEditActive">
           <label class="form-check-label" for="dutyEditActive">Active duty</label>
@@ -765,6 +782,8 @@ const DUTIES = [
     staff_contact: "{{ duty.staff_contact_number or '' }}",
     duty_start: "{{ duty.duty_start.strftime('%Y-%m-%dT%H:%M') if duty.duty_start else '' }}",
     duty_end: "{{ duty.duty_end.strftime('%Y-%m-%dT%H:%M') if duty.duty_end else '' }}",
+    price_perday: {{ duty.price_perday if duty.price_perday else 0 }},
+    duration_days: {{ duty.duration_days if duty.duration_days else 1 }},
     is_active: {{ 'true' if duty.is_active else 'false' }}
   },
   {% endfor %}
@@ -793,9 +812,18 @@ function openDutyEdit(id) {
   document.getElementById("dutyEditContact").value = d.staff_contact || "";
   document.getElementById("dutyEditStart").value = d.duty_start || "";
   document.getElementById("dutyEditEnd").value = d.duty_end || "";
+  document.getElementById("dutyEditPrice").value = d.price_perday || 0;
+  document.getElementById("dutyEditDays").value = d.duration_days || 1;
   document.getElementById("dutyEditActive").checked = !!d.is_active;
+  updateDutyEditTotal();
 
   bootstrap.Modal.getOrCreateInstance(document.getElementById("dutyEditModal")).show();
+}
+
+function updateDutyEditTotal() {
+  const price = Number(document.getElementById("dutyEditPrice").value) || 0;
+  const days = Number(document.getElementById("dutyEditDays").value) || 1;
+  document.getElementById("dutyEditTotal").textContent = (price * days).toFixed(2);
 }
 
 function saveDutyEdit() {
@@ -809,6 +837,8 @@ function saveDutyEdit() {
     staff_contact_number: document.getElementById("dutyEditContact").value,
     duty_start: document.getElementById("dutyEditStart").value || null,
     duty_end: document.getElementById("dutyEditEnd").value || null,
+    duration_days: Number(document.getElementById("dutyEditDays").value) || 1,
+    price_perday: Number(document.getElementById("dutyEditPrice").value) || 0,
     is_active: document.getElementById("dutyEditActive").checked
   };
 

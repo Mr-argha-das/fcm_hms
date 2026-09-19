@@ -84,6 +84,8 @@ class NurseDutyUpdate(BaseModel):
     staff_contact_number: Optional[str] = None
     duty_start: Optional[datetime] = None
     duty_end: Optional[datetime] = None
+    duration_days: Optional[int] = None
+    price_perday: Optional[float] = None
     is_active: Optional[bool] = None
 
 
@@ -121,6 +123,10 @@ def update_duty(
         duty.duty_start = payload.duty_start
     if payload.duty_end is not None:
         duty.duty_end = payload.duty_end
+    if payload.duration_days is not None:
+        duty.duration_days = max(int(payload.duration_days), 1)
+    if payload.price_perday is not None:
+        duty.price_perday = max(float(payload.price_perday), 0)
     if payload.is_active is not None:
         duty.is_active = payload.is_active
 
