@@ -109,8 +109,13 @@
 
 <!-- ================= NURSE VISITS ================= -->
 <div class="bg-card  mb-3  border border-gray-50/20 rounded-2xl shadow-soft4">
-  <div class="card-header p-2 px-3 !rounded-t-2xl   bg-light">
+  <div class="p-2 px-3 !rounded-t-2xl   bg-light flex items-center justify-between">
     <b><i data-lucide="stethoscope" class="w-4 h-4 inline me-1"></i> Nurse Visits</b>
+    {% if total_nurse_charge > 0 %}
+    <span class="badge" style="background:#0f172a; color:#fff; font-size:.75rem; padding:.3rem .75rem; border-radius:999px;">
+      Total Charge: ₹{{ "%.2f"|format(total_nurse_charge) }}
+    </span>
+    {% endif %}
   </div>
   <div class="card-body">
     {% if duties %}
