@@ -17,11 +17,12 @@
       <table class="table align-middle">
         <thead class="table-light">
           <tr>
-            <th>Image</th>
-            <th>Equipment Name</th>
+            <th>Date</th>
             <th>Patient Name</th>
+            <th>Equipment Name</th>
             <th>Mobile Number</th>
-            <th>Price Per Day</th>
+            <th>Price P/D</th>
+            <th>Price Month</th>
             <th>Address</th>
             <th>Status</th>
             <th width="160">Action</th>
@@ -100,25 +101,47 @@
   // }
  
  function searchRequests() {
-  const keyword = document
-    .getElementById("searchInput")
-    .value.toLowerCase();
+  const keyword = (document.getElementById("searchInput").value || "").toLowerCase().trim();
 
   const filtered = requestsData.filter((r) =>
-    r.equipment_title.toLowerCase().includes(keyword) ||
-    r.patient_name.toLowerCase().includes(keyword) ||
-    r.equipment_phone.toLowerCase().includes(keyword)
+    String(r.patient_name || "").toLowerCase().includes(keyword) ||
+    String(r.patient_phone || r.equipment_phone || "").toLowerCase().includes(keyword) ||
+    String(r.equipment_title || "").toLowerCase().includes(keyword)
   );
 
   renderTable(filtered);
 }
-  async function loadRequests() {
-  const res = await fetch(`${API_BASE}/request-equipment/all`);
-  const data = await res.json();
 
-  requestsData = data; // store data
-  renderTable(data);
+async function loadRequests() {
+  try {
+    const res = await fetch(`${API_BASE}/request-equipment/all`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to load equipment requests");
+    }
+
+    requestsData = Array.isArray(data) ? data : [];
+    renderTable(requestsData);
+  } catch (error) {
+    console.error("Equipment requests error:", error);
+    requestsData = [];
+    document.getElementById("requestTable").innerHTML = `
+      <tr>
+        <td colspan="9" class="text-center text-danger py-4">
+          Failed to load equipment requests
+        </td>
+      </tr>
+    `;
+  }
 }
+
+function formatRequestDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+}
+
 function renderTable(data) {
   const table = document.getElementById("requestTable");
   table.innerHTML = "";
@@ -126,7 +149,7 @@ function renderTable(data) {
   if (!data.length) {
     table.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center text-muted">
+        <td colspan="9" class="text-center text-muted py-4">
           No requests found
         </td>
       </tr>
@@ -135,6 +158,11 @@ function renderTable(data) {
   }
 
   data.forEach((r) => {
+    const phone = r.patient_phone || r.equipment_phone || "-";
+    const dailyPrice = Number(r.price_per_day || 0);
+    const monthlyPrice = Number(r.monthly_price || 0);
+    const monthCount = Number(r.month_count || 1);
+
     const statusBadge = r.status
       ? `<span class="badge bg-success">Approved</span>`
       : `<span class="badge bg-warning text-dark">Pending</span>`;
@@ -145,29 +173,22 @@ function renderTable(data) {
             onclick="approveRequest('${r.id}')">
             Approve
          </button>`;
+
     const actionBtn = `${approveBtn}
-      <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteRequest('${r.id}')">Delete</button>`;
+      <button class="btn btn-sm btn-outline-danger ms-1"
+        onclick="deleteRequest('${r.id}')">Delete</button>`;
 
     table.innerHTML += `
       <tr>
-
-        <td>
-          <img src="${r.equipment_image}"
-               width="55"
-               height="55"
-               class="rounded shadow-sm object-fit-cover">
-        </td>
-
-        <td class="fw-semibold">${r.equipment_title}</td>
-
-        <td>${r.patient_name}</td>
-        <td>${r.equipment_phone}</td>
-        <td>${r.equipment_price}</td>
-        <td>${r.ward}</td>
+        <td>${formatRequestDate(r.request_time)}</td>
+        <td>${r.patient_name || "-"}</td>
+        <td>${r.equipment_title || "-"}</td>
+        <td>${phone}</td>
+        <td>₹${dailyPrice.toFixed(2)}</td>
+        <td>₹${monthlyPrice.toFixed(2)} x ${monthCount}</td>
+        <td>${r.ward || "-"}</td>
         <td>${statusBadge}</td>
-
         <td>${actionBtn}</td>
-
       </tr>
     `;
   });
