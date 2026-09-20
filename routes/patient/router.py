@@ -90,25 +90,54 @@ async def create_patient(
         payload.phone = normalize_phone(payload.phone)
         payload.aadhaar_number = normalize_aadhaar(payload.aadhaar_number)
 
-        # ❌ duplicate phone check
-        if User.objects(phone=payload.phone).first():
-            raise HTTPException(
-                status_code=400,
-                detail="Phone number already registered"
-            )
-
-        # 🔹 Create USER
-        user = User(
-            role="PATIENT",
-            name=payload.name,
-            father_name=payload.father_name,
-            phone=payload.phone,
-            password_hash=payload.phone,
-            other_number=payload.other_number,
-            email=payload.email,
-            otp_verified=True,
-            is_active=True
+        # 🔹 Find an existing user with this phone.
+        #
+        # A previously deleted patient can leave an orphan User document
+        # (for example, if an older delete flow failed midway). Since User.phone
+        # is unique, that orphan would incorrectly block recreating the patient.
+        existing_user = User.objects(phone=payload.phone).first()
+        existing_patient = (
+            PatientProfile.objects(user=existing_user).first()
+            if existing_user
+            else None
         )
+
+        if existing_user:
+            if existing_user.role != "PATIENT":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Phone number already registered"
+                )
+
+            if existing_patient:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Phone number already registered"
+                )
+
+            # Orphan PATIENT user: reuse it instead of blocking registration.
+            user = existing_user
+            user.name = payload.name
+            user.father_name = payload.father_name
+            user.phone = payload.phone
+            user.password_hash = payload.phone
+            user.other_number = payload.other_number
+            user.email = payload.email
+            user.otp_verified = True
+            user.is_active = True
+        else:
+            # 🔹 Create USER
+            user = User(
+                role="PATIENT",
+                name=payload.name,
+                father_name=payload.father_name,
+                phone=payload.phone,
+                password_hash=payload.phone,
+                other_number=payload.other_number,
+                email=payload.email,
+                otp_verified=True,
+                is_active=True
+            )
 
         # 🏥 Hospital (safe)
         if payload.hospital:
