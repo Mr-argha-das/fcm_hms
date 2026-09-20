@@ -361,12 +361,10 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
 
 @router.delete("/{patient_id}")
 def delete_patient(patient_id: str):
-    """Permanently delete a patient and all patient-owned records.
+    """Delete only the patient profile and its linked login user.
 
-    Cleanup of individual child collections is best-effort so one stale/broken
-    reference cannot prevent the main PatientProfile/User records from being
-    removed. The User is deleted only after PatientProfile.delete() succeeds,
-    which prevents a dangling PatientProfile if the main delete fails.
+    Patient-related history (visits, duties, notes, vitals, medicines,
+    invoices, bills, equipment requests, etc.) is intentionally preserved.
     """
     patient = PatientProfile.objects(id=patient_id).first()
     if not patient:
@@ -374,39 +372,19 @@ def delete_patient(patient_id: str):
 
     patient_user = patient.user
 
-    cleanup_queries = [
-        ("NurseDuty", NurseDuty.objects(patient=patient)),
-        ("NurseVisit", NurseVisit.objects(patient=patient)),
-        ("DoctorVisit", DoctorVisit.objects(patient=patient)),
-        ("PatientDailyNote", PatientDailyNote.objects(patient=patient)),
-        ("PatientVitals", PatientVitals.objects(patient=patient)),
-        ("PatientMedication", PatientMedication.objects(patient=patient)),
-        ("RelativeAccess", RelativeAccess.objects(patient=patient)),
-        ("SOSAlert", SOSAlert.objects(patient=patient)),
-        ("UserEquipmentRequest", UserEquipmentRequest.objects(patient=patient)),
-        ("PatientBill", PatientBill.objects(patient=patient)),
-        ("PatientInvoice", PatientInvoice.objects(patient=patient)),
-    ]
-
-    # Do not let one bad/stale child document prevent patient deletion.
-    for model_name, queryset in cleanup_queries:
-        try:
-            queryset.delete()
-        except Exception as exc:
-            print(f"Patient delete cleanup warning [{model_name}]: {exc}")
-
-    # PatientProfile must be deleted successfully before deleting its User.
+    # Only remove the PatientProfile. Do not delete any patient history or
+    # related business records.
     try:
         patient.delete()
     except Exception as exc:
         print(f"PatientProfile delete failed [{patient_id}]: {exc}")
         raise HTTPException(
             status_code=500,
-            detail="Unable to delete patient profile"
+            detail="Unable to delete patient"
         )
 
-    # User.phone is unique. Removing the linked User here ensures the same
-    # phone number can be registered again after patient deletion.
+    # User.phone is unique. Remove only the linked patient login user so the
+    # same phone number can be registered again.
     if patient_user:
         try:
             patient_user.delete()
@@ -414,7 +392,7 @@ def delete_patient(patient_id: str):
             print(f"Patient User delete failed [{patient_user.id}]: {exc}")
             raise HTTPException(
                 status_code=500,
-                detail="Patient profile deleted but user cleanup failed"
+                detail="Patient deleted but user cleanup failed"
             )
 
     return {"success": True, "message": "Patient deleted successfully"}
