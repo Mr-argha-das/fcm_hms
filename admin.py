@@ -1522,44 +1522,53 @@ def equipment_page(request: Request):
 @router.get("/payments", response_class=HTMLResponse)
 async def admin_payments_page(
     request: Request,
-    user=Depends(get_current_user),
+    admin=Depends(admin_required),
 ):
-    # Build plain dictionaries instead of exposing ReferenceFields directly to
-    # Jinja. Older payment records may contain references to users/fee records
-    # that were deleted; dereferencing those records inside the template can
-    # turn the whole page into a 500 response.
+    # Keep this page independent of broken/stale MongoEngine references.
+    # A single old payment record must never make the complete admin page 500.
     payment_rows = []
 
-    for p in AllPaymentsHistory.objects.order_by("-created_at"):
-        row = {
-            "id": str(p.id),
-            "user_name": "-",
-            "user_role": "",
-            "user_phone": "-",
-            "amount": 0,
-            "status": p.status or "created",
-            "order_id": p.order_id or "-",
-            "payment_id": p.payment_id or "-",
-            "created_at": p.created_at,
-        }
+    try:
+        payments = AllPaymentsHistory.objects.order_by("-created_at")
+    except Exception as exc:
+        print(f"Payments query warning: {exc}")
+        payments = []
 
+    for p in payments:
         try:
-            payment_user = p.user
-            if payment_user:
-                row["user_name"] = getattr(payment_user, "name", None) or "-"
-                row["user_role"] = getattr(payment_user, "role", None) or ""
-                row["user_phone"] = getattr(payment_user, "phone", None) or "-"
-        except Exception as exc:
-            print(f"Payment user reference warning [{p.id}]: {exc}")
+            row = {
+                "id": str(getattr(p, "id", "")),
+                "user_name": "-",
+                "user_role": "",
+                "user_phone": "-",
+                "amount": 0,
+                "status": getattr(p, "status", None) or "created",
+                "order_id": getattr(p, "order_id", None) or "-",
+                "payment_id": getattr(p, "payment_id", None) or "-",
+                "created_at": getattr(p, "created_at", None),
+            }
 
-        try:
-            payment_amount = p.amount
-            if payment_amount:
-                row["amount"] = getattr(payment_amount, "amount", 0) or 0
-        except Exception as exc:
-            print(f"Payment amount reference warning [{p.id}]: {exc}")
+            try:
+                payment_user = getattr(p, "user", None)
+                if payment_user:
+                    row["user_name"] = getattr(payment_user, "name", None) or "-"
+                    row["user_role"] = getattr(payment_user, "role", None) or ""
+                    row["user_phone"] = getattr(payment_user, "phone", None) or "-"
+            except Exception as exc:
+                print(f"Payment user reference warning [{row['id']}]: {exc}")
 
-        payment_rows.append(row)
+            try:
+                payment_amount = getattr(p, "amount", None)
+                if payment_amount:
+                    row["amount"] = getattr(payment_amount, "amount", 0) or 0
+            except Exception as exc:
+                print(f"Payment amount reference warning [{row['id']}]: {exc}")
+
+            payment_rows.append(row)
+
+        except Exception as exc:
+            print(f"Payment row warning: {exc}")
+            continue
 
     return templates.TemplateResponse(
         "admin/payments.html",
