@@ -1278,26 +1278,45 @@ def get_all_bills(
     if status:
         filters["status"] = status
 
-    bills = PatientBill.objects(**filters).order_by("-created_at").select_related()
+    bills = PatientBill.objects(**filters).order_by("-created_at")
     response = []
 
     for bill in bills:
-        invoice = get_bill_invoice(bill)
-        patient = bill.patient
-        user = patient.user if patient else None
+        # Do not let one stale/deleted ReferenceField make the complete
+        # billing-history endpoint return HTTP 500.
+        patient = None
+        user = None
+        invoice = None
+
+        try:
+            patient = bill.patient
+            if patient:
+                user = patient.user
+        except Exception as exc:
+            print(f"Billing patient reference warning [{bill.id}]: {exc}")
+
+        try:
+            invoice = get_bill_invoice(bill)
+        except Exception as exc:
+            print(f"Billing invoice reference warning [{bill.id}]: {exc}")
+
+        try:
+            item_count = len(bill.items or [])
+        except Exception:
+            item_count = 0
 
         response.append({
             "bill_id": str(bill.id),
-            "invoice_no": invoice.invoice_no if invoice else "-",
+            "invoice_no": getattr(invoice, "invoice_no", None) or "-",
             "patient_id": str(patient.id) if patient else None,
-            "patient_name": user.name if user and user.name else "-",
-            "phone": user.phone if user else "-",
+            "patient_name": getattr(user, "name", None) or "-",
+            "phone": getattr(user, "phone", None) or "-",
             "date": bill.created_at.strftime("%d-%m-%Y") if bill.created_at else "-",
             "amount": float(bill.grand_total or 0),
-            "status": bill.status,
-            "payment_mode": bill.payment_mode,
+            "status": bill.status or "UNPAID",
+            "payment_mode": bill.payment_mode or "",
             "paid_at": bill.paid_at.isoformat() if bill.paid_at else None,
-            "item_count": len(bill.items or []),
+            "item_count": item_count,
         })
 
     return response
