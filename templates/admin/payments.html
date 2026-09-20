@@ -27,18 +27,12 @@
         {% for p in payments %}
         <tr>
           <td>{{ loop.index }}</td>
-
           <td>
-            {{ p.user.name if p.user else "-" }} <br>
-            <small class="text-muted">{{ p.user.role if p.user else "" }}</small>
+            {{ p.user_name }} <br>
+            <small class="text-muted">{{ p.user_role }}</small>
           </td>
-
-          <td>{{ p.user.phone if p.user else "-" }}</td>
-
-          <td>
-            ₹{{ p.amount.amount if p.amount else "0" }}
-          </td>
-
+          <td>{{ p.user_phone }}</td>
+          <td>₹{{ p.amount }}</td>
           <td>
             {% if p.status == "success" %}
               <span class="badge bg-success">Success</span>
@@ -48,9 +42,8 @@
               <span class="badge bg-warning text-dark">Created</span>
             {% endif %}
           </td>
-
           <td>{{ p.order_id }}</td>
-          <td>{{ p.payment_id or "-" }}</td>
+          <td>{{ p.payment_id }}</td>
         </tr>
         {% else %}
         <tr>
@@ -59,8 +52,7 @@
           </td>
         </tr>
         {% endfor %}
-      </tbody>
-    </table>
+      </tbody>    </table>
   </div>
 
 </div>
