@@ -382,8 +382,25 @@
         headers: headers(),
         credentials: "same-origin",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to load billing history");
+      const contentType = response.headers.get("content-type") || "";
+      const raw = await response.text();
+      let data;
+
+      try {
+        data = contentType.includes("application/json") ? JSON.parse(raw) : null;
+      } catch (_) {
+        data = null;
+      }
+
+      if (!response.ok) {
+        const detail = data?.detail || raw.replace(/<[^>]*>/g, " ").trim();
+        throw new Error(detail || "Failed to load billing history");
+      }
+
+      if (!Array.isArray(data)) {
+        throw new Error("Billing history returned invalid data");
+      }
+
       billingHistoryData = data;
       renderBillingHistory();
     } catch (error) {
