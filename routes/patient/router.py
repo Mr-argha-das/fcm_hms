@@ -103,28 +103,31 @@ async def create_patient(
         )
 
         if existing_user:
-            if existing_user.role != "PATIENT":
-                raise HTTPException(
-                    status_code=400,
-                    detail="Phone number already registered"
-                )
-
+            # An active patient with this phone is a real duplicate.
             if existing_patient:
                 raise HTTPException(
                     status_code=400,
                     detail="Phone number already registered"
                 )
 
-            # Orphan PATIENT user: reuse it instead of blocking registration.
-            user = existing_user
-            user.name = payload.name
-            user.father_name = payload.father_name
-            user.phone = payload.phone
-            user.password_hash = payload.phone
-            user.other_number = payload.other_number
-            user.email = payload.email
-            user.otp_verified = True
-            user.is_active = True
+            # A PATIENT user without a PatientProfile is an orphan left by
+            # an older/partial delete. Reuse it so the phone can be registered
+            # again instead of failing on User.phone's unique index.
+            if existing_user.role == "PATIENT":
+                user = existing_user
+                user.name = payload.name
+                user.father_name = payload.father_name
+                user.phone = payload.phone
+                user.password_hash = payload.phone
+                user.other_number = payload.other_number
+                user.email = payload.email
+                user.otp_verified = True
+                user.is_active = True
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Phone number already registered"
+                )
         else:
             # 🔹 Create USER
             user = User(
@@ -363,17 +366,20 @@ def update_patient(patient_id: str, payload: PatientUpdatePayload):
 def delete_patient(patient_id: str):
     """Delete only the patient profile and its linked login user.
 
-    Patient-related history (visits, duties, notes, vitals, medicines,
-    invoices, bills, equipment requests, etc.) is intentionally preserved.
+    Historical records are intentionally preserved. The linked User is
+    removed so User.phone can be registered again for a new patient.
     """
     patient = PatientProfile.objects(id=patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    patient_user = patient.user
+    # Resolve the linked user safely before deleting the profile.
+    try:
+        patient_user = patient.user
+    except Exception as exc:
+        print(f"Patient user lookup failed [{patient_id}]: {exc}")
+        patient_user = None
 
-    # Only remove the PatientProfile. Do not delete any patient history or
-    # related business records.
     try:
         patient.delete()
     except Exception as exc:
@@ -383,13 +389,16 @@ def delete_patient(patient_id: str):
             detail="Unable to delete patient"
         )
 
-    # User.phone is unique. Remove only the linked patient login user so the
-    # same phone number can be registered again.
+    # User.phone is unique. Remove only the user linked to this patient.
+    # Do not touch visits, bills, invoices, notes, equipment requests, etc.
     if patient_user:
         try:
             patient_user.delete()
         except Exception as exc:
-            print(f"Patient User delete failed [{patient_user.id}]: {exc}")
+            print(f"Patient User cleanup failed [{patient_user.id}]: {exc}")
+            # If the profile was deleted but its login user could not be
+            # removed, return a clear error rather than silently leaving an
+            # unusable phone registration behind.
             raise HTTPException(
                 status_code=500,
                 detail="Patient deleted but user cleanup failed"
