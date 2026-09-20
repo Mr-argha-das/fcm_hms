@@ -1229,19 +1229,30 @@ def get_all_requests():
     data = []
 
     for r in requests:
+        # Keep the equipment request list resilient to older records that may
+        # not have newer optional fields.
+        patient = r.patient
+        equipment = r.equipment
+        patient_user = getattr(patient, "user", None) if patient else None
+
         data.append({
             "id": str(r.id),
-            "patient_id": str(r.patient.id),
-            "patient_name": getattr(r.patient.user, "name", ""),
-            "patient_phone": getattr(r.patient.user, "phone", ""),
-            "ward": str(r.patient.address),
-            "equipment_id": str(r.equipment.id),
-            "equipment_title": r.equipment.title,
-            "equipment_image": r.equipment.image,
-            "equipment_price": r.equipment.price,
-            "request_time": r.created_at,
-    
-            "status": r.status
+            "patient_id": str(patient.id) if patient else "",
+            "patient_name": getattr(patient_user, "name", "") if patient_user else "",
+            "patient_phone": getattr(patient_user, "phone", "") if patient_user else "",
+            # Backward-compatible aliases used by older admin templates.
+            "equipment_phone": getattr(patient_user, "phone", "") if patient_user else "",
+            "ward": getattr(patient, "address", "") if patient else "",
+            "equipment_id": str(equipment.id) if equipment else "",
+            "equipment_title": getattr(equipment, "title", "") if equipment else "",
+            "equipment_image": getattr(equipment, "image", "") if equipment else "",
+            "equipment_price": getattr(equipment, "price", 0) if equipment else 0,
+            "price_per_day": getattr(r, "price_per_day", 0) or 0,
+            "monthly_price": getattr(r, "monthly_price", 0) or 0,
+            "month_count": getattr(r, "month_count", 1) or 1,
+            "day_duration": getattr(r, "day_duration", 1) or 1,
+            "request_time": getattr(r, "created_at", None),
+            "status": bool(getattr(r, "status", False))
         })
     print(data)
 
