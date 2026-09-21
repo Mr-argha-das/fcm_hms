@@ -522,6 +522,9 @@ class Medicine(Document):
 
 class BillItem(EmbeddedDocument):
     title = StringField()
+    # Kept for compatibility with legacy bills that stored an item category.
+    # Without this field MongoEngine cannot deserialize those bill records.
+    item_type = StringField(required=False)
 
     quantity = IntField(default=1)
     unit_price = FloatField(default=0)
@@ -545,6 +548,8 @@ class BillItem(EmbeddedDocument):
 class PatientBill(Document):
     patient = ReferenceField("PatientProfile", required=True)
     invoice = ReferenceField("PatientInvoice")
+    # Legacy billing records use this category field.
+    billing_type = StringField(required=False)
 
     items = EmbeddedDocumentListField(BillItem)
 
