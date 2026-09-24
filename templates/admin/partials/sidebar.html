@@ -128,16 +128,26 @@
       </div>
       <span class="text-lg">›</span>
     </a>
-    <!-- <a
+    <a
+      href="/admin/equipment-assign"
+      class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path.startswith('/admin/equipment-assign') %} bg-blue-200/50  text-sky-600 shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-sky-600 {% endif %}"
+    >
+      <div class="flex items-center gap-3 text-lg">
+        <i data-lucide="package-plus" class="w-5 h-5"></i>
+        <span class="text-[15px]">Equipment Assign</span>
+      </div>
+      <span class="text-lg">›</span>
+    </a>
+    <a
       href="/admin/request-equipment"
       class="flex items-center justify-between px-4 py-3 rounded-xl {% if request.url.path == '/admin/request-equipment' %} bg-blue-200/50  text-sky-600 shadow-sm {% else %} text-gray-500 hover:bg-blue-200/50 hover:text-sky-600 {% endif %}"
     >
       <div class="flex items-center gap-3 text-lg">
         <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-        <span class="text-[15px]">Equipment requests</span>
+        <span class="text-[15px]">Equipment Requests</span>
       </div>
       <span class="text-lg">›</span>
-    </a> -->
+    </a>
 
     <!-- Doctors -->
     <a
